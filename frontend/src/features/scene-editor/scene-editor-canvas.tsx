@@ -628,6 +628,8 @@ export default function SceneEditorCanvas({
             onUngroup={actions.onUngroup}
             onFlipH={actions.onFlipH}
             onFlipV={actions.onFlipV}
+            onDownloadPng={actions.onDownloadPng}
+            onDownloadSvg={actions.onDownloadSvg}
           />
         )}
         </div>

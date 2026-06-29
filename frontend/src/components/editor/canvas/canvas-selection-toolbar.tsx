@@ -10,6 +10,7 @@ import {
   ArrowRight01Icon,
   Copy01Icon,
   Delete02Icon,
+  Download02Icon,
   FilePasteIcon,
   FlipHorizontalIcon,
   FlipVerticalIcon,
@@ -105,6 +106,8 @@ type CanvasSelectionToolbarProps = {
   onUngroup: () => void;
   onFlipH: () => void;
   onFlipV: () => void;
+  onDownloadPng: () => void;
+  onDownloadSvg: () => void;
 };
 
 const CanvasSelectionToolbar = forwardRef<
@@ -131,16 +134,20 @@ const CanvasSelectionToolbar = forwardRef<
     onUngroup,
     onFlipH,
     onFlipV,
+    onDownloadPng,
+    onDownloadSvg,
   },
   ref,
 ) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [alignOpen, setAlignOpen] = useState(false);
   const [alignElementsOpen, setAlignElementsOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const moreWrapRef = useRef<HTMLDivElement>(null);
   const morePanelRef = useRef<HTMLDivElement>(null);
   const alignElementsFlyoutRef = useRef<HTMLDivElement>(null);
   const alignPageFlyoutRef = useRef<HTMLDivElement>(null);
+  const downloadFlyoutRef = useRef<HTMLDivElement>(null);
   const pickMorePanel = useCallback(() => morePanelRef.current, []);
   const morePopoverShift = useContainedHorizontalPopoverPlacement(
     moreOpen,
@@ -244,6 +251,7 @@ const CanvasSelectionToolbar = forwardRef<
     moreOpen,
     alignOpen,
     alignElementsOpen,
+    downloadOpen,
   ]);
 
   useLayoutEffect(() => {
@@ -289,26 +297,28 @@ const CanvasSelectionToolbar = forwardRef<
       window.removeEventListener("resize", sync);
       window.removeEventListener("scroll", sync, true);
     };
-  }, [moreOpen, alignElementsOpen, alignOpen, viewportRef]);
+  }, [moreOpen, alignElementsOpen, alignOpen, downloadOpen, viewportRef]);
 
   useEffect(() => {
-    if (!moreOpen && !alignOpen && !alignElementsOpen) return;
+    if (!moreOpen && !alignOpen && !alignElementsOpen && !downloadOpen) return;
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
       if (moreWrapRef.current?.contains(t)) return;
       setMoreOpen(false);
       setAlignOpen(false);
       setAlignElementsOpen(false);
+      setDownloadOpen(false);
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
-  }, [moreOpen, alignOpen, alignElementsOpen]);
+  }, [moreOpen, alignOpen, alignElementsOpen, downloadOpen]);
 
   useEffect(() => {
     if (!locked) return;
     setMoreOpen(false);
     setAlignOpen(false);
     setAlignElementsOpen(false);
+    setDownloadOpen(false);
   }, [locked]);
 
   useEffect(() => {
@@ -545,6 +555,71 @@ const CanvasSelectionToolbar = forwardRef<
                       />
                       Flip vertical
                     </button>
+                    <div className="my-1 h-px bg-black/[0.06]" aria-hidden />
+                    {/* ── Download ─────────────────────────────────── */}
+                    <div className="relative w-full shrink-0">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] font-medium text-neutral-800 hover:bg-black/[0.05]"
+                        aria-expanded={downloadOpen}
+                        onClick={() => {
+                          setDownloadOpen((d) => !d);
+                          setAlignOpen(false);
+                          setAlignElementsOpen(false);
+                        }}
+                      >
+                        <span className="flex items-center gap-2">
+                          <HugeiconsIcon
+                            icon={Download02Icon}
+                            size={18}
+                            strokeWidth={1.75}
+                            className="shrink-0 text-neutral-600"
+                          />
+                          Download
+                        </span>
+                        <HugeiconsIcon
+                          icon={ArrowRight01Icon}
+                          size={14}
+                          strokeWidth={1.75}
+                          className={`shrink-0 transition-transform ${downloadOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {downloadOpen ? (
+                        <div
+                          ref={downloadFlyoutRef}
+                          role="menu"
+                          className={[
+                            "absolute left-full top-0 z-[61] ml-1.5 min-w-[9rem] py-1",
+                            floatingToolbarPopoverClass,
+                          ].join(" ")}
+                        >
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-neutral-800 hover:bg-black/[0.05]"
+                            onClick={() => {
+                              onDownloadPng();
+                              setDownloadOpen(false);
+                              setMoreOpen(false);
+                            }}
+                          >
+                            PNG
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-neutral-800 hover:bg-black/[0.05]"
+                            onClick={() => {
+                              onDownloadSvg();
+                              setDownloadOpen(false);
+                              setMoreOpen(false);
+                            }}
+                          >
+                            SVG
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                     <div className="my-1 h-px bg-black/[0.06]" aria-hidden />
                     {canAlignElements ? (
                       <div className="relative w-full shrink-0">

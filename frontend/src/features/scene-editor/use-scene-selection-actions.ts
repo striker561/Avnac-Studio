@@ -9,6 +9,10 @@ import { getRenderableNodeBounds } from "@/lib/editor/overlays";
 import { getNodeBounds } from "@/lib/saraswati/spatial";
 import { buildGroupSelectionCommands } from "@/scene/workspace";
 import { useSceneEditorStore } from "./store";
+import {
+  exportSelectionAsPng,
+  exportSelectionAsSvg,
+} from "@/lib/avnac-selection-export";
 
 const sceneClipboard: SaraswatiNode[] = [];
 const PASTE_OFFSET = 16;
@@ -517,6 +521,16 @@ export function useSceneSelectionActions() {
     setSelectedIds(childrenToSelect.length > 0 ? childrenToSelect : []);
   };
 
+  const onDownloadPng = () => {
+    if (!scene || selectedIds.length === 0) return;
+    void exportSelectionAsPng("selection.png", scene, selectedIds);
+  };
+
+  const onDownloadSvg = () => {
+    if (!scene || selectedIds.length === 0) return;
+    void exportSelectionAsSvg("selection.svg", scene, selectedIds);
+  };
+
   return {
     selectionBounds,
     canGroup,
@@ -536,5 +550,7 @@ export function useSceneSelectionActions() {
     onUngroup,
     onFlipH,
     onFlipV,
+    onDownloadPng,
+    onDownloadSvg,
   };
 }

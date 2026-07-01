@@ -135,33 +135,39 @@ export type SaraswatiRenderCommand =
   | SaraswatiRenderTextCommand
   | SaraswatiRenderImageCommand;
 
+export function buildArtboardRenderCommand(
+  scene: SaraswatiScene,
+): SaraswatiRenderRectCommand {
+  return {
+    type: "rect",
+    id: "__artboard__",
+    x: 0,
+    y: 0,
+    width: scene.artboard.width,
+    height: scene.artboard.height,
+    fill: scene.artboard.bg,
+    stroke: null,
+    strokeWidth: 0,
+    radiusX: 0,
+    radiusY: 0,
+    clipPath: null,
+    clipPathStack: [],
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    opacity: 1,
+    originX: "left",
+    originY: "top",
+    shadow: null,
+    blur: 0,
+  };
+}
+
 export function buildRenderCommands(
   scene: SaraswatiScene,
 ): SaraswatiRenderCommand[] {
   const commands: SaraswatiRenderCommand[] = [
-    {
-      type: "rect",
-      id: "__artboard__",
-      x: 0,
-      y: 0,
-      width: scene.artboard.width,
-      height: scene.artboard.height,
-      fill: scene.artboard.bg,
-      stroke: null,
-      strokeWidth: 0,
-      radiusX: 0,
-      radiusY: 0,
-      clipPath: null,
-      clipPathStack: [],
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      opacity: 1,
-      originX: "left",
-      originY: "top",
-      shadow: null,
-      blur: 0,
-    },
+    buildArtboardRenderCommand(scene),
   ];
 
   for (const node of listSaraswatiNodesInRenderOrder(scene)) {

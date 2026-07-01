@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - studio
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Go tests
+        run: go test ./...
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Frontend typecheck
+        run: npm run typecheck
+        working-directory: frontend
+
+      - name: Frontend tests
+        run: npm run test
+        working-directory: frontend

@@ -89,6 +89,7 @@ In short: Avnac Studio starts fast, uses very little memory, ships as a light ex
 
 - Edit text, shapes (rectangles, ellipses, polygons, stars), lines, and arrows directly on the canvas
 - Add and crop images from local uploads or Unsplash
+- Remove image backgrounds with one click
 - Multi-select, group/ungroup, reorder layers, and align objects
 - Resize, rotate, and position elements with precision controls
 
@@ -297,6 +298,7 @@ npm exec tsc -- --noEmit --pretty false
 **Go:**
 
 ```bash
+go test ./...
 go build ./...
 ```
 

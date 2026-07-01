@@ -6,9 +6,10 @@ Avnac reads configuration from environment variables at runtime. Set them in you
 
 ## Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `BOREAS_URL` | Yes | Base URL of your Boreas API instance, e.g. `https://boreas.api.url` |
+| Variable     | Required | Description                                                         |
+| ------------ | -------- | ------------------------------------------------------------------- |
+| `BOREAS_URL` | Yes      | Base URL of your Boreas API instance, e.g. `https://boreas.api.url` |
+
 ---
 
 ## Setting variables & running
@@ -57,13 +58,15 @@ wails build
 If you don't want to set them every session, add them to your shell profile:
 
 - **PowerShell** — add to `$PROFILE` (`notepad $PROFILE`):
+
   ```powershell
   $env:BOREAS_URL = "https://boreas.api.url"
   ```
 
 - **Bash / zsh** — add to `~/.bashrc` or `~/.zshrc`:
+
   ```bash
   export BOREAS_URL="https://boreas.api.url"
   ```
 
-- **Windows system-wide** — set via *System Properties → Environment Variables* so they apply to all terminals and the installed `.exe`.
+- **Windows system-wide** — set via _System Properties → Environment Variables_ so they apply to all terminals and the installed `.exe`.

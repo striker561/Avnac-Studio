@@ -89,7 +89,7 @@ func (a *App) GetVersion() string {
 	return appVersion
 }
 
-// StartRemoveBackground submits the image to the Boreas background-removal API
+// StartRemoveBackground submits the image to the background-removal API
 // and starts a background SSE stream. Wails events are emitted for progress,
 // completion, and errors so the frontend can update the canvas node.
 func (a *App) StartRemoveBackground(imageBase64 string, nodeId string) error {

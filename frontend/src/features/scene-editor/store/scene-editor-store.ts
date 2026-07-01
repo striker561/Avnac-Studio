@@ -525,17 +525,19 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
       sceneEngineStore.dispatch(cmd);
     }
     const engineState = sceneEngineStore.getState();
-    const nextBaseDocument = toAvnacDocument(engineState.scene);
     const { documentId } = get();
-    set({
+    const patch: Partial<SceneEditorState> = {
       hasPendingChanges: true,
       saveState: "dirty",
       saveError: null,
       scene: engineState.scene,
       canUndo: engineState.canUndo,
       canRedo: engineState.canRedo,
-      baseDocument: nextBaseDocument,
-    });
+    };
+    if (openHistoryBatchDepth === 0) {
+      patch.baseDocument = toAvnacDocument(engineState.scene);
+    }
+    set(patch);
     if (documentId)
       scheduleAutosave(
         documentId,

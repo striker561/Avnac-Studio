@@ -8,10 +8,8 @@ import {
 import {
   buildArtboardRenderCommand,
   buildRenderCommands,
-  isSaraswatiRenderableNode,
   type SaraswatiScene,
 } from "@/lib/saraswati";
-import { clipPathToBounds } from "@/lib/editor/clip-edit";
 import type {
   SaraswatiGuideLine,
   SaraswatiMeasurement,
@@ -19,7 +17,6 @@ import type {
 import { getRenderableNodeBounds } from "@/lib/editor/overlays";
 import type { SaraswatiResizeHandle } from "@/lib/saraswati/commands/types";
 import type { SaraswatiBounds } from "@/lib/saraswati/spatial";
-import { getNodeBounds } from "@/lib/saraswati/spatial";
 import { useEffect, useMemo, useRef } from "react";
 
 export type SceneWorkspaceRenderStats = RenderPaintStats;
@@ -65,15 +62,6 @@ type Props = {
     x: number,
     y: number,
   ) => void;
-  onClipHandlePointerDown?: (
-    pointerId: number,
-    nodeId: string,
-    handle: SaraswatiResizeHandle,
-    startBounds: SaraswatiBounds,
-    x: number,
-    y: number,
-  ) => void;
-  onCreateClipPath?: (nodeId: string, bounds: SaraswatiBounds) => void;
   onCurveHandlePointerDown?: (
     pointerId: number,
     nodeId: string,
@@ -124,8 +112,6 @@ export default function SceneWorkspaceStage({
   onSceneDoubleClick,
   onHandlePointerDown,
   onRotateHandlePointerDown,
-  onClipHandlePointerDown,
-  onCreateClipPath,
   onCurveHandlePointerDown,
   onRenderStats,
   hoveredId,
@@ -261,30 +247,6 @@ export default function SceneWorkspaceStage({
     // Use getRenderableNodeBounds so hover highlights work for group nodes too.
     return getRenderableNodeBounds(scene, hoveredId);
   }, [hiddenNodeIdSet, hoveredId, scene, selectedIds]);
-
-  const editableClip = useMemo(() => {
-    if (!interactive || selectedIds.length !== 1) return null;
-    const nodeId = selectedIds[0]!;
-    if (lockedIdSet.has(nodeId)) return null;
-    const node = scene.nodes[nodeId];
-    if (!node || !isSaraswatiRenderableNode(node) || node.type === "line") {
-      return null;
-    }
-    if (!node.clipPath) return null;
-    return { nodeId, bounds: clipPathToBounds(node.clipPath) };
-  }, [interactive, lockedIdSet, scene, selectedIds]);
-
-  const clipCreationCandidate = useMemo(() => {
-    if (!interactive || selectedIds.length !== 1) return null;
-    const nodeId = selectedIds[0]!;
-    if (lockedIdSet.has(nodeId)) return null;
-    const node = scene.nodes[nodeId];
-    if (!node || !isSaraswatiRenderableNode(node) || node.type === "line") {
-      return null;
-    }
-    if (node.clipPath) return null;
-    return { nodeId, bounds: getNodeBounds(node) };
-  }, [interactive, lockedIdSet, scene, selectedIds]);
 
   const toScenePoint = useMemo(() => {
     return (clientX: number, clientY: number) => {
@@ -502,67 +464,6 @@ export default function SceneWorkspaceStage({
               height: `${Math.max(1, hoveredBounds.height)}px`,
             }}
           />
-        ) : null}
-
-        {editableClip ? (
-          <div
-            className="absolute rounded-md border border-cyan-500/85 border-dashed bg-cyan-200/10"
-            style={{
-              left: `${editableClip.bounds.x}px`,
-              top: `${editableClip.bounds.y}px`,
-              width: `${Math.max(1, editableClip.bounds.width)}px`,
-              height: `${Math.max(1, editableClip.bounds.height)}px`,
-            }}
-          >
-            {HANDLES.map(({ id: handle, cx, cy, cursor }) => (
-              <div
-                key={`clip-${handle}`}
-                className="pointer-events-auto absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-cyan-700 bg-cyan-50 shadow-sm active:bg-cyan-100"
-                style={{
-                  left: `${cx * 100}%`,
-                  top: `${cy * 100}%`,
-                  width: `${handleSize}px`,
-                  height: `${handleSize}px`,
-                  cursor,
-                }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  const point = toScenePoint(e.clientX, e.clientY);
-                  if (!point) return;
-                  contentCanvasRef.current?.setPointerCapture(e.pointerId);
-                  onClipHandlePointerDown?.(
-                    e.pointerId,
-                    editableClip.nodeId,
-                    handle,
-                    editableClip.bounds,
-                    point.x,
-                    point.y,
-                  );
-                }}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {clipCreationCandidate ? (
-          <button
-            type="button"
-            className="pointer-events-auto absolute rounded-md border border-cyan-400/70 bg-cyan-50/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-cyan-700 shadow-sm"
-            style={{
-              left: `${clipCreationCandidate.bounds.x}px`,
-              top: `${Math.max(0, clipCreationCandidate.bounds.y - 26)}px`,
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onCreateClipPath?.(
-                clipCreationCandidate.nodeId,
-                clipCreationCandidate.bounds,
-              );
-            }}
-          >
-            Add clip
-          </button>
         ) : null}
 
         {measurement ? (

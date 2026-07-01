@@ -63,14 +63,11 @@ import {
 } from "@/features/scene-editor/store/paging/page-recipes";
 import { create } from "zustand";
 import {
-  addClipToSelection,
   insertArrow,
   insertEllipse,
   insertLine,
   insertPolygon,
   insertRect,
-  removeClipFromSelection,
-  resetClipOnSelection,
   insertStar,
   insertText,
   insertVectorBoard,
@@ -163,9 +160,6 @@ type SceneEditorActions = {
   insertArrow: () => void;
   insertText: () => void;
   insertVectorBoard: () => void;
-  addClipToSelection: () => void;
-  removeClipFromSelection: () => void;
-  resetClipOnSelection: () => void;
   undo: () => void;
   redo: () => void;
   setArtboard: (width?: number, height?: number, bg?: SaraswatiColor) => void;
@@ -642,10 +636,6 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
   insertArrow: () => insertArrow(asInsertContext(get())),
   insertText: () => insertText(asInsertContext(get())),
   insertVectorBoard: () => insertVectorBoard(asInsertContext(get())),
-  addClipToSelection: () => addClipToSelection(asInsertContext(get())),
-  removeClipFromSelection: () =>
-    removeClipFromSelection(asInsertContext(get())),
-  resetClipOnSelection: () => resetClipOnSelection(asInsertContext(get())),
 
   undo: () => {
     closeHistoryBatches();

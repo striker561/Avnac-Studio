@@ -533,9 +533,7 @@ export default function SceneEditorCanvas({
             onScenePointerLeave={interactions.onPointerLeave}
             onHandlePointerDown={interactions.onHandlePointerDown}
             onRotateHandlePointerDown={interactions.onRotateHandlePointerDown}
-            onClipHandlePointerDown={interactions.onClipHandlePointerDown}
             onCurveHandlePointerDown={interactions.onCurveHandlePointerDown}
-            onCreateClipPath={interactions.onCreateClipPath}
             onSceneDoubleClick={onSceneDoubleClick}
             marqueeBounds={interactions.marqueeBounds}
             onRenderStats={onRenderStats}

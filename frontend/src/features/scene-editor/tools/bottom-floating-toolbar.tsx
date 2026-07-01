@@ -17,7 +17,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { computeFitZoomPercent } from "../scene-editor-viewport-utils";
 import { useSceneEditorStore } from "../store";
 import { useSceneEditorDropActions } from "../use-scene-editor-drop-actions";
-import ClipToolsDropdown from "./clip-tools-dropdown";
 
 function toolbarIconBtn(disabled = false) {
   return [
@@ -268,7 +267,6 @@ export default function BottomFloatingToolbar() {
         <HugeiconsIcon icon={Image01Icon} size={20} strokeWidth={1.75} />
       </button>
 
-      <ClipToolsDropdown />
     </EditorFloatingCanvasControls>
   );
 }

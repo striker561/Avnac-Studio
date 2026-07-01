@@ -387,4 +387,58 @@ describe("saraswati reducer", () => {
       expect(updatedRoot.children).toEqual(["rect-1", "line-1"]);
     }
   });
+
+  it("scales text font size when resized vertically", () => {
+    const scene = createEmptySaraswatiScene({
+      width: 400,
+      height: 300,
+      bg: { type: "solid", color: "#ffffff" },
+    });
+    scene.nodes["text-1"] = {
+      id: "text-1",
+      type: "text",
+      parentId: scene.root,
+      visible: true,
+      x: 40,
+      y: 40,
+      width: 160,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      opacity: 1,
+      originX: "left",
+      originY: "top",
+      text: "Resize me",
+      fontSize: 20,
+      fontFamily: "Inter",
+      fontWeight: "400",
+      fontStyle: "normal",
+      textAlign: "left",
+      lineHeight: 1.2,
+      underline: false,
+      color: { type: "solid", color: "#111111" },
+      stroke: null,
+      strokeWidth: 0,
+      clipPath: null,
+    };
+    const root = scene.nodes[scene.root];
+    if (root?.type === "group") {
+      scene.nodes[scene.root] = { ...root, children: ["text-1"] };
+    }
+
+    const next = applyCommand(scene, {
+      type: "RESIZE_NODE",
+      id: "text-1",
+      x: 40,
+      y: 40,
+      width: 160,
+      height: 48,
+    });
+
+    const text = next.nodes["text-1"];
+    expect(text?.type).toBe("text");
+    if (text?.type !== "text") return;
+    expect(text.fontSize).toBeGreaterThan(20);
+    expect(text.width).toBe(160);
+  });
 });

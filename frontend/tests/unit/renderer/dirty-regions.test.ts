@@ -6,6 +6,7 @@ import type { SaraswatiRectNode } from "@/lib/saraswati";
 import {
   collectDirtyRenderCommandRects,
   planPartialRepaint,
+  renderCommandBounds,
 } from "@/lib/renderer/dirty-regions";
 
 function buildRectNode(id: string, x: number, y: number): SaraswatiRectNode {
@@ -159,5 +160,55 @@ describe("unit: renderer / dirty regions", () => {
 
     expect(plan.mode).toBe("full");
     expect(plan.dirtyRects.length).toBeGreaterThan(1);
+  });
+
+  it("uses anchor-aware bounds for text render commands", () => {
+    const scene = createEmptySaraswatiScene({
+      width: 400,
+      height: 300,
+      bg: { type: "solid", color: "#ffffff" },
+    });
+    scene.nodes["text-1"] = {
+      id: "text-1",
+      type: "text",
+      parentId: scene.root,
+      visible: true,
+      x: 100,
+      y: 80,
+      width: 200,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      opacity: 1,
+      originX: "left",
+      originY: "top",
+      text: "Hello\nWorld",
+      fontSize: 20,
+      fontFamily: "Inter",
+      fontWeight: "400",
+      fontStyle: "normal",
+      textAlign: "left",
+      lineHeight: 1.2,
+      underline: false,
+      color: { type: "solid", color: "#111111" },
+      stroke: null,
+      strokeWidth: 0,
+      clipPath: null,
+    };
+    const root = scene.nodes[scene.root];
+    if (root?.type === "group") {
+      scene.nodes[scene.root] = { ...root, children: ["text-1"] };
+    }
+
+    const [command] = buildRenderCommands(scene).filter((c) => c.id === "text-1");
+    expect(command?.type).toBe("text");
+    if (!command || command.type !== "text") return;
+
+    const bounds = renderCommandBounds(command);
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeCloseTo(98, 1);
+    expect(bounds!.y).toBeCloseTo(78, 1);
+    expect(bounds!.width).toBeGreaterThan(190);
+    expect(bounds!.height).toBeGreaterThan(40);
   });
 });

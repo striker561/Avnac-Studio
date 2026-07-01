@@ -441,7 +441,16 @@ export default function SceneWorkspaceStage({
         className={["relative z-[1]", interactive ? "cursor-default" : ""]
           .filter(Boolean)
           .join(" ")}
-        style={interactionCursor ? { cursor: interactionCursor } : undefined}
+        style={{
+          ...(interactionCursor ? { cursor: interactionCursor } : {}),
+          ...(interactive
+            ? {
+                userSelect: "none",
+                WebkitUserSelect: "none",
+                touchAction: "none",
+              }
+            : {}),
+        }}
       />
       <div
         className="pointer-events-none absolute inset-0 z-2"

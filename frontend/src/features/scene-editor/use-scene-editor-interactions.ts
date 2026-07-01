@@ -339,7 +339,7 @@ export function useSceneEditorInteractions(
       setHoveredId(null);
       setGuides([]);
       setMeasurement(null);
-      setActiveCursor(null);
+      setActiveCursor("grabbing");
     },
     [beginHistoryBatch, setSelectedIds],
   );

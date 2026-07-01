@@ -68,6 +68,11 @@ export function snapDeltaToGrid(
   };
 }
 
+export function getTextNodeVisualHeight(text: string, fontSize: number, lineHeight: number): number {
+  const lineCount = Math.max(1, text.split(/\r?\n/).length);
+  return Math.max(1, fontSize * Math.max(1, lineHeight) * lineCount);
+}
+
 export function getNodeBounds(node: SaraswatiRenderableNode): SaraswatiBounds {
   if (node.type === "line") {
     const metrics = lineGeometryMetrics(node);
@@ -82,7 +87,7 @@ export function getNodeBounds(node: SaraswatiRenderableNode): SaraswatiBounds {
   const width = node.type === "text" ? Math.max(1, node.width) : node.width;
   const height =
     node.type === "text"
-      ? Math.max(1, node.fontSize * Math.max(1, node.lineHeight))
+      ? getTextNodeVisualHeight(node.text, node.fontSize, node.lineHeight)
       : node.height;
   const scaledWidth = Math.abs(width * node.scaleX);
   const scaledHeight = Math.abs(height * node.scaleY);
@@ -131,7 +136,7 @@ function pointHitsNode(
     const width = node.type === "text" ? Math.max(1, node.width) : node.width;
     const height =
       node.type === "text"
-        ? Math.max(1, node.fontSize * Math.max(1, node.lineHeight))
+        ? getTextNodeVisualHeight(node.text, node.fontSize, node.lineHeight)
         : node.height;
     const scaledWidth = Math.abs(width * node.scaleX);
     const scaledHeight = Math.abs(height * node.scaleY);

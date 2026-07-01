@@ -1,4 +1,5 @@
 import type { SaraswatiRenderCommand } from "@/lib/saraswati";
+import { anchorToCenter } from "@/lib/saraswati/transform/anchor";
 
 export type DirtyRect = {
   x: number;
@@ -117,24 +118,23 @@ export function renderCommandBounds(
       height: Math.max(1, Math.abs(command.y2 - command.y1)) + pad * 2,
     };
   }
-  if (command.type === "text") {
-    const lineCount = Math.max(1, command.text.split(/\r?\n/).length);
-    const approxHeight =
-      Math.max(1, command.fontSize) *
-      Math.max(1, command.lineHeight) *
-      lineCount;
-    return {
-      x: command.x - pad,
-      y: command.y - pad,
-      width: Math.max(1, command.width * Math.abs(command.scaleX)) + pad * 2,
-      height: Math.max(1, approxHeight * Math.abs(command.scaleY)) + pad * 2,
-    };
-  }
+
+  const visualHeight =
+    command.type === "text"
+      ? Math.max(
+          1,
+          command.fontSize *
+            Math.max(1, command.lineHeight) *
+            Math.max(1, command.text.split(/\r?\n/).length),
+        )
+      : command.height;
+
+  const bounds = axisBoundsFromTransform(command, command.width, visualHeight);
   return {
-    x: command.x - pad,
-    y: command.y - pad,
-    width: Math.max(1, command.width * Math.abs(command.scaleX)) + pad * 2,
-    height: Math.max(1, command.height * Math.abs(command.scaleY)) + pad * 2,
+    x: bounds.x - pad,
+    y: bounds.y - pad,
+    width: bounds.width + pad * 2,
+    height: bounds.height + pad * 2,
   };
 }
 
@@ -200,5 +200,80 @@ function unionRect(a: DirtyRect, b: DirtyRect): DirtyRect {
     y,
     width: Math.max(1, right - x),
     height: Math.max(1, bottom - y),
+  };
+}
+
+type TransformCommandLike = {
+  x: number;
+  y: number;
+  rotation: number;
+  scaleX: number;
+  scaleY: number;
+  originX: string;
+  originY: string;
+};
+
+function anchorToStart(
+  anchor: number,
+  origin: string | undefined,
+  size: number,
+  isX: boolean,
+): number {
+  return anchorToCenter(anchor, origin, size, isX) - size / 2;
+}
+
+function axisBoundsFromTransform(
+  command: TransformCommandLike,
+  width: number,
+  height: number,
+): DirtyRect {
+  const scaledWidth = Math.max(1, width * Math.abs(command.scaleX));
+  const scaledHeight = Math.max(1, height * Math.abs(command.scaleY));
+
+  if (!command.rotation) {
+    return {
+      x: anchorToStart(command.x, command.originX, scaledWidth, true),
+      y: anchorToStart(command.y, command.originY, scaledHeight, false),
+      width: scaledWidth,
+      height: scaledHeight,
+    };
+  }
+
+  const centerX = anchorToCenter(command.x, command.originX, scaledWidth, true);
+  const centerY = anchorToCenter(command.y, command.originY, scaledHeight, false);
+  const halfW = scaledWidth / 2;
+  const halfH = scaledHeight / 2;
+  const rad = (command.rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const corners = [
+    rotatePoint(-halfW, -halfH, cos, sin, centerX, centerY),
+    rotatePoint(halfW, -halfH, cos, sin, centerX, centerY),
+    rotatePoint(halfW, halfH, cos, sin, centerX, centerY),
+    rotatePoint(-halfW, halfH, cos, sin, centerX, centerY),
+  ];
+  const minX = Math.min(...corners.map((point) => point.x));
+  const maxX = Math.max(...corners.map((point) => point.x));
+  const minY = Math.min(...corners.map((point) => point.y));
+  const maxY = Math.max(...corners.map((point) => point.y));
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(1, maxX - minX),
+    height: Math.max(1, maxY - minY),
+  };
+}
+
+function rotatePoint(
+  x: number,
+  y: number,
+  cos: number,
+  sin: number,
+  centerX: number,
+  centerY: number,
+) {
+  return {
+    x: centerX + x * cos - y * sin,
+    y: centerY + x * sin + y * cos,
   };
 }

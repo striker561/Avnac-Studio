@@ -10,7 +10,7 @@ import type {
   SaraswatiNodeOriginX,
   SaraswatiNodeOriginY,
 } from "../types";
-import { getNodeBounds, type SaraswatiBounds } from "../spatial";
+import { getNodeBounds, getTextNodeVisualHeight, type SaraswatiBounds } from "../spatial";
 import type { SaraswatiCommand } from "./types";
 
 export function applyCommand(
@@ -479,11 +479,27 @@ function resizeNode(
   const ny = boundsToAnchorY(clamped.by, node.originY, clamped.bh);
   if (node.type === "text") {
     const sx = safeAbsScale(node.scaleX);
+    const sy = safeAbsScale(node.scaleY);
+    const prevHeight =
+      getTextNodeVisualHeight(node.text, node.fontSize, node.lineHeight) * sy;
+    const prevWidth = Math.max(1, node.width) * sx;
+    let nextFontSize = node.fontSize;
+    let nextWidth = clamped.bw / sx;
+
+    if (Math.abs(clamped.bh - prevHeight) > 0.5) {
+      const heightScale = clamped.bh / prevHeight;
+      nextFontSize = Math.max(1, node.fontSize * heightScale);
+    }
+    if (Math.abs(clamped.bw - prevWidth) > 0.5) {
+      nextWidth = Math.max(1, clamped.bw / sx);
+    }
+
     next.nodes[nodeId] = {
       ...node,
       x: nx,
       y: ny,
-      width: clamped.bw / sx,
+      width: nextWidth,
+      fontSize: nextFontSize,
     };
     return next;
   }
@@ -585,11 +601,14 @@ function resizeGroupNode(
 
     if (node.type === "text") {
       const sxAbs = safeAbsScale(node.scaleX);
+      const heightRatio =
+        mappedBounds.height / Math.max(minChildSize, nodeBounds.height);
       next.nodes[id] = {
         ...node,
         x: nx,
         y: ny,
         width: mappedBounds.width / sxAbs,
+        fontSize: Math.max(1, node.fontSize * heightRatio),
       };
       continue;
     }

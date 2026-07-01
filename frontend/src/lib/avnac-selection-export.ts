@@ -11,7 +11,11 @@
  *      original src URL (remote images may not display in all SVG viewers).
  */
 
-import { ExportPng, ExportTextFile } from "../../wailsjs/go/avnacio/IOManager";
+import {
+  downloadSvgViaBrowser,
+  exportPngNativeOrBrowser,
+  exportTextFileNativeOrBrowser,
+} from "./avnac-export-io";
 import {
   type SaraswatiNode,
   type SaraswatiRenderableNode,
@@ -29,36 +33,12 @@ import type {
   SaraswatiTextNode,
 } from "./saraswati/types";
 import { getNodeBounds } from "./saraswati/spatial";
-import { buildRenderCommands } from "./saraswati/render/commands";
-import { canvas2DRendererBackend } from "./renderer/backends/canvas2d/renderer";
+import { renderSceneToPngDataUrl } from "./renderer/offscreen-render";
 import { resolveSelectionPngMultiplier } from "./image-pixel-utils";
 import type { BgValue, GradientStop } from "./editor-paint";
+import { anchorToCenter } from "./saraswati/transform/anchor";
 
 // ─── Shared utilities ────────────────────────────────────────────────────────
-
-function hasNativeBridge(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof (window as unknown as { go?: unknown }).go !== "undefined"
-  );
-}
-
-function downloadDataUrlViaBrowser(filename: string, dataUrl: string): void {
-  const anchor = document.createElement("a");
-  anchor.href = dataUrl;
-  anchor.download = filename;
-  anchor.click();
-}
-
-function downloadSvgViaBrowser(filename: string, svg: string): void {
-  const blob = new Blob([svg], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
 
 /** Collect the IDs of the selected nodes and every one of their descendants. */
 function collectDescendantIds(
@@ -198,24 +178,12 @@ export async function exportSelectionAsPng(
     );
   }
 
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(result.width * multiplier);
-  canvas.height = Math.round(result.height * multiplier);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("Could not create export canvas.");
-  }
-
-  ctx.save();
-  ctx.scale(multiplier, multiplier);
-  // Slice off the first command (artboard bg rect) — keep the canvas transparent.
-  const commands = buildRenderCommands(result.virtualScene).slice(1);
-  await canvas2DRendererBackend.render(ctx, commands);
-  ctx.restore();
-
   let dataUrl: string;
   try {
-    dataUrl = canvas.toDataURL("image/png");
+    dataUrl = await renderSceneToPngDataUrl(result.virtualScene, {
+      multiplier,
+      skipArtboardBackgroundCommand: true,
+    });
   } catch (err) {
     throw new Error(
       "PNG export failed because a remote image tainted the canvas " +
@@ -224,20 +192,9 @@ export async function exportSelectionAsPng(
     );
   }
 
-  if (!hasNativeBridge()) {
-    downloadDataUrlViaBrowser(filename, dataUrl);
-    return;
-  }
-
-  try {
-    await ExportPng(filename, dataUrl);
-  } catch (err) {
-    console.error(
-      "[avnac] native selection PNG export failed, falling back to browser",
-      err,
-    );
-    downloadDataUrlViaBrowser(filename, dataUrl);
-  }
+  await exportPngNativeOrBrowser(filename, dataUrl, {
+    logLabel: "native selection PNG export",
+  });
 }
 
 // ─── SVG Export ──────────────────────────────────────────────────────────────
@@ -254,26 +211,6 @@ function uid(ctx: SvgCtx, prefix: string): string {
 /** Round to 2 decimal places and stringify. */
 function r2(n: number): string {
   return (Math.round(n * 100) / 100).toString();
-}
-
-/**
- * Compute the center coordinate used by the canvas transform system.
- * Mirrors `anchorToCenter` in the canvas2d shared module.
- */
-function anchorToCenter(
-  anchor: number,
-  origin: string,
-  renderedSize: number,
-  isX: boolean,
-): number {
-  const axisOrigin = origin || (isX ? "left" : "top");
-  const factor =
-    axisOrigin === "center"
-      ? 0.5
-      : axisOrigin === "right" || axisOrigin === "bottom"
-        ? 1
-        : 0;
-  return anchor + (0.5 - factor) * renderedSize;
 }
 
 /**
@@ -755,18 +692,8 @@ export async function exportSelectionAsSvg(
 
   const svg = buildSvgString(result.leafNodes, result.width, result.height);
 
-  if (!hasNativeBridge()) {
-    downloadSvgViaBrowser(filename, svg);
-    return;
-  }
-
-  try {
-    await ExportTextFile(filename, svg);
-  } catch (err) {
-    console.error(
-      "[avnac] native selection SVG export failed, falling back to browser",
-      err,
-    );
-    downloadSvgViaBrowser(filename, svg);
-  }
+  await exportTextFileNativeOrBrowser(filename, svg, {
+    logLabel: "native selection SVG export",
+    fallback: () => downloadSvgViaBrowser(filename, svg),
+  });
 }

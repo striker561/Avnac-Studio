@@ -19,17 +19,21 @@ export type ImageCropModalApplyPayload = {
   cropY: number;
   width: number;
   height: number;
+  sourceNaturalWidth: number;
+  sourceNaturalHeight: number;
 };
 
-type CropRect = { x: number; y: number; w: number; h: number };
+type InitialCropRect = { x: number; y: number; w?: number; h?: number };
 
 type Props = {
   open: boolean;
   imageSrc: string;
-  initialCrop: CropRect;
+  initialCrop: InitialCropRect;
   onCancel: () => void;
   onApply: (rect: ImageCropModalApplyPayload) => void;
 };
+
+type CropRect = { x: number; y: number; w: number; h: number };
 
 type DragKind = "move" | "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 
@@ -55,7 +59,12 @@ export default function ImageCropModal({
   initialCropRef.current = initialCrop;
 
   const [natural, setNatural] = useState({ w: 0, h: 0 });
-  const [crop, setCrop] = useState<CropRect>(initialCrop);
+  const [crop, setCrop] = useState<CropRect>({
+    x: initialCrop.x,
+    y: initialCrop.y,
+    w: initialCrop.w ?? 0,
+    h: initialCrop.h ?? 0,
+  });
   const [boxPx, setBoxPx] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const [, layoutBump] = useReducer((n: number) => n + 1, 0);
 
@@ -72,7 +81,12 @@ export default function ImageCropModal({
       setNatural({ w: 0, h: 0 });
       return;
     }
-    setCrop({ ...initialCrop });
+    setCrop({
+      x: initialCrop.x,
+      y: initialCrop.y,
+      w: initialCrop.w ?? 0,
+      h: initialCrop.h ?? 0,
+    });
   }, [open, initialCrop.x, initialCrop.y, initialCrop.w, initialCrop.h]);
 
   useEffect(() => {
@@ -108,7 +122,18 @@ export default function ImageCropModal({
     if (nw <= 0 || nh <= 0) return;
     setNatural({ w: nw, h: nh });
     const ic = initialCropRef.current;
-    setCrop(clampCrop({ x: ic.x, y: ic.y, w: ic.w, h: ic.h }, nw, nh));
+    setCrop(
+      clampCrop(
+        {
+          x: ic.x,
+          y: ic.y,
+          w: ic.w ?? nw,
+          h: ic.h ?? nh,
+        },
+        nw,
+        nh,
+      ),
+    );
     layoutBump();
   }, []);
 
@@ -351,6 +376,8 @@ export default function ImageCropModal({
                 cropY: crop.y,
                 width: crop.w,
                 height: crop.h,
+                sourceNaturalWidth: natural.w,
+                sourceNaturalHeight: natural.h,
               })
             }
           >

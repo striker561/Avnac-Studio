@@ -72,6 +72,8 @@ type RawObject = Record<string, unknown> & {
   src?: string;
   cropX?: number;
   cropY?: number;
+  cropWidth?: number;
+  cropHeight?: number;
   points?: RawPoint[];
   objects?: unknown[];
 };
@@ -534,6 +536,10 @@ function adaptRawObject(
         src: raw.src,
         cropX: readNumber(raw.cropX, 0),
         cropY: readNumber(raw.cropY, 0),
+        cropWidth: isPositiveNumber(raw.cropWidth) ? raw.cropWidth : undefined,
+        cropHeight: isPositiveNumber(raw.cropHeight)
+          ? raw.cropHeight
+          : undefined,
         clipPath: readClipPath(raw.clipPath),
       };
       return { node, issue: supportedIssue(sourceId, "image") };

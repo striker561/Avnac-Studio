@@ -9,6 +9,7 @@ import type {
   SaraswatiNodeOriginY,
   SaraswatiShadow,
 } from "../../../saraswati/scene";
+import { anchorToCenter } from "../../../saraswati/transform/anchor";
 
 export type Canvas2DPreviewBox = {
   x: number;
@@ -336,20 +337,4 @@ function linearGradientForCanvas2DBox(
     gradient.addColorStop(stop.offset, stop.color);
   }
   return gradient;
-}
-
-function anchorToCenter(
-  anchor: number,
-  origin: SaraswatiNodeOriginX | SaraswatiNodeOriginY,
-  renderedSize: number,
-  isX: boolean,
-) {
-  const axisOrigin = origin ?? (isX ? "left" : "top");
-  const factor =
-    axisOrigin === "center"
-      ? 0.5
-      : axisOrigin === "right" || axisOrigin === "bottom"
-        ? 1
-        : 0;
-  return anchor + (0.5 - factor) * renderedSize;
 }

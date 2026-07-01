@@ -11,7 +11,7 @@
  *      original src URL (remote images may not display in all SVG viewers).
  */
 
-import { ExportFile, ExportPng } from "../../wailsjs/go/avnacio/IOManager";
+import { ExportPng, ExportTextFile } from "../../wailsjs/go/avnacio/IOManager";
 import {
   type SaraswatiNode,
   type SaraswatiRenderableNode,
@@ -167,7 +167,12 @@ function shiftNode(
   }
   // All non-line renderable nodes extend SaraswatiNodeBase which has x and y.
   const positioned = node as SaraswatiRenderableNode & { x: number; y: number };
-  return { ...positioned, parentId: newParentId, x: positioned.x + dx, y: positioned.y + dy } as SaraswatiNode;
+  return {
+    ...positioned,
+    parentId: newParentId,
+    x: positioned.x + dx,
+    y: positioned.y + dy,
+  } as SaraswatiNode;
 }
 
 // ─── PNG Export ──────────────────────────────────────────────────────────────
@@ -383,7 +388,17 @@ function rectToSvg(node: SaraswatiRectNode, svgCtx: SvgCtx): string {
   const shape = `<rect x="${r2(-w / 2)}" y="${r2(-h / 2)}" width="${r2(w)}" height="${r2(h)}"${rxAttr} fill="${fill}"${strokeAttrs}/>`;
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
@@ -402,7 +417,17 @@ function ellipseToSvg(node: SaraswatiEllipseNode, svgCtx: SvgCtx): string {
   const shape = `<ellipse cx="0" cy="0" rx="${r2(w / 2)}" ry="${r2(h / 2)}" fill="${fill}"${strokeAttrs}/>`;
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
@@ -424,7 +449,17 @@ function polygonToSvg(node: SaraswatiPolygonNode, svgCtx: SvgCtx): string {
   const shape = `<polygon points="${pts}" fill="${fill}"${strokeAttrs}/>`;
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
@@ -465,7 +500,11 @@ function lineToSvg(node: SaraswatiLineNode, svgCtx: SvgCtx): string {
     height: Math.max(1, Math.abs(y2 - y1)),
   };
   // SaraswatiColor is structurally identical to BgValue
-  const strokeColor = paintValue(node.stroke as unknown as BgValue, box, svgCtx);
+  const strokeColor = paintValue(
+    node.stroke as unknown as BgValue,
+    box,
+    svgCtx,
+  );
   if (strokeColor === "none" || node.strokeWidth <= 0) return "";
 
   const isCurved = node.pathType === "curved" && node.curveBulge !== 0;
@@ -524,12 +563,16 @@ function lineToSvg(node: SaraswatiLineNode, svgCtx: SvgCtx): string {
   if (node.arrowEnd) {
     const fromX = isCurved ? cpX : x1;
     const fromY = isCurved ? cpY : y1;
-    arrows.push(arrowheadPolygon(x2, y2, fromX, fromY, node.strokeWidth, strokeColor));
+    arrows.push(
+      arrowheadPolygon(x2, y2, fromX, fromY, node.strokeWidth, strokeColor),
+    );
   }
   if (node.arrowStart) {
     const fromX = isCurved ? cpX : x2;
     const fromY = isCurved ? cpY : y2;
-    arrows.push(arrowheadPolygon(x1, y1, fromX, fromY, node.strokeWidth, strokeColor));
+    arrows.push(
+      arrowheadPolygon(x1, y1, fromX, fromY, node.strokeWidth, strokeColor),
+    );
   }
 
   return `<g${opAttr}${fxAttr}>${shaftEl}${arrows.join("")}</g>`;
@@ -541,7 +584,8 @@ function textToSvg(node: SaraswatiTextNode, svgCtx: SvgCtx): string {
 
   const rawLines = node.text.split(/\r?\n/);
   const w = Math.max(1, node.width);
-  const lineHeightPx = Math.max(1, node.fontSize) * Math.max(1, node.lineHeight);
+  const lineHeightPx =
+    Math.max(1, node.fontSize) * Math.max(1, node.lineHeight);
   const h = Math.max(lineHeightPx, rawLines.length * lineHeightPx);
   const box = { x: -w / 2, y: -h / 2, width: w, height: h };
 
@@ -588,7 +632,17 @@ function textToSvg(node: SaraswatiTextNode, svgCtx: SvgCtx): string {
 
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
@@ -615,27 +669,31 @@ function imageToSvg(node: SaraswatiImageNode, svgCtx: SvgCtx): string {
 
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
 }
 
 function escSvg(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function escSvgAttr(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
 
-function nodeToSvg(
-  node: SaraswatiRenderableNode,
-  svgCtx: SvgCtx,
-): string {
+function nodeToSvg(node: SaraswatiRenderableNode, svgCtx: SvgCtx): string {
   switch (node.type) {
     case "rect":
       return rectToSvg(node, svgCtx);
@@ -691,8 +749,7 @@ export async function exportSelectionAsSvg(
   }
 
   try {
-    const bytes = Array.from(new TextEncoder().encode(svg));
-    await ExportFile(filename, bytes);
+    await ExportTextFile(filename, svg);
   } catch (err) {
     console.error(
       "[avnac] native selection SVG export failed, falling back to browser",

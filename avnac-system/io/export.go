@@ -20,11 +20,11 @@ type IOManager struct {
 }
 
 const (
-	documentMetaFileName      = "meta.json"
-	documentFileName          = "document.json"
-	pagesFileName             = "pages.json"
-	vectorBoardsFileName      = "vector-boards.json"
-	vectorBoardDocsFileName   = "vector-board-docs.json"
+	documentMetaFileName    = "meta.json"
+	documentFileName        = "document.json"
+	pagesFileName           = "pages.json"
+	vectorBoardsFileName    = "vector-boards.json"
+	vectorBoardDocsFileName = "vector-board-docs.json"
 )
 
 // NewIOManager returns an uninitialised IOManager. Call Startup once the
@@ -141,6 +141,13 @@ func (m *IOManager) ExportFile(title string, data []byte) error {
 	}
 
 	return nil
+}
+
+// ExportTextFile opens a native Save File dialog and writes text content directly.
+// Passing a string avoids marshalling a large Array<number> through the Wails JSON IPC
+// layer (same rationale as ExportPng's data-URL path).
+func (m *IOManager) ExportTextFile(title string, content string) error {
+	return m.ExportFile(title, []byte(content))
 }
 
 // ExportPng opens a native Save File dialog pre-set for PNG files. The

@@ -1,4 +1,4 @@
-import { ExportFile, ExportPng } from "../../wailsjs/go/avnacio/IOManager";
+import { ExportPng, ExportTextFile } from "../../wailsjs/go/avnacio/IOManager";
 import type { SaraswatiScene } from "./saraswati/scene";
 import { buildRenderCommands } from "./saraswati/render/commands";
 import { canvas2DRendererBackend } from "./renderer/backends/canvas2d/renderer";
@@ -30,10 +30,12 @@ export async function exportJsonFile(
   }
 
   try {
-    const bytes = Array.from(new TextEncoder().encode(text));
-    await ExportFile(filename, bytes);
+    await ExportTextFile(filename, text);
   } catch (error) {
-    console.error("[avnac] native export failed, falling back to browser", error);
+    console.error(
+      "[avnac] native export failed, falling back to browser",
+      error,
+    );
     downloadJsonViaBrowser(filename, payload);
   }
 }
@@ -103,7 +105,10 @@ export async function exportSceneAsPng(
   try {
     await ExportPng(filename, dataUrl);
   } catch (error) {
-    console.error("[avnac] native PNG export failed, falling back to browser download", error);
+    console.error(
+      "[avnac] native PNG export failed, falling back to browser download",
+      error,
+    );
     downloadPngViaBrowser(filename, dataUrl);
   }
 }

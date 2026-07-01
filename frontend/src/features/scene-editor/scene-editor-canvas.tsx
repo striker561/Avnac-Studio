@@ -437,6 +437,8 @@ export default function SceneEditorCanvas({
     canUngroup: actions.canUngroup,
     onGroup: actions.onGroup,
     onUngroup: actions.onUngroup,
+    selectedIds,
+    onNudge: actions.onNudge,
     onImageFilesPaste: (files) => {
       if (!scene) return;
       void dropActions.handleDropIntent(

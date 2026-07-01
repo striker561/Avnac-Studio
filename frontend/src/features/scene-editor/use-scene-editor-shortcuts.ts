@@ -33,6 +33,8 @@ type Params = {
   canUngroup: boolean;
   onGroup: () => void;
   onUngroup: () => void;
+  selectedIds: string[];
+  onNudge: (dx: number, dy: number) => void;
 };
 
 export function useSceneEditorShortcuts({
@@ -59,6 +61,8 @@ export function useSceneEditorShortcuts({
   canUngroup,
   onGroup,
   onUngroup,
+  selectedIds,
+  onNudge,
 }: Params) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -148,6 +152,27 @@ export function useSceneEditorShortcuts({
         return;
       }
 
+      if (
+        !mod &&
+        !event.altKey &&
+        (event.key === "ArrowUp" ||
+          event.key === "ArrowDown" ||
+          event.key === "ArrowLeft" ||
+          event.key === "ArrowRight")
+      ) {
+        if (selectedIds.length === 0) return;
+        event.preventDefault();
+        const step = event.shiftKey ? 10 : 1;
+        let dx = 0;
+        let dy = 0;
+        if (event.key === "ArrowLeft") dx = -step;
+        if (event.key === "ArrowRight") dx = step;
+        if (event.key === "ArrowUp") dy = -step;
+        if (event.key === "ArrowDown") dy = step;
+        onNudge(dx, dy);
+        return;
+      }
+
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
         onDelete();
@@ -170,9 +195,11 @@ export function useSceneEditorShortcuts({
     onGroup,
     onShowShortcuts,
     onUngroup,
+    onNudge,
     redo,
     reorderPrimarySelection,
     scene,
+    selectedIds,
     setSelectedIds,
     setZoomPercent,
     toggleLockedSelection,

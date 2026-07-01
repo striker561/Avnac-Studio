@@ -8,6 +8,8 @@ function Harness(props: {
   undo: () => void;
   redo: () => void;
   onDelete?: () => void;
+  onNudge?: (dx: number, dy: number) => void;
+  selectedIds?: string[];
 }) {
   useSceneEditorShortcuts({
     scene: createEmptySaraswatiScene({ width: 400, height: 300 }),
@@ -18,10 +20,12 @@ function Harness(props: {
     canRedo: true,
     canGroup: false,
     canUngroup: false,
+    selectedIds: props.selectedIds ?? [],
     undo: props.undo,
     redo: props.redo,
     onGroup: vi.fn(),
     onUngroup: vi.fn(),
+    onNudge: props.onNudge ?? vi.fn(),
     setZoomPercent: vi.fn(),
     setSelectedIds: vi.fn(),
     toggleLockedSelection: vi.fn(),
@@ -83,6 +87,31 @@ describe("useSceneEditorShortcuts", () => {
 
     expect(redo).toHaveBeenCalledTimes(1);
     expect(undo).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  it("nudges the selection with arrow keys", () => {
+    const onNudge = vi.fn();
+    const { getByRole, unmount } = render(
+      <Harness
+        undo={vi.fn()}
+        redo={vi.fn()}
+        selectedIds={["rect-1"]}
+        onNudge={onNudge}
+      />,
+    );
+
+    const button = getByRole("button", { name: "chrome" });
+    button.focus();
+    button.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowRight",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+
+    expect(onNudge).toHaveBeenCalledWith(1, 0);
     unmount();
   });
 });

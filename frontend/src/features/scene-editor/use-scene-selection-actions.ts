@@ -455,6 +455,15 @@ export function useSceneSelectionActions() {
     );
   };
 
+  const onNudge = (dx: number, dy: number) => {
+    if (!scene || selectedIds.length === 0 || (dx === 0 && dy === 0)) return;
+    const movable = selectedIds.filter((id) => !lockedSet.has(id));
+    if (movable.length === 0) return;
+    applyCommands(
+      movable.map((id) => ({ type: "MOVE_NODE" as const, id, dx, dy })),
+    );
+  };
+
   const onGroup = () => {
     if (!scene || !canGroup) return;
     const groupId = crypto.randomUUID();
@@ -545,6 +554,7 @@ export function useSceneSelectionActions() {
     onPaste,
     onPasteAt,
     onAlign,
+    onNudge,
     onGroup,
     onAlignElements,
     onUngroup,

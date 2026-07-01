@@ -22,6 +22,8 @@ const ROWS: Row[] = [
   { keys: "Cmd/Ctrl + wheel", action: "Zoom with mouse" },
   { keys: "Space + drag", action: "Pan viewport" },
   { keys: "Middle-mouse drag", action: "Pan viewport" },
+  { keys: "Arrow keys", action: "Nudge selection 1px" },
+  { keys: "Shift + Arrow keys", action: "Nudge selection 10px" },
   { keys: "?", action: "Toggle this shortcuts panel" },
 ];
 

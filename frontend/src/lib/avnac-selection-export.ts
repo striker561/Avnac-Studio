@@ -31,6 +31,7 @@ import type {
 import { getNodeBounds } from "./saraswati/spatial";
 import { buildRenderCommands } from "./saraswati/render/commands";
 import { canvas2DRendererBackend } from "./renderer/backends/canvas2d/renderer";
+import { resolveSelectionPngMultiplier } from "./image-pixel-utils";
 import type { BgValue, GradientStop } from "./editor-paint";
 
 // ─── Shared utilities ────────────────────────────────────────────────────────
@@ -181,12 +182,19 @@ export async function exportSelectionAsPng(
   filename: string,
   scene: SaraswatiScene,
   selectedIds: string[],
-  options: { multiplier?: number } = {},
+  options: { multiplier?: number; useSourceResolution?: boolean } = {},
 ): Promise<void> {
   const result = buildSelectionScene(scene, selectedIds);
   if (!result) return;
 
-  const multiplier = Math.max(1, options.multiplier ?? 2);
+  let multiplier = Math.max(1, options.multiplier ?? 2);
+  if (options.useSourceResolution) {
+    multiplier = await resolveSelectionPngMultiplier(
+      scene,
+      selectedIds,
+      multiplier,
+    );
+  }
 
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(result.width * multiplier);

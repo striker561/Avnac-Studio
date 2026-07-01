@@ -19,6 +19,10 @@ import type {
   RembgErrorEvent,
   RembgProgressEvent,
 } from "@/lib/boreas-rembg";
+import {
+  fitDisplaySizeToNatural,
+  readImageNaturalSize,
+} from "@/lib/image-pixel-utils";
 import type { SaraswatiImageNode } from "@/lib/saraswati";
 import { useSceneEditorStore } from "@/features/scene-editor/store";
 import { useRembgProcessingStore } from "@/features/scene-editor/store/rembg-processing-store";
@@ -86,20 +90,46 @@ export function useRemoveBg(
       const currentNode = currentScene?.nodes[evt.nodeId];
       if (!currentNode || currentNode.type !== "image") return;
 
-      applyCommands([
-        {
-          type: "REPLACE_NODE",
-          node: {
-            ...(currentNode as SaraswatiImageNode),
-            src: evt.resultDataUrl,
-            // Clear any prior crop since the image dimensions may have changed.
-            cropX: 0,
-            cropY: 0,
-            cropWidth: undefined,
-            cropHeight: undefined,
-          },
-        },
-      ]);
+      void readImageNaturalSize(evt.resultDataUrl)
+        .then((natural) => {
+          const imageNode = currentNode as SaraswatiImageNode;
+          const nextSize = fitDisplaySizeToNatural({
+            displayWidth: imageNode.width,
+            displayHeight: imageNode.height,
+            naturalWidth: natural.width,
+            naturalHeight: natural.height,
+          });
+          applyCommands([
+            {
+              type: "REPLACE_NODE",
+              node: {
+                ...imageNode,
+                src: evt.resultDataUrl,
+                width: nextSize.width,
+                height: nextSize.height,
+                cropX: 0,
+                cropY: 0,
+                cropWidth: undefined,
+                cropHeight: undefined,
+              },
+            },
+          ]);
+        })
+        .catch(() => {
+          applyCommands([
+            {
+              type: "REPLACE_NODE",
+              node: {
+                ...(currentNode as SaraswatiImageNode),
+                src: evt.resultDataUrl,
+                cropX: 0,
+                cropY: 0,
+                cropWidth: undefined,
+                cropHeight: undefined,
+              },
+            },
+          ]);
+        });
     });
 
     const offError = EventsOn("rembg:error", (evt: RembgErrorEvent) => {

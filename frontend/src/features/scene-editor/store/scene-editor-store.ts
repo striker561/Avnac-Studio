@@ -56,6 +56,11 @@ import {
   collectSceneFontFamilies,
   ensureGoogleFontsForFamilies,
 } from "@/lib/load-google-font";
+import { fitImageNodeSizeToCrop } from "@/lib/image-crop-utils";
+import {
+  readImageAlphaBounds,
+  readImageNaturalSize,
+} from "@/lib/image-pixel-utils";
 import {
   buildAddPageResult,
   buildDeletePageResult,
@@ -206,6 +211,7 @@ type SceneEditorActions = {
       cropHeight?: number;
     },
   ) => void;
+  trimImageToContent: (id: string) => Promise<void>;
   setImageBorderRadius: (id: string, radius: number) => void;
   setPolygonSides: (id: string, sides: number, star?: boolean) => void;
   /** Navigate to a page by index. */
@@ -780,6 +786,56 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
   setImageCrop: (id, crop) => {
     get().applyCommands([{ type: "SET_IMAGE_CROP", id, ...crop }]);
+  },
+
+  trimImageToContent: async (id) => {
+    const scene = get().scene;
+    if (!scene) return;
+    const node = scene.nodes[id];
+    if (!node || node.type !== "image") return;
+    try {
+      const [bounds, natural] = await Promise.all([
+        readImageAlphaBounds(node.src),
+        readImageNaturalSize(node.src),
+      ]);
+      if (!bounds) return;
+      const prevCropW = node.cropWidth ?? natural.width;
+      const prevCropH = node.cropHeight ?? natural.height;
+      const nextSize = fitImageNodeSizeToCrop({
+        nodeWidth: node.width,
+        nodeHeight: node.height,
+        prevCropWidth: prevCropW,
+        prevCropHeight: prevCropH,
+        nextCropWidth: bounds.width,
+        nextCropHeight: bounds.height,
+      });
+      const commands: SaraswatiCommand[] = [
+        {
+          type: "SET_IMAGE_CROP",
+          id,
+          cropX: bounds.x,
+          cropY: bounds.y,
+          cropWidth: bounds.width,
+          cropHeight: bounds.height,
+        },
+      ];
+      if (
+        nextSize.width !== node.width ||
+        nextSize.height !== node.height
+      ) {
+        commands.push({
+          type: "RESIZE_NODE",
+          id,
+          x: node.x,
+          y: node.y,
+          width: nextSize.width,
+          height: nextSize.height,
+        });
+      }
+      get().applyCommands(commands);
+    } catch (error) {
+      console.error("[avnac] trim image to content failed", error);
+    }
   },
 
   setImageBorderRadius: (id, radius) => {

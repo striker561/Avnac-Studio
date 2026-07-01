@@ -532,7 +532,9 @@ export function useSceneSelectionActions() {
 
   const onDownloadPng = () => {
     if (!scene || selectedIds.length === 0) return;
-    void exportSelectionAsPng("selection.png", scene, selectedIds);
+    void exportSelectionAsPng("selection.png", scene, selectedIds, {
+      useSourceResolution: true,
+    });
   };
 
   const onDownloadSvg = () => {

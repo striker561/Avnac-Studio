@@ -24,6 +24,11 @@ vi.mock("../../../wailsjs/go/main/App", () => ({
   StartRemoveBackground: (...args: unknown[]) => startRemoveBackground(...args),
 }));
 
+vi.mock("@/lib/image-pixel-utils", () => ({
+  readImageNaturalSize: vi.fn(async () => ({ width: 400, height: 300 })),
+  fitDisplaySizeToNatural: vi.fn(() => ({ width: 100, height: 75 })),
+}));
+
 function makeImageNode(
   overrides: Partial<SaraswatiImageNode> = {},
 ): SaraswatiImageNode {
@@ -171,6 +176,8 @@ describe("useRemoveBg", () => {
           node: expect.objectContaining({
             id: "img-1",
             src: "data:image/png;base64,RESULT",
+            width: 100,
+            height: 75,
             cropX: 0,
             cropY: 0,
             cropWidth: undefined,

@@ -1053,6 +1053,7 @@ function ImageToolbar({
   const [cropModalOpen, setCropModalOpen] = useState(false);
 
   const applyCommands = useSceneEditorStore((s) => s.applyCommands);
+  const trimImageToContent = useSceneEditorStore((s) => s.trimImageToContent);
   const setImageBorderRadius = useSceneEditorStore(
     (s) => s.setImageBorderRadius,
   );
@@ -1150,6 +1151,17 @@ function ImageToolbar({
               aria-label="Crop image"
             >
               <HugeiconsIcon icon={CropIcon} size={16} strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void trimImageToContent(nodeId);
+              }}
+              className={floatingToolbarIconButton(false)}
+              title="Trim transparent padding"
+              aria-label="Trim to content"
+            >
+              Trim
             </button>
 
             <FloatingToolbarDivider />

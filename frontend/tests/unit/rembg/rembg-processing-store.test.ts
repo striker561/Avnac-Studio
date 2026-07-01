@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { useRembgProcessingStore } from "../rembg-processing-store";
+import { useRembgProcessingStore } from "@/features/scene-editor/store/rembg-processing-store";
 
 describe("useRembgProcessingStore", () => {
   beforeEach(() => {

@@ -291,7 +291,9 @@ Build output goes to `build/bin/`.
 cd frontend
 npm run dev
 npm run build
-npm run test
+npm run test          # all unit + feature tests
+npm run test:unit
+npm run test:features
 npm exec tsc -- --noEmit --pretty false
 ```
 

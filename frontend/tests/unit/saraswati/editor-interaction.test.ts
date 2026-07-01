@@ -3,7 +3,7 @@ import {
   createIdlePointerState,
   pointerMove,
   rotateHandlePointerDown,
-} from "../interaction";
+} from "@/lib/saraswati/editor/interaction";
 
 describe("rotation interaction", () => {
   it("uses shortest incremental angle when crossing 0/360", () => {

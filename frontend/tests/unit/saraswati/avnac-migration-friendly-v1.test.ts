@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { migrateAvnacDocument } from "../../src/lib/avnac-migration";
+import { migrateAvnacDocument } from "@/lib/avnac-migration";
 
 describe("migrateAvnacDocument friendly v1", () => {
   it("accepts top-level objects shorthand and normalizes to fabric.objects", () => {

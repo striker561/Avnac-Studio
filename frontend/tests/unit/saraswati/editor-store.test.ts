@@ -3,7 +3,7 @@ import {
   createEmptySaraswatiScene,
   createSaraswatiEditorStore,
   type SaraswatiRectNode,
-} from "../..";
+} from "@/lib/saraswati";
 
 function buildRectNode(
   id: string,

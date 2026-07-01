@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   AVNAC_DOC_VERSION,
   type AvnacDocumentV1,
-} from "../../src/lib/avnac-document";
-import { fromAvnacDocument } from "../../src/lib/saraswati/compat/from-avnac";
-import { toAvnacDocument } from "../../src/lib/saraswati/compat/to-avnac";
+} from "@/lib/avnac-document";
+import { fromAvnacDocument } from "@/lib/saraswati/compat/from-avnac";
+import { toAvnacDocument } from "@/lib/saraswati/compat/to-avnac";
 
 function makeBaseDocument(): AvnacDocumentV1 {
   return {

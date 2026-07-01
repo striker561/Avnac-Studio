@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseAvnacImport } from "../../src/lib/avnac-multi-page-document";
+import { parseAvnacImport } from "@/lib/avnac-multi-page-document";
 
 describe("parseAvnacImport web v2 workspace", () => {
   it("imports v2 pages as multi-page and preserves activePageId", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyCommand } from "../../src/lib/saraswati/commands/reducer";
-import { createEmptySaraswatiScene } from "../../src/lib/saraswati/scene";
+import { applyCommand } from "@/lib/saraswati/commands/reducer";
+import { createEmptySaraswatiScene } from "@/lib/saraswati/scene";
 
 describe("saraswati reducer", () => {
   it("moves line endpoints with MOVE_NODE", () => {

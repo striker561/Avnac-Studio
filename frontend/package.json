@@ -15,7 +15,9 @@
         "build": "vite build",
         "preview": "vite preview",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "test": "vitest run"
+        "test": "vitest run",
+        "test:unit": "vitest run tests/unit",
+        "test:features": "vitest run tests/features"
     },
     "dependencies": {
         "@hugeicons/core-free-icons": "^1.0.16",

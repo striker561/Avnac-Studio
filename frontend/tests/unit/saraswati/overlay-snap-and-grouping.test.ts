@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   snapMoveBounds,
   snapResizeBounds,
-} from "../../src/lib/editor/overlays";
-import { createEmptySaraswatiScene } from "../../src/lib/saraswati/scene";
-import { buildGroupSelectionCommands } from "../../src/scene/workspace/commands";
+} from "@/lib/editor/overlays";
+import { createEmptySaraswatiScene } from "@/lib/saraswati/scene";
+import { buildGroupSelectionCommands } from "@/scene/workspace/commands";
 
 function addRect(
   scene: ReturnType<typeof createEmptySaraswatiScene>,

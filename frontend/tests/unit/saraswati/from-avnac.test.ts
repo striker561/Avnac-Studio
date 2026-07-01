@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AvnacDocumentV1 } from "@/lib/avnac-document";
-import { fromAvnacDocument } from "../from-avnac";
+import { fromAvnacDocument } from "@/lib/saraswati/compat/from-avnac";
 
 function baseDoc(objects: unknown[]): AvnacDocumentV1 {
   return {

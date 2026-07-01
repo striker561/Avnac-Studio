@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { createEmptySaraswatiScene } from "../../../lib/saraswati";
-import { useSceneEditorShortcuts } from "../use-scene-editor-shortcuts";
+import { createEmptySaraswatiScene } from "@/lib/saraswati";
+import { useSceneEditorShortcuts } from "@/features/scene-editor/use-scene-editor-shortcuts";
 
 function Harness(props: {
   undo: () => void;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { applyCommand } from "../../src/lib/saraswati/commands/reducer";
-import { createEmptySaraswatiScene } from "../../src/lib/saraswati/scene";
-import { findTopHitNodeId } from "../../src/lib/saraswati/spatial";
+import { applyCommand } from "@/lib/saraswati/commands/reducer";
+import { createEmptySaraswatiScene } from "@/lib/saraswati/scene";
+import { findTopHitNodeId } from "@/lib/saraswati/spatial";
 
 function createLineScene() {
   const scene = createEmptySaraswatiScene({

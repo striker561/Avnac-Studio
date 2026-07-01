@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   shouldIgnoreEditorHotkeys,
   shouldStartViewportPan,
-} from "../scene-editor-input-utils";
+} from "@/features/scene-editor/scene-editor-input-utils";
 
 describe("shouldIgnoreEditorHotkeys", () => {
   it("ignores text-entry targets", () => {

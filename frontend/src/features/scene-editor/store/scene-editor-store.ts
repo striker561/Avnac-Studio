@@ -118,6 +118,10 @@ type SceneEditorState = {
     ms: number;
     commands: number;
     duplicateCommands: number;
+    repaintMode: "full" | "partial" | "skipped";
+    dirtyRects: number;
+    dirtyCoveragePct: number;
+    commandsRepainted: number;
   };
   /** All pages in the document (Avnac-serialized, one per slot). */
   pages: AvnacDocumentV1[];
@@ -140,6 +144,10 @@ type SceneEditorActions = {
     ms: number;
     commands: number;
     duplicateCommands: number;
+    repaintMode: "full" | "partial" | "skipped";
+    dirtyRects: number;
+    dirtyCoveragePct: number;
+    commandsRepainted: number;
   }) => void;
   insertRect: () => void;
   insertEllipse: () => void;
@@ -266,6 +274,10 @@ const INITIAL: SceneEditorState = {
     ms: 0,
     commands: 0,
     duplicateCommands: 0,
+    repaintMode: "full",
+    dirtyRects: 0,
+    dirtyCoveragePct: 0,
+    commandsRepainted: 0,
   },
   pages: [],
   currentPage: 0,
@@ -581,7 +593,10 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
   setSelectedIds: (selectedIds: string[]) => {
     const prev = get().selectedIds;
-    const sameFirst = prev[0] === selectedIds[0] && prev.length === 1 && selectedIds.length === 1;
+    const sameFirst =
+      prev[0] === selectedIds[0] &&
+      prev.length === 1 &&
+      selectedIds.length === 1;
     set({ selectedIds, ...(!sameFirst ? { arLocked: false } : {}) });
   },
 
@@ -856,14 +871,20 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
   setArLocked: (locked: boolean, ratio?: number) => {
     set({
       arLocked: locked,
-      arLockedRatio: locked && ratio != null && ratio > 0 ? ratio : get().arLockedRatio,
+      arLockedRatio:
+        locked && ratio != null && ratio > 0 ? ratio : get().arLockedRatio,
     });
   },
 
   reset: () => {
     resetSceneEngineBinding();
     pageHistoryRef = null;
-    set({ ...INITIAL, snapIntensity: get().snapIntensity, arLocked: false, arLockedRatio: 1 });
+    set({
+      ...INITIAL,
+      snapIntensity: get().snapIntensity,
+      arLocked: false,
+      arLockedRatio: 1,
+    });
   },
 
   goToPage: async (index: number) => {

@@ -1,6 +1,12 @@
 import type { RendererBackend } from "@/lib/renderer";
 import { canvas2DRendererBackend } from "@/lib/renderer";
 import {
+  createContentPaintScheduler,
+  EMPTY_RENDER_PAINT_STATS,
+  type RenderPaintStats,
+} from "@/lib/renderer/paint-scheduler";
+import {
+  buildArtboardRenderCommand,
   buildRenderCommands,
   isSaraswatiRenderableNode,
   type SaraswatiScene,
@@ -16,11 +22,9 @@ import type { SaraswatiBounds } from "@/lib/saraswati/spatial";
 import { getNodeBounds } from "@/lib/saraswati/spatial";
 import { useEffect, useMemo, useRef } from "react";
 
-export type SceneWorkspaceRenderStats = {
-  ms: number;
-  commands: number;
-  duplicateCommands: number;
-};
+export type SceneWorkspaceRenderStats = RenderPaintStats;
+
+export const EMPTY_SCENE_WORKSPACE_RENDER_STATS = EMPTY_RENDER_PAINT_STATS;
 
 type Props = {
   scene: SaraswatiScene;
@@ -137,6 +141,7 @@ export default function SceneWorkspaceStage({
     () => new Set(hiddenNodeIds),
     [hiddenNodeIds],
   );
+  const contentPaintSchedulerRef = useRef(createContentPaintScheduler());
   const handleSize = Math.max(8, Math.min(48, 10 / Math.max(0.2, viewScale)));
   const borderWidth = Math.max(1, Math.min(6, 2 / Math.max(0.25, viewScale)));
   const rotateHandleOffset = Math.max(
@@ -321,7 +326,7 @@ export default function SceneWorkspaceStage({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.clearRect(0, 0, scene.artboard.width, scene.artboard.height);
-      const bgCommand = buildRenderCommands(scene)[0];
+      const bgCommand = buildArtboardRenderCommand(scene);
       if (!bgCommand) return;
       await backend.render(ctx, [bgCommand]);
     };
@@ -346,28 +351,23 @@ export default function SceneWorkspaceStage({
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+
       const commands = buildRenderCommands(scene)
         .slice(1)
         .filter((command) => !hiddenNodeIdSet.has(command.id));
-      ctx.clearRect(0, 0, scene.artboard.width, scene.artboard.height);
-      const start = performance.now();
-      await backend.render(ctx, commands);
-      const end = performance.now();
-      const signatureCount = new Map<string, number>();
-      for (const command of commands) {
-        const signature = `${command.type}:${Math.round(command.x)}:${Math.round(command.y)}:${"width" in command ? Math.round(command.width) : 0}:${"height" in command ? Math.round(command.height) : 0}`;
-        signatureCount.set(signature, (signatureCount.get(signature) ?? 0) + 1);
-      }
-      let duplicateCommands = 0;
-      for (const count of signatureCount.values()) {
-        if (count > 1) duplicateCommands += count - 1;
-      }
+
+      const presentationKey = `${scene.artboard.width}x${scene.artboard.height}|${[...hiddenNodeIdSet].sort().join(",")}`;
+      const result = await contentPaintSchedulerRef.current.paintContent({
+        target: ctx,
+        commands,
+        artboardWidth: scene.artboard.width,
+        artboardHeight: scene.artboard.height,
+        presentationKey,
+        backend,
+      });
+
       if (!cancelled) {
-        onRenderStats?.({
-          ms: end - start,
-          commands: commands.length,
-          duplicateCommands,
-        });
+        onRenderStats?.(result.stats);
       }
 
       if (cancelled) return;

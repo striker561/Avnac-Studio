@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { applyCommand } from "@/lib/saraswati/commands/reducer";
-import { buildRenderCommands } from "@/lib/saraswati/render/commands";
+import {
+  buildArtboardRenderCommand,
+  buildRenderCommands,
+} from "@/lib/saraswati/render/commands";
+import { planPartialRepaint } from "@/lib/renderer/dirty-regions";
 import { createEmptySaraswatiScene } from "@/lib/saraswati/scene";
 import type { SaraswatiRectNode } from "@/lib/saraswati";
 import { toAvnacDocument } from "@/lib/saraswati/compat/to-avnac";
@@ -46,7 +50,10 @@ function sceneWithRects(count: number) {
   }
 
   if (root?.type === "group") {
-    scene.nodes[scene.root] = { ...root, children: [...root.children, ...childIds] };
+    scene.nodes[scene.root] = {
+      ...root,
+      children: [...root.children, ...childIds],
+    };
   }
 
   return scene;
@@ -59,6 +66,16 @@ function measureMs(fn: () => void): number {
 }
 
 describe("feature: saraswati / render performance", () => {
+  it("builds artboard command without walking scene nodes", () => {
+    const scene = sceneWithRects(200);
+    const ms = measureMs(() => {
+      const command = buildArtboardRenderCommand(scene);
+      expect(command.id).toBe("__artboard__");
+      expect(command.width).toBe(scene.artboard.width);
+    });
+    expect(ms).toBeLessThan(1);
+  });
+
   it("builds render commands within budget for a medium scene", () => {
     const scene = sceneWithRects(120);
     const ms = measureMs(() => {
@@ -90,8 +107,36 @@ describe("feature: saraswati / render performance", () => {
       frameMs.push(ms);
     }
 
-    const p95 = [...frameMs].sort((a, b) => a - b)[Math.floor(frameMs.length * 0.95)]!;
+    const p95 = [...frameMs].sort((a, b) => a - b)[
+      Math.floor(frameMs.length * 0.95)
+    ]!;
     expect(p95).toBeLessThan(DRAG_FRAME_BUDGET_MS);
+  });
+
+  it("selects partial repaint during simulated drag frames after the first paint", () => {
+    let scene = sceneWithRects(80);
+    let previous = buildRenderCommands(scene).slice(1);
+    let partialFrames = 0;
+
+    for (let frame = 0; frame < 10; frame += 1) {
+      scene = applyCommand(scene, {
+        type: "MOVE_NODE",
+        id: "rect-0",
+        dx: 2,
+        dy: 1,
+      });
+      const next = buildRenderCommands(scene).slice(1);
+      const plan = planPartialRepaint({
+        previous,
+        next,
+        artboardWidth: scene.artboard.width,
+        artboardHeight: scene.artboard.height,
+      });
+      if (plan.mode === "partial") partialFrames += 1;
+      previous = next;
+    }
+
+    expect(partialFrames).toBeGreaterThan(8);
   });
 
   it("flags serialization on every drag frame as a hot-path risk", () => {

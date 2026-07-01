@@ -8,7 +8,10 @@ import {
 import { fromAvnacDocument } from "@/lib/saraswati/compat/from-avnac";
 import { createEmptySaraswatiScene } from "@/lib/saraswati/scene";
 import { useEffect, useMemo, useRef, useState } from "react";
-import SceneWorkspaceStage, { type SceneWorkspaceRenderStats } from "./stage";
+import SceneWorkspaceStage, {
+  EMPTY_SCENE_WORKSPACE_RENDER_STATS,
+  type SceneWorkspaceRenderStats,
+} from "./stage";
 import type { SceneWorkspacePreviewMode, SceneWorkspaceStore } from "./store";
 import { useSceneWorkspaceEditor } from "./use-scene-workspace-editor";
 
@@ -63,11 +66,9 @@ export default function SceneWorkspace({
   const emptySceneRef = useRef(createEmptySaraswatiScene());
   const isInteractive = mode === "full" && !!sceneResult;
   const editorScene = sceneResult?.scene ?? emptySceneRef.current;
-  const [renderStats, setRenderStats] = useState<SceneWorkspaceRenderStats>({
-    ms: 0,
-    commands: 0,
-    duplicateCommands: 0,
-  });
+  const [renderStats, setRenderStats] = useState<SceneWorkspaceRenderStats>(
+    EMPTY_SCENE_WORKSPACE_RENDER_STATS,
+  );
 
   // ── ALL hooks must be unconditional — no early return before this ───────
   useEffect(() => {
@@ -198,7 +199,7 @@ export default function SceneWorkspace({
             : isInteractive
               ? "Prototype interaction is enabled in full scene workspace: selection and drag-to-move are routed through Saraswati commands."
               : "RenderCommands are being interpreted by the selected renderer backend instead of Fabric."}
-          {` Render ${renderStats.ms.toFixed(1)}ms · Cmds ${renderStats.commands} · Dup ${renderStats.duplicateCommands}.`}
+          {` Render ${renderStats.ms.toFixed(1)}ms · Cmds ${renderStats.commands} · Dup ${renderStats.duplicateCommands} · ${renderStats.repaintMode === "partial" ? `Partial ${renderStats.dirtyCoveragePct.toFixed(1)}% (${renderStats.dirtyRects} rects, ${renderStats.commandsRepainted} draws)` : renderStats.repaintMode === "skipped" ? "Skipped (no diff)" : "Full repaint"}.`}
         </p>
       </div>
     </div>

@@ -242,7 +242,7 @@ export default function SceneEditorPage({ documentId }: Props) {
         // Wails can tear down the bridge channel before page lifecycle events
         // finish; ignore those transient transport errors during unload.
         if (
-          String(err).includes("can't access property \"send\"") ||
+          String(err).includes('can\'t access property "send"') ||
           String(err).includes("Unknown message from front end")
         ) {
           return;
@@ -910,6 +910,29 @@ export default function SceneEditorPage({ documentId }: Props) {
             <span>Render {renderStats.ms.toFixed(1)}ms</span>
             <span className="text-neutral-300">·</span>
             <span>Cmd {renderStats.commands}</span>
+            <span className="text-neutral-300">·</span>
+            <span
+              className={
+                renderStats.repaintMode === "partial"
+                  ? "font-medium text-emerald-600"
+                  : renderStats.repaintMode === "skipped"
+                    ? "text-neutral-500"
+                    : undefined
+              }
+              title={
+                renderStats.repaintMode === "partial"
+                  ? `${renderStats.dirtyRects} dirty region(s), ${renderStats.commandsRepainted} command draw(s), ${renderStats.dirtyCoveragePct.toFixed(1)}% of artboard`
+                  : renderStats.repaintMode === "skipped"
+                    ? "Scene commands unchanged since last frame"
+                    : "Full canvas clear and redraw"
+              }
+            >
+              {renderStats.repaintMode === "partial"
+                ? `Partial ${renderStats.dirtyCoveragePct.toFixed(1)}%`
+                : renderStats.repaintMode === "skipped"
+                  ? "Skipped"
+                  : "Full"}
+            </span>
             <span className="text-neutral-300">·</span>
             <span>
               {adapterPipeline} · schema v{adapterSchemaVersion ?? "?"}

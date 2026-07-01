@@ -53,6 +53,10 @@ import {
 } from "@/features/scene-editor/store/paging/page-history";
 import { clonePageDoc } from "@/features/scene-editor/store/paging/page-state";
 import {
+  collectSceneFontFamilies,
+  ensureGoogleFontsForFamilies,
+} from "@/lib/load-google-font";
+import {
   buildAddPageResult,
   buildDeletePageResult,
   buildInsertImportedPageResult,
@@ -521,6 +525,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
         saveError: null,
         lockedIds: [],
       });
+      void ensureGoogleFontsForFamilies(collectSceneFontFamilies(scene));
     } catch (err) {
       set({
         isLoading: false,

@@ -1,5 +1,17 @@
+import type { SaraswatiScene } from "@/lib/saraswati";
+
 const loaded = new Set<string>()
 const fontReadyPromises = new Map<string, Promise<void>>()
+
+export function collectSceneFontFamilies(scene: SaraswatiScene): string[] {
+  const families = new Set<string>();
+  for (const node of Object.values(scene.nodes)) {
+    if (node.type === "text" && node.fontFamily.trim()) {
+      families.add(node.fontFamily);
+    }
+  }
+  return [...families];
+}
 
 function normalizeFontFamilyKey(css: string): string {
   const first = css.split(',')[0]?.trim() ?? ''

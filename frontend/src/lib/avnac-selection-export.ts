@@ -185,7 +185,9 @@ export async function exportSelectionAsPng(
   options: { multiplier?: number; useSourceResolution?: boolean } = {},
 ): Promise<void> {
   const result = buildSelectionScene(scene, selectedIds);
-  if (!result) return;
+  if (!result) {
+    throw new Error("Nothing to export — check your selection.");
+  }
 
   let multiplier = Math.max(1, options.multiplier ?? 2);
   if (options.useSourceResolution) {
@@ -200,7 +202,9 @@ export async function exportSelectionAsPng(
   canvas.width = Math.round(result.width * multiplier);
   canvas.height = Math.round(result.height * multiplier);
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  if (!ctx) {
+    throw new Error("Could not create export canvas.");
+  }
 
   ctx.save();
   ctx.scale(multiplier, multiplier);

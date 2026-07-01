@@ -100,6 +100,8 @@ type SceneEditorState = {
   hasPendingChanges: boolean;
   saveState: "saved" | "dirty" | "saving" | "error";
   saveError: string | null;
+  /** Transient user-visible export failure (selection or artboard PNG). */
+  exportNotice: string | null;
   snapIntensity: number;
   /** Whether the aspect ratio is currently locked in the inspector panel. */
   arLocked: boolean;
@@ -231,6 +233,7 @@ type SceneEditorActions = {
   /** Persist the current scene snapshot back to IDB via serializer. */
   save: () => Promise<void>;
   flushAutosaveNow: () => Promise<void>;
+  setExportNotice: (message: string | null) => void;
   setSnapIntensity: (value: number) => void;
   /** Apply snap intensity from preferences/events without re-persisting. */
   applySnapIntensity: (value: number) => void;
@@ -258,6 +261,7 @@ const INITIAL: SceneEditorState = {
   hasPendingChanges: false,
   saveState: "saved",
   saveError: null,
+  exportNotice: null,
   snapIntensity: initialSnapIntensity,
   arLocked: false,
   arLockedRatio: 1,
@@ -871,6 +875,8 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     }
   },
 
+  setExportNotice: (exportNotice) => set({ exportNotice }),
+
   setSnapIntensity: (value: number) => {
     const next = Math.max(0, Math.min(1, value));
     setSceneSnapIntensity(next);
@@ -1043,8 +1049,12 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     const filename = `${safeAvnacFileBaseName(documentName)}-page-${currentPage + 1}.png`;
     try {
       await exportSceneAsPng(filename, scene, { multiplier, transparent });
+      set({ exportNotice: null });
     } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "PNG export failed.";
       console.error("[avnac] PNG export failed", err);
+      set({ exportNotice: message });
     }
   },
 

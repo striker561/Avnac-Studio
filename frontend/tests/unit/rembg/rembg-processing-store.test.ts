@@ -3,7 +3,7 @@ import { useRembgProcessingStore } from "@/features/scene-editor/store/rembg-pro
 
 describe("useRembgProcessingStore", () => {
   beforeEach(() => {
-    useRembgProcessingStore.setState({ processingNodes: {} });
+    useRembgProcessingStore.setState({ processingNodes: {}, errors: {} });
   });
 
   it("tracks and clears processing nodes independently", () => {

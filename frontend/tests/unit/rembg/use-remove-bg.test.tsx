@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SaraswatiImageNode, SaraswatiScene } from "@/lib/saraswati";
 import { createEmptySaraswatiScene } from "@/lib/saraswati/scene";
 import { useRemoveBg } from "@/lib/use-remove-bg";
+import {
+  __resetRembgBridgeForTests,
+  ensureRembgBridge,
+} from "@/lib/rembg-bridge";
 import { useRembgProcessingStore } from "@/features/scene-editor/store/rembg-processing-store";
 import { useSceneEditorStore } from "@/features/scene-editor/store";
 
@@ -89,7 +93,8 @@ describe("useRemoveBg", () => {
   beforeEach(() => {
     eventHandlers.clear();
     startRemoveBackground.mockReset();
-    useRembgProcessingStore.setState({ processingNodes: {} });
+    __resetRembgBridgeForTests();
+    useRembgProcessingStore.setState({ processingNodes: {}, errors: {} });
 
     const node = makeImageNode();
     useSceneEditorStore.setState({
@@ -133,7 +138,7 @@ describe("useRemoveBg", () => {
     });
 
     expect(startRemoveBackground).toHaveBeenCalledWith(
-      expect.stringContaining("data:"),
+      "data:image/png;base64,AAAA",
       "img-1",
     );
     expect(useRembgProcessingStore.getState().processingNodes).toEqual({
@@ -150,6 +155,7 @@ describe("useRemoveBg", () => {
       applyCommands,
     } as Partial<ReturnType<typeof useSceneEditorStore.getState>>);
 
+    ensureRembgBridge();
     render(
       <Harness
         nodeId="img-1"
@@ -157,7 +163,6 @@ describe("useRemoveBg", () => {
         onReady={() => undefined}
       />,
     );
-
     const complete = eventHandlers.get("rembg:complete");
     expect(complete).toBeTypeOf("function");
 
@@ -194,6 +199,7 @@ describe("useRemoveBg", () => {
     startRemoveBackground.mockResolvedValue(undefined);
     let api: ReturnType<typeof useRemoveBg> | null = null;
 
+    ensureRembgBridge();
     render(
       <Harness
         nodeId="img-1"
@@ -231,6 +237,7 @@ describe("useRemoveBg", () => {
       applyCommands,
     } as Partial<ReturnType<typeof useSceneEditorStore.getState>>);
 
+    ensureRembgBridge();
     render(
       <Harness
         nodeId="img-1"

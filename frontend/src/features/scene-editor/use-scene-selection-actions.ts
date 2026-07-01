@@ -534,7 +534,15 @@ export function useSceneSelectionActions() {
     if (!scene || selectedIds.length === 0) return;
     void exportSelectionAsPng("selection.png", scene, selectedIds, {
       useSourceResolution: true,
-    });
+    })
+      .then(() => {
+        useSceneEditorStore.getState().setExportNotice(null);
+      })
+      .catch((err) => {
+        const message =
+          err instanceof Error ? err.message : "PNG export failed.";
+        useSceneEditorStore.getState().setExportNotice(message);
+      });
   };
 
   const onDownloadSvg = () => {

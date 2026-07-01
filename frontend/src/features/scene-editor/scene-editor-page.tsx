@@ -135,6 +135,8 @@ export default function SceneEditorPage({ documentId }: Props) {
     (s) => s.adapterSchemaVersion,
   );
   const saveState = useSceneEditorStore((s) => s.saveState);
+  const exportNotice = useSceneEditorStore((s) => s.exportNotice);
+  const setExportNotice = useSceneEditorStore((s) => s.setExportNotice);
   const renderStats = useSceneEditorStore((s) => s.renderStats);
   const canvasPan = useSceneEditorStore((s) => s.canvasPan);
   const isLoading = useSceneEditorStore((s) => s.isLoading);
@@ -802,12 +804,28 @@ export default function SceneEditorPage({ documentId }: Props) {
 
       {!isLoading && !loadError && scene && (
         <div className="relative flex min-h-0 flex-1 flex-col">
+          {exportNotice ? (
+            <div
+              className="flex shrink-0 items-center justify-between gap-3 border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
+              role="alert"
+            >
+              <span>{exportNotice}</span>
+              <button
+                type="button"
+                className="rounded-md px-2 py-1 text-xs font-medium hover:bg-red-100"
+                onClick={() => setExportNotice(null)}
+              >
+                Dismiss
+              </button>
+            </div>
+          ) : null}
           <SceneSelectionBar />
           <div className="relative flex min-h-0 flex-1">
             <SceneEditorCanvas
               shortcutsOpen={shortcutsOpen}
               onOpenShortcuts={() => setShortcutsOpen(true)}
               onCloseShortcuts={() => setShortcutsOpen(false)}
+              developerMode={developerMode}
             />
             <SceneInspectorPanel />
             <BottomFloatingToolbar />

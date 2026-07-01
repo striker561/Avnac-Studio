@@ -22,6 +22,46 @@ export async function readImageNaturalSize(
   });
 }
 
+function scanAlphaBounds(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  alphaThreshold: number,
+  stride: number,
+): ImagePixelBounds | null {
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y += stride) {
+    for (let x = 0; x < width; x += stride) {
+      const alpha = data[(y * width + x) * 4 + 3]!;
+      if (alpha <= alphaThreshold) continue;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+
+  if (maxX < minX || maxY < minY) return null;
+
+  if (stride > 1) {
+    minX = Math.max(0, minX - (stride - 1));
+    minY = Math.max(0, minY - (stride - 1));
+    maxX = Math.min(width - 1, maxX + (stride - 1));
+    maxY = Math.min(height - 1, maxY + (stride - 1));
+  }
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  };
+}
+
 export async function readImageAlphaBounds(
   src: string,
   alphaThreshold = 8,
@@ -45,29 +85,9 @@ export async function readImageAlphaBounds(
   });
 
   const { data } = ctx.getImageData(0, 0, width, height);
-  let minX = width;
-  let minY = height;
-  let maxX = -1;
-  let maxY = -1;
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const alpha = data[(y * width + x) * 4 + 3]!;
-      if (alpha <= alphaThreshold) continue;
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-    }
-  }
-
-  if (maxX < minX || maxY < minY) return null;
-  return {
-    x: minX,
-    y: minY,
-    width: maxX - minX + 1,
-    height: maxY - minY + 1,
-  };
+  const pixelCount = width * height;
+  const stride = pixelCount > 512 * 512 ? 4 : 1;
+  return scanAlphaBounds(data, width, height, alphaThreshold, stride);
 }
 
 export function fitDisplaySizeToNatural(input: {

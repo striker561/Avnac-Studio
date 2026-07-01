@@ -9,7 +9,7 @@ import SceneWorkspaceStage from "@/components/scene-workspace/stage";
 import { AVNAC_VECTOR_BOARD_DRAG_MIME } from "@/lib/avnac-vector-board-document";
 import { findTopHitNodeId } from "@/lib/saraswati";
 import { readSceneWorkspaceDropIntent } from "@/scene/workspace";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SceneInlineTextEditor from "./scene-inline-text-editor";
 import {
   isChromeTarget,
@@ -31,6 +31,7 @@ import { useSceneEditorDropActions } from "./use-scene-editor-drop-actions";
 import { useSceneEditorInteractions } from "./use-scene-editor-interactions";
 import { useSceneEditorShortcuts } from "./use-scene-editor-shortcuts";
 import { useSceneSelectionActions } from "./use-scene-selection-actions";
+import { ensureRembgBridge } from "@/lib/rembg-bridge";
 
 type InlineTextEditState = {
   nodeId: string;
@@ -41,12 +42,14 @@ type Props = {
   shortcutsOpen: boolean;
   onCloseShortcuts: () => void;
   onOpenShortcuts: () => void;
+  developerMode?: boolean;
 };
 
 export default function SceneEditorCanvas({
   shortcutsOpen,
   onCloseShortcuts,
   onOpenShortcuts,
+  developerMode = false,
 }: Props) {
   const scene = useSceneEditorStore((s) => s.scene);
   const selectedIds = useSceneEditorStore((s) => s.selectedIds);
@@ -66,6 +69,19 @@ export default function SceneEditorCanvas({
   const setCanvasViewport = useSceneEditorStore((s) => s.setCanvasViewport);
   const setCanvasPan = useSceneEditorStore((s) => s.setCanvasPan);
   const setRenderStats = useSceneEditorStore((s) => s.setRenderStats);
+  const onRenderStats = useMemo(
+    () =>
+      developerMode
+        ? setRenderStats
+        : () => {
+            /* skip per-frame store updates when dev footer is hidden */
+          },
+    [developerMode, setRenderStats],
+  );
+
+  useEffect(() => {
+    ensureRembgBridge();
+  }, []);
   const dropActions = useSceneEditorDropActions();
   const actions = useSceneSelectionActions();
   const rembgProcessingNodes = useRembgProcessingStore(
@@ -522,7 +538,7 @@ export default function SceneEditorCanvas({
             onCreateClipPath={interactions.onCreateClipPath}
             onSceneDoubleClick={onSceneDoubleClick}
             marqueeBounds={interactions.marqueeBounds}
-            onRenderStats={setRenderStats}
+            onRenderStats={onRenderStats}
           />
         </div>
 

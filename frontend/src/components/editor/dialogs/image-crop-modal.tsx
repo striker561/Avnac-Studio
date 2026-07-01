@@ -68,6 +68,7 @@ export default function ImageCropModal({
   });
   const [boxPx, setBoxPx] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const [trimming, setTrimming] = useState(false);
+  const [trimMessage, setTrimMessage] = useState<string | null>(null);
   const [, layoutBump] = useReducer((n: number) => n + 1, 0);
 
   const dragRef = useRef<{
@@ -82,6 +83,7 @@ export default function ImageCropModal({
     if (!open) {
       setNatural({ w: 0, h: 0 });
       setTrimming(false);
+      setTrimMessage(null);
       return;
     }
     setCrop({
@@ -235,9 +237,13 @@ export default function ImageCropModal({
   const onTrimTransparent = useCallback(async () => {
     if (trimming || natural.w <= 0 || natural.h <= 0) return;
     setTrimming(true);
+    setTrimMessage(null);
     try {
       const bounds = await readImageAlphaBounds(imageSrc);
-      if (!bounds) return;
+      if (!bounds) {
+        setTrimMessage("No opaque pixels found to trim.");
+        return;
+      }
       setCrop(
         clampCrop(
           {
@@ -252,6 +258,9 @@ export default function ImageCropModal({
       );
       layoutBump();
     } catch (error) {
+      setTrimMessage(
+        error instanceof Error ? error.message : "Trim scan failed.",
+      );
       console.error("[avnac] trim transparent preview failed", error);
     } finally {
       setTrimming(false);
@@ -386,6 +395,11 @@ export default function ImageCropModal({
               </div>
             ) : null}
           </div>
+          {trimMessage ? (
+            <p className="mt-3 text-center text-sm text-red-600" role="alert">
+              {trimMessage}
+            </p>
+          ) : null}
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-black/10 px-4 py-3">
           <button

@@ -1,37 +1,51 @@
 /**
  * rembg-processing-store.ts
  *
- * Minimal Zustand store that tracks which canvas image nodes are currently
- * being processed by the background-removal pipeline.
- *
- * Kept separate from the main SceneEditorStore to avoid coupling the heavy
- * scene state to transient UI processing state.
+ * Tracks which image nodes are being processed and per-node errors.
  */
 import { create } from "zustand";
 
 type RembgProcessingState = {
-  /** Set of node IDs that are currently being processed. */
   processingNodes: Record<string, true>;
+  errors: Record<string, string>;
 };
 
 type RembgProcessingActions = {
   setProcessing: (nodeId: string) => void;
   clearProcessing: (nodeId: string) => void;
+  setError: (nodeId: string, message: string) => void;
+  clearError: (nodeId: string) => void;
 };
 
 export const useRembgProcessingStore = create<
   RembgProcessingState & RembgProcessingActions
 >((set) => ({
   processingNodes: {},
+  errors: {},
 
   setProcessing: (nodeId) =>
     set((s) => ({
       processingNodes: { ...s.processingNodes, [nodeId]: true },
+      errors: (() => {
+        const { [nodeId]: _removed, ...rest } = s.errors;
+        return rest;
+      })(),
     })),
 
   clearProcessing: (nodeId) =>
     set((s) => {
       const { [nodeId]: _removed, ...rest } = s.processingNodes;
       return { processingNodes: rest };
+    }),
+
+  setError: (nodeId, message) =>
+    set((s) => ({
+      errors: { ...s.errors, [nodeId]: message },
+    })),
+
+  clearError: (nodeId) =>
+    set((s) => {
+      const { [nodeId]: _removed, ...rest } = s.errors;
+      return { errors: rest };
     }),
 }));

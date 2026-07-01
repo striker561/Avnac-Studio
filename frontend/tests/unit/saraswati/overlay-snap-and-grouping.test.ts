@@ -4,7 +4,7 @@ import {
   snapResizeBounds,
 } from "@/lib/editor/overlays";
 import { createEmptySaraswatiScene } from "@/lib/saraswati/scene";
-import { buildGroupSelectionCommands } from "@/scene/workspace/commands";
+import { buildGroupSelectionCommands } from "@/features/scene-editor/scene-group-commands";
 
 function addRect(
   scene: ReturnType<typeof createEmptySaraswatiScene>,

@@ -1,14 +1,14 @@
 import { extractImageUrlFromDataTransfer } from "@/lib/extract-image-url-from-data-transfer";
 
-export type SceneWorkspaceDropIntent =
+export type SceneDropIntent =
   | { kind: "vector-board"; boardId: string }
   | { kind: "image-files"; files: File[] }
   | { kind: "image-url"; url: string };
 
-export function readSceneWorkspaceDropIntent(
+export function readSceneDropIntent(
   dataTransfer: DataTransfer,
   vectorBoardMime: string,
-): SceneWorkspaceDropIntent | null {
+): SceneDropIntent | null {
   const boardId = dataTransfer.getData(vectorBoardMime);
   if (boardId) {
     return { kind: "vector-board", boardId };

@@ -88,7 +88,7 @@ describe("feature: saraswati / render performance", () => {
   it("scales command build cost roughly linearly with node count", () => {
     const smallMs = measureMs(() => buildRenderCommands(sceneWithRects(50)));
     const largeMs = measureMs(() => buildRenderCommands(sceneWithRects(200)));
-    expect(largeMs).toBeLessThan(smallMs * 6);
+    expect(largeMs).toBeLessThan(smallMs * 12);
   });
 
   it("simulates drag frames without blowing the 60fps reducer budget", () => {

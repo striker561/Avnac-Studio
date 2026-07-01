@@ -7,7 +7,7 @@ import {
 } from "@/lib/saraswati";
 import { getRenderableNodeBounds } from "@/lib/editor/overlays";
 import { getNodeBounds } from "@/lib/saraswati/spatial";
-import { buildGroupSelectionCommands } from "@/scene/workspace";
+import { buildGroupSelectionCommands } from "./scene-group-commands";
 import { useSceneEditorStore } from "./store";
 import {
   exportSelectionAsPng,

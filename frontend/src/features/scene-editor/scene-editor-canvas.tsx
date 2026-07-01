@@ -8,7 +8,7 @@ import ImageRembgOverlay from "@/components/editor/canvas/image-rembg-overlay";
 import SceneWorkspaceStage from "@/components/scene-workspace/stage";
 import { AVNAC_VECTOR_BOARD_DRAG_MIME } from "@/lib/avnac-vector-board-document";
 import { findTopHitNodeId } from "@/lib/saraswati";
-import { readSceneWorkspaceDropIntent } from "@/scene/workspace";
+import { readSceneDropIntent } from "./scene-drop-intent";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SceneInlineTextEditor from "./scene-inline-text-editor";
 import {
@@ -333,7 +333,7 @@ export default function SceneEditorCanvas({
       event.dataTransfer.dropEffect = "copy";
       return;
     }
-    const intent = readSceneWorkspaceDropIntent(
+    const intent = readSceneDropIntent(
       event.dataTransfer,
       AVNAC_VECTOR_BOARD_DRAG_MIME,
     );
@@ -344,7 +344,7 @@ export default function SceneEditorCanvas({
 
   const onDrop = async (event: React.DragEvent<HTMLDivElement>) => {
     if (!scene) return;
-    const intent = readSceneWorkspaceDropIntent(
+    const intent = readSceneDropIntent(
       event.dataTransfer,
       AVNAC_VECTOR_BOARD_DRAG_MIME,
     );

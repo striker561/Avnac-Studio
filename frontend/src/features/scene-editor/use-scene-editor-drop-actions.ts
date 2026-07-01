@@ -1,4 +1,4 @@
-import type { SceneWorkspaceDropIntent } from "@/scene/workspace";
+import type { SceneDropIntent } from "./scene-drop-intent";
 import type { SaraswatiImageNode } from "@/lib/saraswati";
 import { vectorDocHasRenderableStrokes } from "@/lib/avnac-vector-board-document";
 import { loadVectorBoardDocs } from "@/lib/avnac-vector-boards-storage";
@@ -109,7 +109,7 @@ export function useSceneEditorDropActions() {
   );
 
   const handleDropIntent = useCallback(
-    async (intent: SceneWorkspaceDropIntent, point: ScenePoint) => {
+    async (intent: SceneDropIntent, point: ScenePoint) => {
       switch (intent.kind) {
         case "image-url": {
           await addImageAtPoint(intent.url, point);

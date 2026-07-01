@@ -3,6 +3,7 @@ import {
   type SaraswatiRenderableNode,
   type SaraswatiScene,
 } from "../scene";
+import { anchorToCenter } from "../transform/anchor";
 
 export type SaraswatiPoint = { x: number; y: number };
 export type SaraswatiBounds = {
@@ -363,17 +364,6 @@ function anchorToStart(
   if (origin === "center") return anchor - size / 2;
   if (origin === "right" || origin === "bottom") return anchor - size;
   return anchor;
-}
-
-function anchorToCenter(
-  anchor: number,
-  origin: "left" | "center" | "right" | "top" | "bottom",
-  size: number,
-  _isHorizontal: boolean,
-) {
-  if (origin === "center") return anchor;
-  if (origin === "right" || origin === "bottom") return anchor - size / 2;
-  return anchor + size / 2;
 }
 
 function rotatePoint(

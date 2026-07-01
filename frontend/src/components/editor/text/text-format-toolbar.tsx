@@ -41,6 +41,7 @@ export type TextFormatToolbarValues = {
 type TextFormatToolbarProps = {
   values: TextFormatToolbarValues;
   onChange: (next: Partial<TextFormatToolbarValues>) => void;
+  leadingSlot?: ReactNode;
   footerSlot?: ReactNode;
 };
 
@@ -52,6 +53,7 @@ const FONT_MENU_ESTIMATE_PX = 288;
 export default function TextFormatToolbar({
   values,
   onChange,
+  leadingSlot,
   footerSlot,
 }: TextFormatToolbarProps) {
   const [fontOpen, setFontOpen] = useState(false);
@@ -138,6 +140,12 @@ export default function TextFormatToolbar({
       role="toolbar"
       aria-label="Text formatting"
     >
+      {leadingSlot ? (
+        <>
+          {leadingSlot}
+          <FloatingToolbarDivider />
+        </>
+      ) : null}
       <div
         ref={fontTriggerWrapRef}
         className="relative flex shrink-0 items-center py-1 pl-2"

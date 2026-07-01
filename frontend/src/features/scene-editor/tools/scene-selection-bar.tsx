@@ -214,7 +214,9 @@ export default function SceneSelectionBar() {
       };
       return (
         <BarShell barRef={barRef} focusMode={focusMode}>
+          {(handle) => (
           <TextFormatToolbar
+            leadingSlot={handle}
             values={values}
             onChange={(patch) => {
               const colorPatch = patch.fillStyle
@@ -284,6 +286,7 @@ export default function SceneSelectionBar() {
               </>
             }
           />
+          )}
         </BarShell>
       );
     }
@@ -295,8 +298,11 @@ export default function SceneSelectionBar() {
       const opacityPct = Math.round((rectNode.opacity ?? 1) * 100);
       return (
         <BarShell barRef={barRef} focusMode={focusMode}>
+          {(handle) => (
           <FloatingToolbarShell role="toolbar" aria-label="Rectangle options">
             <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+              {handle}
+              <FloatingToolbarDivider />
               <PaintPopoverControl
                 compact
                 value={toPaint(rectNode.fill)}
@@ -359,6 +365,7 @@ export default function SceneSelectionBar() {
               <DeleteBtn onClick={handleDelete} />
             </div>
           </FloatingToolbarShell>
+          )}
         </BarShell>
       );
     }
@@ -384,11 +391,14 @@ export default function SceneSelectionBar() {
       const opacityPct = Math.round((paintNode.opacity ?? 1) * 100);
       return (
         <BarShell barRef={barRef} focusMode={focusMode}>
+          {(handle) => (
           <FloatingToolbarShell
             role="toolbar"
             aria-label={`${NODE_TYPE_LABEL[node.type] ?? node.type} options`}
           >
             <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+              {handle}
+              <FloatingToolbarDivider />
               <PaintPopoverControl
                 compact
                 value={toPaint(paintNode.fill)}
@@ -467,6 +477,7 @@ export default function SceneSelectionBar() {
               <DeleteBtn onClick={handleDelete} />
             </div>
           </FloatingToolbarShell>
+          )}
         </BarShell>
       );
     }
@@ -511,8 +522,11 @@ export default function SceneSelectionBar() {
 
       return (
         <BarShell barRef={barRef} focusMode={focusMode}>
+          {(handle) => (
           <FloatingToolbarShell role="toolbar" aria-label="Line options">
             <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+              {handle}
+              <FloatingToolbarDivider />
               {/* Stroke color */}
               <PaintPopoverControl
                 compact
@@ -831,6 +845,7 @@ export default function SceneSelectionBar() {
               <DeleteBtn onClick={handleDelete} />
             </div>
           </FloatingToolbarShell>
+          )}
         </BarShell>
       );
     }
@@ -840,8 +855,11 @@ export default function SceneSelectionBar() {
       const opacityPct = Math.round((node.opacity ?? 1) * 100);
       return (
         <BarShell barRef={barRef} focusMode={focusMode}>
+          {(handle) => (
           <FloatingToolbarShell role="toolbar" aria-label="Selection">
             <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+              {handle}
+              <FloatingToolbarDivider />
               <span className="px-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
                 {node.name ?? "Group"}
               </span>
@@ -894,6 +912,7 @@ export default function SceneSelectionBar() {
               <DeleteBtn onClick={handleDelete} />
             </div>
           </FloatingToolbarShell>
+          )}
         </BarShell>
       );
     }
@@ -920,8 +939,11 @@ export default function SceneSelectionBar() {
     const nodeWithEffects = node as { blur?: number; shadow?: SaraswatiShadow };
     return (
       <BarShell barRef={barRef} focusMode={focusMode}>
+        {(handle) => (
         <FloatingToolbarShell role="toolbar" aria-label="Selection">
           <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+            {handle}
+            <FloatingToolbarDivider />
             <span className="px-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
               {label}
             </span>
@@ -954,6 +976,7 @@ export default function SceneSelectionBar() {
             <DeleteBtn onClick={handleDelete} />
           </div>
         </FloatingToolbarShell>
+        )}
       </BarShell>
     );
   }
@@ -962,8 +985,11 @@ export default function SceneSelectionBar() {
   if (hasSelection && selectedIds.length > 1) {
     return (
       <BarShell barRef={barRef} focusMode={focusMode}>
+        {(handle) => (
         <FloatingToolbarShell role="toolbar" aria-label="Selection">
           <div className="flex items-center py-1.5 pl-3 pr-1.5">
+            {handle}
+            <FloatingToolbarDivider />
             <span className="text-[13px] font-medium text-neutral-600">
               {selectedIds.length} items
             </span>
@@ -971,6 +997,7 @@ export default function SceneSelectionBar() {
             <DeleteBtn onClick={handleDelete} />
           </div>
         </FloatingToolbarShell>
+        )}
       </BarShell>
     );
   }
@@ -978,8 +1005,11 @@ export default function SceneSelectionBar() {
   // Nothing selected — artboard / background controls
   return (
     <BarShell barRef={barRef} focusMode={focusMode}>
+      {(handle) => (
       <FloatingToolbarShell role="toolbar" aria-label="Artboard">
         <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+          {handle}
+          <FloatingToolbarDivider />
           <ArtboardResizeToolbarControl
             width={scene.artboard.width}
             height={scene.artboard.height}
@@ -996,6 +1026,7 @@ export default function SceneSelectionBar() {
           />
         </div>
       </FloatingToolbarShell>
+      )}
     </BarShell>
   );
 }
@@ -1010,8 +1041,86 @@ function BarShell({
 }: {
   barRef: React.RefObject<HTMLDivElement | null>;
   focusMode: boolean;
-  children: React.ReactNode;
+  children: (handle: React.ReactNode) => React.ReactNode;
 }) {
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStateRef = useRef<{
+    startX: number;
+    startY: number;
+    startOffsetX: number;
+    startOffsetY: number;
+  } | null>(null);
+
+  const onHandlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    dragStateRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startOffsetX: offset.x,
+      startOffsetY: offset.y,
+    };
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const previousUserSelect = document.body.style.userSelect;
+    const previousCursor = document.body.style.cursor;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "grabbing";
+
+    const onPointerMove = (e: PointerEvent) => {
+      const drag = dragStateRef.current;
+      if (!drag) return;
+      setOffset({
+        x: drag.startOffsetX + (e.clientX - drag.startX),
+        y: drag.startOffsetY + (e.clientY - drag.startY),
+      });
+    };
+
+    const stopDragging = () => {
+      dragStateRef.current = null;
+      setIsDragging(false);
+    };
+
+    window.addEventListener("pointermove", onPointerMove, true);
+    window.addEventListener("pointerup", stopDragging, true);
+    window.addEventListener("pointercancel", stopDragging, true);
+
+    return () => {
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.cursor = previousCursor;
+      window.removeEventListener("pointermove", onPointerMove, true);
+      window.removeEventListener("pointerup", stopDragging, true);
+      window.removeEventListener("pointercancel", stopDragging, true);
+    };
+  }, [isDragging]);
+
+  const handle = (
+    <button
+      type="button"
+      className={[
+        "flex h-9 w-8 shrink-0 cursor-grab items-center justify-center rounded-full text-neutral-500 transition-colors",
+        "hover:bg-black/6 hover:text-neutral-800 active:cursor-grabbing",
+        isDragging ? "bg-black/6 text-neutral-700" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      title="Move toolbar"
+      aria-label="Move toolbar"
+      onPointerDown={onHandlePointerDown}
+      style={{ touchAction: "none" }}
+    >
+      <span className="grid grid-cols-2 gap-0.5">
+        {Array.from({ length: 6 }, (_, i) => (
+          <span key={i} className="h-1 w-1 rounded-full bg-current" />
+        ))}
+      </span>
+    </button>
+  );
+
   return (
     <div
       data-avnac-chrome
@@ -1023,7 +1132,17 @@ function BarShell({
         .filter(Boolean)
         .join(" ")}
     >
-      <div className="pointer-events-auto">{children}</div>
+      <div
+        className="pointer-events-auto"
+        style={{
+          transform:
+            offset.x !== 0 || offset.y !== 0
+              ? `translate(${offset.x}px, ${offset.y}px)`
+              : undefined,
+        }}
+      >
+        {children(handle)}
+      </div>
     </div>
   );
 }
@@ -1093,8 +1212,11 @@ function ImageToolbar({
   return (
     <>
       <BarShell barRef={barRef} focusMode={focusMode}>
+        {(handle) => (
         <FloatingToolbarShell role="toolbar" aria-label="Image options">
           <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+            {handle}
+            <FloatingToolbarDivider />
             {/* Remove background */}
             <button
               type="button"
@@ -1196,6 +1318,7 @@ function ImageToolbar({
             <DeleteBtn onClick={onDelete} />
           </div>
         </FloatingToolbarShell>
+        )}
       </BarShell>
 
       <ImageCropModal

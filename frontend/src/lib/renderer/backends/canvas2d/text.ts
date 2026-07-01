@@ -2,10 +2,11 @@ import type { SaraswatiRenderTextCommand } from "../../../saraswati/render/comma
 import {
   applyCanvas2DClipPaths,
   centeredCanvas2DBox,
+  layoutCanvas2DTextLines,
+  measureCanvas2DTextLineWidth,
   normalizeCanvas2DTextAlign,
   paintCanvas2DStyle,
   withCanvas2DTransform,
-  wrapCanvas2DTextLines,
 } from "./shared";
 
 export function renderCanvas2DTextCommand(
@@ -25,14 +26,11 @@ export function renderCanvas2DTextCommand(
   ctx.save();
   ctx.font = font;
   const rawLines = command.text.split(/\r?\n/);
-  const lines = wrapCanvas2DTextLines(
-    ctx,
-    rawLines,
-    Math.max(1, command.width),
-  );
+  const maxWidth = Math.max(1, command.width);
+  const lines = layoutCanvas2DTextLines(ctx, font, rawLines, maxWidth);
   const measuredWidth = Math.max(
     command.width,
-    ...lines.map((line) => ctx.measureText(line).width),
+    ...lines.map((line) => measureCanvas2DTextLineWidth(ctx, font, line)),
   );
   const lineHeightPx =
     Math.max(1, command.fontSize) * Math.max(1, command.lineHeight);
@@ -67,7 +65,7 @@ export function renderCanvas2DTextCommand(
         ctx.fillText(line, drawX, y);
       }
       if (command.underline && fillStyle) {
-        const measured = ctx.measureText(line).width;
+        const measured = measureCanvas2DTextLineWidth(ctx, font, line);
         const underlineY = y + command.fontSize;
         const startX =
           align === "center"

@@ -643,6 +643,10 @@ export default function SceneEditorCanvas({
           y={contextMenu.y}
           hasSelection={contextMenu.hasSelection}
           locked={contextMenu.locked}
+          canDownloadPng={
+            selectedIds.length === 1 &&
+            scene?.nodes[selectedIds[0]!]?.type === "image"
+          }
           onCopy={() => {
             actions.onCopy();
             setContextMenu(null);
@@ -664,6 +668,10 @@ export default function SceneEditorCanvas({
           }}
           onDelete={() => {
             actions.onDelete();
+            setContextMenu(null);
+          }}
+          onDownloadPng={() => {
+            actions.onDownloadPng();
             setContextMenu(null);
           }}
         />

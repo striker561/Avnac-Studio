@@ -6,5 +6,4 @@ export * from "./editor/store";
 export * from "./editor/interaction";
 export * from "./spatial";
 export * from "./utils";
-export * from "./validation/dual-run";
 export * from "./compat/to-avnac";

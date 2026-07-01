@@ -26,6 +26,10 @@ export function ExportPng(arg1, arg2) {
   return window['go']['avnacio']['IOManager']['ExportPng'](arg1, arg2);
 }
 
+export function ExportTextFile(arg1, arg2) {
+  return window['go']['avnacio']['IOManager']['ExportTextFile'](arg1, arg2);
+}
+
 export function ListDocuments() {
   return window['go']['avnacio']['IOManager']['ListDocuments']();
 }

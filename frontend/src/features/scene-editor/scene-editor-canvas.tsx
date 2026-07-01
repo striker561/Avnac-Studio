@@ -8,8 +8,8 @@ import ImageRembgOverlay from "@/components/editor/canvas/image-rembg-overlay";
 import SceneWorkspaceStage from "@/components/scene-workspace/stage";
 import { AVNAC_VECTOR_BOARD_DRAG_MIME } from "@/lib/avnac-vector-board-document";
 import { findTopHitNodeId } from "@/lib/saraswati";
-import { readSceneWorkspaceDropIntent } from "@/scene/workspace";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { readSceneDropIntent } from "./scene-drop-intent";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SceneInlineTextEditor from "./scene-inline-text-editor";
 import {
   isChromeTarget,
@@ -31,6 +31,7 @@ import { useSceneEditorDropActions } from "./use-scene-editor-drop-actions";
 import { useSceneEditorInteractions } from "./use-scene-editor-interactions";
 import { useSceneEditorShortcuts } from "./use-scene-editor-shortcuts";
 import { useSceneSelectionActions } from "./use-scene-selection-actions";
+import { ensureRembgBridge } from "@/lib/rembg-bridge";
 
 type InlineTextEditState = {
   nodeId: string;
@@ -41,12 +42,14 @@ type Props = {
   shortcutsOpen: boolean;
   onCloseShortcuts: () => void;
   onOpenShortcuts: () => void;
+  developerMode?: boolean;
 };
 
 export default function SceneEditorCanvas({
   shortcutsOpen,
   onCloseShortcuts,
   onOpenShortcuts,
+  developerMode = false,
 }: Props) {
   const scene = useSceneEditorStore((s) => s.scene);
   const selectedIds = useSceneEditorStore((s) => s.selectedIds);
@@ -66,6 +69,19 @@ export default function SceneEditorCanvas({
   const setCanvasViewport = useSceneEditorStore((s) => s.setCanvasViewport);
   const setCanvasPan = useSceneEditorStore((s) => s.setCanvasPan);
   const setRenderStats = useSceneEditorStore((s) => s.setRenderStats);
+  const onRenderStats = useMemo(
+    () =>
+      developerMode
+        ? setRenderStats
+        : () => {
+            /* skip per-frame store updates when dev footer is hidden */
+          },
+    [developerMode, setRenderStats],
+  );
+
+  useEffect(() => {
+    ensureRembgBridge();
+  }, []);
   const dropActions = useSceneEditorDropActions();
   const actions = useSceneSelectionActions();
   const rembgProcessingNodes = useRembgProcessingStore(
@@ -317,7 +333,7 @@ export default function SceneEditorCanvas({
       event.dataTransfer.dropEffect = "copy";
       return;
     }
-    const intent = readSceneWorkspaceDropIntent(
+    const intent = readSceneDropIntent(
       event.dataTransfer,
       AVNAC_VECTOR_BOARD_DRAG_MIME,
     );
@@ -328,7 +344,7 @@ export default function SceneEditorCanvas({
 
   const onDrop = async (event: React.DragEvent<HTMLDivElement>) => {
     if (!scene) return;
-    const intent = readSceneWorkspaceDropIntent(
+    const intent = readSceneDropIntent(
       event.dataTransfer,
       AVNAC_VECTOR_BOARD_DRAG_MIME,
     );
@@ -437,6 +453,8 @@ export default function SceneEditorCanvas({
     canUngroup: actions.canUngroup,
     onGroup: actions.onGroup,
     onUngroup: actions.onUngroup,
+    selectedIds,
+    onNudge: actions.onNudge,
     onImageFilesPaste: (files) => {
       if (!scene) return;
       void dropActions.handleDropIntent(
@@ -515,12 +533,10 @@ export default function SceneEditorCanvas({
             onScenePointerLeave={interactions.onPointerLeave}
             onHandlePointerDown={interactions.onHandlePointerDown}
             onRotateHandlePointerDown={interactions.onRotateHandlePointerDown}
-            onClipHandlePointerDown={interactions.onClipHandlePointerDown}
             onCurveHandlePointerDown={interactions.onCurveHandlePointerDown}
-            onCreateClipPath={interactions.onCreateClipPath}
             onSceneDoubleClick={onSceneDoubleClick}
             marqueeBounds={interactions.marqueeBounds}
-            onRenderStats={setRenderStats}
+            onRenderStats={onRenderStats}
           />
         </div>
 
@@ -641,6 +657,10 @@ export default function SceneEditorCanvas({
           y={contextMenu.y}
           hasSelection={contextMenu.hasSelection}
           locked={contextMenu.locked}
+          canDownloadPng={
+            selectedIds.length === 1 &&
+            scene?.nodes[selectedIds[0]!]?.type === "image"
+          }
           onCopy={() => {
             actions.onCopy();
             setContextMenu(null);
@@ -662,6 +682,10 @@ export default function SceneEditorCanvas({
           }}
           onDelete={() => {
             actions.onDelete();
+            setContextMenu(null);
+          }}
+          onDownloadPng={() => {
+            actions.onDownloadPng();
             setContextMenu(null);
           }}
         />

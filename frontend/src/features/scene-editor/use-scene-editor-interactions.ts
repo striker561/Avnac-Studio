@@ -15,10 +15,6 @@ import {
   type SaraswatiResizeHandle,
 } from "@/lib/saraswati";
 import {
-  boundsToClipPath,
-  resizeBoundsFromHandle,
-} from "@/lib/editor/clip-edit";
-import {
   getRenderableNodeBounds,
   measurementFromBounds,
   snapMoveBounds,
@@ -31,7 +27,6 @@ import {
   onSceneRotationSensitivityChange,
 } from "@/lib/scene-editor-preferences";
 import type { SaraswatiBounds } from "@/lib/saraswati/spatial";
-import type { SaraswatiClipPath } from "@/lib/saraswati/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSceneEditorStore } from "./store";
 
@@ -45,16 +40,6 @@ type UseSceneEditorInteractionsOptions = {
    *  global window pointermove listener will forward drag events even when the
    *  pointer has left the canvas element boundary. */
   getScenePoint?: ScenePointConverter;
-};
-
-type ClipResizeState = {
-  pointerId: number;
-  nodeId: string;
-  handle: SaraswatiResizeHandle;
-  startBounds: SaraswatiBounds;
-  startClipPath: SaraswatiClipPath;
-  startX: number;
-  startY: number;
 };
 
 type MarqueeState = {
@@ -199,7 +184,6 @@ export function useSceneEditorInteractions(
   const pointerStateRef = useRef<SaraswatiPointerState>(
     createIdlePointerState(),
   );
-  const clipResizeRef = useRef<ClipResizeState | null>(null);
   const marqueeRef = useRef<MarqueeState | null>(null);
   const curveAdjustRef = useRef<CurveAdjustState | null>(null);
   /** Aspect ratio (W/H) captured when a handle-resize drag begins. */
@@ -230,10 +214,6 @@ export function useSceneEditorInteractions(
     if (marqueeRef.current) {
       marqueeRef.current = null;
       setMarqueeBounds(null);
-    }
-    if (clipResizeRef.current) {
-      clipResizeRef.current = null;
-      shouldEndHistoryBatch = true;
     }
     if (curveAdjustRef.current) {
       curveAdjustRef.current = null;
@@ -308,7 +288,6 @@ export function useSceneEditorInteractions(
         else next.add(hitId);
         setSelectedIds([...next]);
         pointerStateRef.current = createIdlePointerState();
-        clipResizeRef.current = null;
         curveAdjustRef.current = null;
         setHoveredId(null);
         setGuides([]);
@@ -332,14 +311,13 @@ export function useSceneEditorInteractions(
         : { state: createIdlePointerState(), selectedIds: [] };
       pointerStateRef.current = result.state;
       beginHistoryBatch();
-      clipResizeRef.current = null;
       curveAdjustRef.current = null;
       marqueeRef.current = null;
       setSelectedIds(result.selectedIds);
       setHoveredId(null);
       setGuides([]);
       setMeasurement(null);
-      setActiveCursor(null);
+      setActiveCursor("grabbing");
     },
     [beginHistoryBatch, setSelectedIds],
   );
@@ -384,35 +362,6 @@ export function useSceneEditorInteractions(
         setHoveredId(null);
         setGuides([]);
         setMeasurement(null);
-        return;
-      }
-
-      const clipResize = clipResizeRef.current;
-      if (clipResize && clipResize.pointerId === pointerId) {
-        const dx = x - clipResize.startX;
-        const dy = y - clipResize.startY;
-        let bounds = resizeBoundsFromHandle(
-          clipResize.startBounds,
-          clipResize.handle,
-          dx,
-          dy,
-        );
-        const snapped = snapResizeBounds(
-          scene,
-          bounds,
-          clipResize.handle,
-          store.selectedIds,
-        );
-        bounds = snapped.bounds;
-        const command = {
-          type: "SET_NODE_CLIP_PATH" as const,
-          id: clipResize.nodeId,
-          clipPath: boundsToClipPath(clipResize.startClipPath, bounds),
-        };
-        applyCommands([command]);
-        setHoveredId(null);
-        setGuides(snapped.guides);
-        setMeasurement(measurementFromBounds(bounds));
         return;
       }
 
@@ -634,13 +583,6 @@ export function useSceneEditorInteractions(
         setMarqueeBounds(null);
       }
       if (
-        clipResizeRef.current &&
-        clipResizeRef.current.pointerId === pointerId
-      ) {
-        clipResizeRef.current = null;
-        shouldEndHistoryBatch = true;
-      }
-      if (
         curveAdjustRef.current &&
         curveAdjustRef.current.pointerId === pointerId
       ) {
@@ -747,7 +689,10 @@ export function useSceneEditorInteractions(
       const indicator = detectRotationSnap(
         startRotation,
         rotationSensitivityRef.current,
-        Math.max(0, Math.min(1, useSceneEditorStore.getState().snapIntensity ?? 1)),
+        Math.max(
+          0,
+          Math.min(1, useSceneEditorStore.getState().snapIntensity ?? 1),
+        ),
       );
       setRotationIndicator({
         angle: normalizeDegrees(startRotation),
@@ -758,72 +703,9 @@ export function useSceneEditorInteractions(
     [beginHistoryBatch],
   );
 
-  const onClipHandlePointerDown = useCallback(
-    (
-      pointerId: number,
-      nodeId: string,
-      handle: SaraswatiResizeHandle,
-      startBounds: SaraswatiBounds,
-      x: number,
-      y: number,
-    ) => {
-      const scene = useSceneEditorStore.getState().scene;
-      if (!scene) return;
-      const node = scene.nodes[nodeId];
-      if (!node || !isSaraswatiRenderableNode(node) || node.type === "line") {
-        return;
-      }
-      if (!node.clipPath) return;
-      clipResizeRef.current = {
-        pointerId,
-        nodeId,
-        handle,
-        startBounds,
-        startClipPath: node.clipPath,
-        startX: x,
-        startY: y,
-      };
-      beginHistoryBatch();
-      setActiveCursor("crosshair");
-      setHoveredId(null);
-      setMeasurement(measurementFromBounds(startBounds));
-      setRotationIndicator(null);
-    },
-    [beginHistoryBatch],
-  );
-
-  const onCreateClipPath = useCallback(
-    (nodeId: string, bounds: SaraswatiBounds) => {
-      applyCommands([
-        {
-          type: "SET_NODE_CLIP_PATH",
-          id: nodeId,
-          clipPath: boundsToClipPath(
-            {
-              type: "rect",
-              x: bounds.x + bounds.width / 2,
-              y: bounds.y + bounds.height / 2,
-              width: bounds.width,
-              height: bounds.height,
-              radiusX: 0,
-              radiusY: 0,
-            },
-            bounds,
-          ),
-        },
-      ]);
-      setSelectedIds([nodeId]);
-      setHoveredId(null);
-      setGuides([]);
-      setMeasurement(measurementFromBounds(bounds));
-    },
-    [applyCommands, setSelectedIds],
-  );
-
   const onPointerLeave = useCallback(() => {
     if (
       pointerStateRef.current.pointerId !== null ||
-      clipResizeRef.current !== null ||
       marqueeRef.current !== null
     ) {
       return;
@@ -874,8 +756,6 @@ export function useSceneEditorInteractions(
       if (
         (pointerStateRef.current.pointerId != null &&
           pointerStateRef.current.pointerId === pointerId) ||
-        (clipResizeRef.current &&
-          clipResizeRef.current.pointerId === pointerId) ||
         (curveAdjustRef.current &&
           curveAdjustRef.current.pointerId === pointerId) ||
         (marqueeRef.current && marqueeRef.current.pointerId === pointerId)
@@ -935,7 +815,7 @@ export function useSceneEditorInteractions(
     });
   }, []);
 
-  // While a drag is active (resize / rotate / clip / marquee), apply a global
+  // While a drag is active (resize / rotate / marquee), apply a global
   // cursor override and disable text-selection on the document. This stops the
   // browser from snapping the cursor back to "default" when the pointer moves
   // outside the canvas element and prevents the WebKit grey-overlay / content-
@@ -950,7 +830,9 @@ export function useSceneEditorInteractions(
     }
     el.style.cursor = activeCursor;
     el.style.userSelect = "none";
-    (el.style as CSSStyleDeclaration & { webkitUserSelect: string }).webkitUserSelect = "none";
+    (
+      el.style as CSSStyleDeclaration & { webkitUserSelect: string }
+    ).webkitUserSelect = "none";
     return () => {
       el.style.removeProperty("cursor");
       el.style.removeProperty("user-select");
@@ -970,8 +852,6 @@ export function useSceneEditorInteractions(
     onPointerUp,
     onHandlePointerDown,
     onRotateHandlePointerDown,
-    onClipHandlePointerDown,
-    onCreateClipPath,
     onCurveHandlePointerDown,
     onPointerLeave,
   };
@@ -988,7 +868,11 @@ function shortestAngularDelta(from: number, to: number): number {
   return forward;
 }
 
-function detectRotationSnap(rotation: number, sensitivity: number, snapIntensity = 1): {
+function detectRotationSnap(
+  rotation: number,
+  sensitivity: number,
+  snapIntensity = 1,
+): {
   snapped: boolean;
   target: number | null;
 } {

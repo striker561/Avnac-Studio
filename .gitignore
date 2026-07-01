@@ -2,5 +2,6 @@
 node_modules/
 build/bin/
 build/windows/installer/tmp/
-frontend/dist/
+frontend/dist/*
+!frontend/dist/index.html
 frontend/package.json.md5

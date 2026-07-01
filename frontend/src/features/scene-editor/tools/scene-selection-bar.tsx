@@ -41,6 +41,8 @@ import BlurToolbarControl from "@/components/editor/color/blur-toolbar-control";
 import { DEFAULT_SHADOW_UI, type ShadowUi } from "@/lib/shadow-ui";
 import CornerRadiusToolbarControl from "@/components/editor/shape/corner-radius-toolbar-control";
 import ImageCropModal from "@/components/editor/dialogs/image-crop-modal";
+import { fitImageNodeSizeToCrop } from "@/lib/image-crop-utils";
+import type { SaraswatiCommand } from "@/lib/saraswati/commands/types";
 import TextFormatToolbar, {
   type TextFormatToolbarValues,
 } from "@/components/editor/text/text-format-toolbar";
@@ -899,7 +901,15 @@ export default function SceneSelectionBar() {
     // IMAGE
     if (node.type === "image") {
       const imageNode = node as SaraswatiImageNode;
-      return <ImageToolbar nodeId={nodeId} imageNode={imageNode} focusMode={focusMode} barRef={barRef} onDelete={handleDelete} />;
+      return (
+        <ImageToolbar
+          nodeId={nodeId}
+          imageNode={imageNode}
+          focusMode={focusMode}
+          barRef={barRef}
+          onDelete={handleDelete}
+        />
+      );
     }
 
     // UNKNOWN
@@ -1050,7 +1060,7 @@ function ImageToolbar({
 }) {
   const [cropModalOpen, setCropModalOpen] = useState(false);
 
-  const setImageCrop = useSceneEditorStore((s) => s.setImageCrop);
+  const applyCommands = useSceneEditorStore((s) => s.applyCommands);
   const setImageBorderRadius = useSceneEditorStore(
     (s) => s.setImageBorderRadius,
   );
@@ -1194,17 +1204,45 @@ function ImageToolbar({
         initialCrop={{
           x: imageNode.cropX,
           y: imageNode.cropY,
-          w: imageNode.cropWidth ?? imageNode.width,
-          h: imageNode.cropHeight ?? imageNode.height,
+          w: imageNode.cropWidth,
+          h: imageNode.cropHeight,
         }}
         onCancel={() => setCropModalOpen(false)}
         onApply={(rect) => {
-          setImageCrop(nodeId, {
-            cropX: rect.cropX,
-            cropY: rect.cropY,
-            cropWidth: rect.width,
-            cropHeight: rect.height,
+          const prevCropW = imageNode.cropWidth ?? rect.sourceNaturalWidth;
+          const prevCropH = imageNode.cropHeight ?? rect.sourceNaturalHeight;
+          const nextSize = fitImageNodeSizeToCrop({
+            nodeWidth: imageNode.width,
+            nodeHeight: imageNode.height,
+            prevCropWidth: prevCropW,
+            prevCropHeight: prevCropH,
+            nextCropWidth: rect.width,
+            nextCropHeight: rect.height,
           });
+          const commands: SaraswatiCommand[] = [
+            {
+              type: "SET_IMAGE_CROP",
+              id: nodeId,
+              cropX: rect.cropX,
+              cropY: rect.cropY,
+              cropWidth: rect.width,
+              cropHeight: rect.height,
+            },
+          ];
+          if (
+            nextSize.width !== imageNode.width ||
+            nextSize.height !== imageNode.height
+          ) {
+            commands.push({
+              type: "RESIZE_NODE",
+              id: nodeId,
+              x: imageNode.x,
+              y: imageNode.y,
+              width: nextSize.width,
+              height: nextSize.height,
+            });
+          }
+          applyCommands(commands);
           setCropModalOpen(false);
         }}
       />

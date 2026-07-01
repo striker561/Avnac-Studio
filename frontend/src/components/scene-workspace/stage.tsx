@@ -1,11 +1,15 @@
 import type { RendererBackend } from "@/lib/renderer";
 import { canvas2DRendererBackend } from "@/lib/renderer";
 import {
+  createContentPaintScheduler,
+  EMPTY_RENDER_PAINT_STATS,
+  type RenderPaintStats,
+} from "@/lib/renderer/paint-scheduler";
+import {
+  buildArtboardRenderCommand,
   buildRenderCommands,
-  isSaraswatiRenderableNode,
   type SaraswatiScene,
 } from "@/lib/saraswati";
-import { clipPathToBounds } from "@/lib/editor/clip-edit";
 import type {
   SaraswatiGuideLine,
   SaraswatiMeasurement,
@@ -13,14 +17,11 @@ import type {
 import { getRenderableNodeBounds } from "@/lib/editor/overlays";
 import type { SaraswatiResizeHandle } from "@/lib/saraswati/commands/types";
 import type { SaraswatiBounds } from "@/lib/saraswati/spatial";
-import { getNodeBounds } from "@/lib/saraswati/spatial";
 import { useEffect, useMemo, useRef } from "react";
 
-export type SceneWorkspaceRenderStats = {
-  ms: number;
-  commands: number;
-  duplicateCommands: number;
-};
+export type SceneWorkspaceRenderStats = RenderPaintStats;
+
+export const EMPTY_SCENE_WORKSPACE_RENDER_STATS = EMPTY_RENDER_PAINT_STATS;
 
 type Props = {
   scene: SaraswatiScene;
@@ -61,15 +62,6 @@ type Props = {
     x: number,
     y: number,
   ) => void;
-  onClipHandlePointerDown?: (
-    pointerId: number,
-    nodeId: string,
-    handle: SaraswatiResizeHandle,
-    startBounds: SaraswatiBounds,
-    x: number,
-    y: number,
-  ) => void;
-  onCreateClipPath?: (nodeId: string, bounds: SaraswatiBounds) => void;
   onCurveHandlePointerDown?: (
     pointerId: number,
     nodeId: string,
@@ -120,8 +112,6 @@ export default function SceneWorkspaceStage({
   onSceneDoubleClick,
   onHandlePointerDown,
   onRotateHandlePointerDown,
-  onClipHandlePointerDown,
-  onCreateClipPath,
   onCurveHandlePointerDown,
   onRenderStats,
   hoveredId,
@@ -137,6 +127,7 @@ export default function SceneWorkspaceStage({
     () => new Set(hiddenNodeIds),
     [hiddenNodeIds],
   );
+  const contentPaintSchedulerRef = useRef(createContentPaintScheduler());
   const handleSize = Math.max(8, Math.min(48, 10 / Math.max(0.2, viewScale)));
   const borderWidth = Math.max(1, Math.min(6, 2 / Math.max(0.25, viewScale)));
   const rotateHandleOffset = Math.max(
@@ -257,30 +248,6 @@ export default function SceneWorkspaceStage({
     return getRenderableNodeBounds(scene, hoveredId);
   }, [hiddenNodeIdSet, hoveredId, scene, selectedIds]);
 
-  const editableClip = useMemo(() => {
-    if (!interactive || selectedIds.length !== 1) return null;
-    const nodeId = selectedIds[0]!;
-    if (lockedIdSet.has(nodeId)) return null;
-    const node = scene.nodes[nodeId];
-    if (!node || !isSaraswatiRenderableNode(node) || node.type === "line") {
-      return null;
-    }
-    if (!node.clipPath) return null;
-    return { nodeId, bounds: clipPathToBounds(node.clipPath) };
-  }, [interactive, lockedIdSet, scene, selectedIds]);
-
-  const clipCreationCandidate = useMemo(() => {
-    if (!interactive || selectedIds.length !== 1) return null;
-    const nodeId = selectedIds[0]!;
-    if (lockedIdSet.has(nodeId)) return null;
-    const node = scene.nodes[nodeId];
-    if (!node || !isSaraswatiRenderableNode(node) || node.type === "line") {
-      return null;
-    }
-    if (node.clipPath) return null;
-    return { nodeId, bounds: getNodeBounds(node) };
-  }, [interactive, lockedIdSet, scene, selectedIds]);
-
   const toScenePoint = useMemo(() => {
     return (clientX: number, clientY: number) => {
       const canvas = contentCanvasRef.current;
@@ -321,7 +288,7 @@ export default function SceneWorkspaceStage({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.clearRect(0, 0, scene.artboard.width, scene.artboard.height);
-      const bgCommand = buildRenderCommands(scene)[0];
+      const bgCommand = buildArtboardRenderCommand(scene);
       if (!bgCommand) return;
       await backend.render(ctx, [bgCommand]);
     };
@@ -346,28 +313,23 @@ export default function SceneWorkspaceStage({
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+
       const commands = buildRenderCommands(scene)
         .slice(1)
         .filter((command) => !hiddenNodeIdSet.has(command.id));
-      ctx.clearRect(0, 0, scene.artboard.width, scene.artboard.height);
-      const start = performance.now();
-      await backend.render(ctx, commands);
-      const end = performance.now();
-      const signatureCount = new Map<string, number>();
-      for (const command of commands) {
-        const signature = `${command.type}:${Math.round(command.x)}:${Math.round(command.y)}:${"width" in command ? Math.round(command.width) : 0}:${"height" in command ? Math.round(command.height) : 0}`;
-        signatureCount.set(signature, (signatureCount.get(signature) ?? 0) + 1);
-      }
-      let duplicateCommands = 0;
-      for (const count of signatureCount.values()) {
-        if (count > 1) duplicateCommands += count - 1;
-      }
+
+      const presentationKey = `${scene.artboard.width}x${scene.artboard.height}|${[...hiddenNodeIdSet].sort().join(",")}`;
+      const result = await contentPaintSchedulerRef.current.paintContent({
+        target: ctx,
+        commands,
+        artboardWidth: scene.artboard.width,
+        artboardHeight: scene.artboard.height,
+        presentationKey,
+        backend,
+      });
+
       if (!cancelled) {
-        onRenderStats?.({
-          ms: end - start,
-          commands: commands.length,
-          duplicateCommands,
-        });
+        onRenderStats?.(result.stats);
       }
 
       if (cancelled) return;
@@ -441,7 +403,16 @@ export default function SceneWorkspaceStage({
         className={["relative z-[1]", interactive ? "cursor-default" : ""]
           .filter(Boolean)
           .join(" ")}
-        style={interactionCursor ? { cursor: interactionCursor } : undefined}
+        style={{
+          ...(interactionCursor ? { cursor: interactionCursor } : {}),
+          ...(interactive
+            ? {
+                userSelect: "none",
+                WebkitUserSelect: "none",
+                touchAction: "none",
+              }
+            : {}),
+        }}
       />
       <div
         className="pointer-events-none absolute inset-0 z-2"
@@ -493,67 +464,6 @@ export default function SceneWorkspaceStage({
               height: `${Math.max(1, hoveredBounds.height)}px`,
             }}
           />
-        ) : null}
-
-        {editableClip ? (
-          <div
-            className="absolute rounded-md border border-cyan-500/85 border-dashed bg-cyan-200/10"
-            style={{
-              left: `${editableClip.bounds.x}px`,
-              top: `${editableClip.bounds.y}px`,
-              width: `${Math.max(1, editableClip.bounds.width)}px`,
-              height: `${Math.max(1, editableClip.bounds.height)}px`,
-            }}
-          >
-            {HANDLES.map(({ id: handle, cx, cy, cursor }) => (
-              <div
-                key={`clip-${handle}`}
-                className="pointer-events-auto absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-cyan-700 bg-cyan-50 shadow-sm active:bg-cyan-100"
-                style={{
-                  left: `${cx * 100}%`,
-                  top: `${cy * 100}%`,
-                  width: `${handleSize}px`,
-                  height: `${handleSize}px`,
-                  cursor,
-                }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  const point = toScenePoint(e.clientX, e.clientY);
-                  if (!point) return;
-                  contentCanvasRef.current?.setPointerCapture(e.pointerId);
-                  onClipHandlePointerDown?.(
-                    e.pointerId,
-                    editableClip.nodeId,
-                    handle,
-                    editableClip.bounds,
-                    point.x,
-                    point.y,
-                  );
-                }}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {clipCreationCandidate ? (
-          <button
-            type="button"
-            className="pointer-events-auto absolute rounded-md border border-cyan-400/70 bg-cyan-50/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-cyan-700 shadow-sm"
-            style={{
-              left: `${clipCreationCandidate.bounds.x}px`,
-              top: `${Math.max(0, clipCreationCandidate.bounds.y - 26)}px`,
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onCreateClipPath?.(
-                clipCreationCandidate.nodeId,
-                clipCreationCandidate.bounds,
-              );
-            }}
-          >
-            Add clip
-          </button>
         ) : null}
 
         {measurement ? (

@@ -18,6 +18,7 @@ import {
   type SaraswatiRectNode,
   type SaraswatiTextNode,
 } from "../scene";
+import { anchorToCenter } from "../transform/anchor";
 
 export type AvnacAdapterPipeline = "direct-avnac";
 
@@ -72,6 +73,8 @@ type RawObject = Record<string, unknown> & {
   src?: string;
   cropX?: number;
   cropY?: number;
+  cropWidth?: number;
+  cropHeight?: number;
   points?: RawPoint[];
   objects?: unknown[];
 };
@@ -534,6 +537,10 @@ function adaptRawObject(
         src: raw.src,
         cropX: readNumber(raw.cropX, 0),
         cropY: readNumber(raw.cropY, 0),
+        cropWidth: isPositiveNumber(raw.cropWidth) ? raw.cropWidth : undefined,
+        cropHeight: isPositiveNumber(raw.cropHeight)
+          ? raw.cropHeight
+          : undefined,
         clipPath: readClipPath(raw.clipPath),
       };
       return { node, issue: supportedIssue(sourceId, "image") };
@@ -796,22 +803,6 @@ function readClipPath(raw: unknown): SaraswatiClipPath | null {
     width,
     height,
   };
-}
-
-function anchorToCenter(
-  anchor: number,
-  origin: SaraswatiNodeOriginX | SaraswatiNodeOriginY,
-  size: number,
-  isX: boolean,
-) {
-  const axisOrigin = origin ?? (isX ? "left" : "top");
-  const factor =
-    axisOrigin === "center"
-      ? 0.5
-      : axisOrigin === "right" || axisOrigin === "bottom"
-        ? 1
-        : 0;
-  return anchor + (0.5 - factor) * size;
 }
 
 function normalizePolygonPoints(

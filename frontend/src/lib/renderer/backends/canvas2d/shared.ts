@@ -9,6 +9,7 @@ import type {
   SaraswatiNodeOriginY,
   SaraswatiShadow,
 } from "../../../saraswati/scene";
+import { anchorToCenter } from "../../../saraswati/transform/anchor";
 
 export type Canvas2DPreviewBox = {
   x: number;
@@ -31,6 +32,45 @@ export type Canvas2DTransformCommand = {
 };
 
 const imageCache = new Map<string, Promise<CanvasImageSource>>();
+const textWidthCache = new Map<string, number>();
+const textLayoutCache = new Map<string, string[]>();
+
+function textWidthCacheKey(font: string, text: string) {
+  return `${font}\0${text}`;
+}
+
+function textLayoutCacheKey(font: string, lines: string[], maxWidth: number) {
+  return `${font}\0${maxWidth}\0${lines.join("\n")}`;
+}
+
+export function measureCanvas2DTextLineWidth(
+  ctx: CanvasRenderingContext2D,
+  font: string,
+  text: string,
+): number {
+  const key = textWidthCacheKey(font, text);
+  const hit = textWidthCache.get(key);
+  if (hit !== undefined) return hit;
+  ctx.font = font;
+  const width = ctx.measureText(text).width;
+  textWidthCache.set(key, width);
+  return width;
+}
+
+export function layoutCanvas2DTextLines(
+  ctx: CanvasRenderingContext2D,
+  font: string,
+  lines: string[],
+  maxWidth: number,
+): string[] {
+  const key = textLayoutCacheKey(font, lines, maxWidth);
+  const hit = textLayoutCache.get(key);
+  if (hit) return hit;
+  ctx.font = font;
+  const wrapped = wrapCanvas2DTextLines(ctx, lines, maxWidth, font);
+  textLayoutCache.set(key, wrapped);
+  return wrapped;
+}
 
 export function withCanvas2DTransform(
   ctx: CanvasRenderingContext2D,
@@ -113,6 +153,7 @@ export function wrapCanvas2DTextLines(
   ctx: CanvasRenderingContext2D,
   lines: string[],
   maxWidth: number,
+  font = ctx.font,
 ) {
   if (maxWidth <= 1) return lines;
   const wrapped: string[] = [];
@@ -125,7 +166,8 @@ export function wrapCanvas2DTextLines(
     let current = words[0]!;
     for (let index = 1; index < words.length; index += 1) {
       const next = `${current} ${words[index]}`;
-      if (ctx.measureText(next).width <= maxWidth) current = next;
+      if (measureCanvas2DTextLineWidth(ctx, font, next) <= maxWidth)
+        current = next;
       else {
         wrapped.push(current);
         current = words[index]!;
@@ -295,20 +337,4 @@ function linearGradientForCanvas2DBox(
     gradient.addColorStop(stop.offset, stop.color);
   }
   return gradient;
-}
-
-function anchorToCenter(
-  anchor: number,
-  origin: SaraswatiNodeOriginX | SaraswatiNodeOriginY,
-  renderedSize: number,
-  isX: boolean,
-) {
-  const axisOrigin = origin ?? (isX ? "left" : "top");
-  const factor =
-    axisOrigin === "center"
-      ? 0.5
-      : axisOrigin === "right" || axisOrigin === "bottom"
-        ? 1
-        : 0;
-  return anchor + (0.5 - factor) * renderedSize;
 }

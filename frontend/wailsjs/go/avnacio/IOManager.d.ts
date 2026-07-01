@@ -14,6 +14,8 @@ export function ExportFile(arg1:string,arg2:Array<number>):Promise<void>;
 
 export function ExportPng(arg1:string,arg2:string):Promise<void>;
 
+export function ExportTextFile(arg1:string,arg2:string):Promise<void>;
+
 export function ListDocuments():Promise<string>;
 
 export function ReadDocumentRecord(arg1:string):Promise<string>;

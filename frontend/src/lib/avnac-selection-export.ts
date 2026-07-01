@@ -11,7 +11,11 @@
  *      original src URL (remote images may not display in all SVG viewers).
  */
 
-import { ExportFile, ExportPng } from "../../wailsjs/go/avnacio/IOManager";
+import {
+  downloadSvgViaBrowser,
+  exportPngNativeOrBrowser,
+  exportTextFileNativeOrBrowser,
+} from "./avnac-export-io";
 import {
   type SaraswatiNode,
   type SaraswatiRenderableNode,
@@ -29,35 +33,12 @@ import type {
   SaraswatiTextNode,
 } from "./saraswati/types";
 import { getNodeBounds } from "./saraswati/spatial";
-import { buildRenderCommands } from "./saraswati/render/commands";
-import { canvas2DRendererBackend } from "./renderer/backends/canvas2d/renderer";
+import { renderSceneToPngDataUrl } from "./renderer/offscreen-render";
+import { resolveSelectionPngMultiplier } from "./image-pixel-utils";
 import type { BgValue, GradientStop } from "./editor-paint";
+import { anchorToCenter } from "./saraswati/transform/anchor";
 
 // ─── Shared utilities ────────────────────────────────────────────────────────
-
-function hasNativeBridge(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof (window as unknown as { go?: unknown }).go !== "undefined"
-  );
-}
-
-function downloadDataUrlViaBrowser(filename: string, dataUrl: string): void {
-  const anchor = document.createElement("a");
-  anchor.href = dataUrl;
-  anchor.download = filename;
-  anchor.click();
-}
-
-function downloadSvgViaBrowser(filename: string, svg: string): void {
-  const blob = new Blob([svg], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
 
 /** Collect the IDs of the selected nodes and every one of their descendants. */
 function collectDescendantIds(
@@ -167,7 +148,12 @@ function shiftNode(
   }
   // All non-line renderable nodes extend SaraswatiNodeBase which has x and y.
   const positioned = node as SaraswatiRenderableNode & { x: number; y: number };
-  return { ...positioned, parentId: newParentId, x: positioned.x + dx, y: positioned.y + dy } as SaraswatiNode;
+  return {
+    ...positioned,
+    parentId: newParentId,
+    x: positioned.x + dx,
+    y: positioned.y + dy,
+  } as SaraswatiNode;
 }
 
 // ─── PNG Export ──────────────────────────────────────────────────────────────
@@ -176,29 +162,28 @@ export async function exportSelectionAsPng(
   filename: string,
   scene: SaraswatiScene,
   selectedIds: string[],
-  options: { multiplier?: number } = {},
+  options: { multiplier?: number; useSourceResolution?: boolean } = {},
 ): Promise<void> {
   const result = buildSelectionScene(scene, selectedIds);
-  if (!result) return;
+  if (!result) {
+    throw new Error("Nothing to export — check your selection.");
+  }
 
-  const multiplier = Math.max(1, options.multiplier ?? 2);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(result.width * multiplier);
-  canvas.height = Math.round(result.height * multiplier);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  ctx.save();
-  ctx.scale(multiplier, multiplier);
-  // Slice off the first command (artboard bg rect) — keep the canvas transparent.
-  const commands = buildRenderCommands(result.virtualScene).slice(1);
-  await canvas2DRendererBackend.render(ctx, commands);
-  ctx.restore();
+  let multiplier = Math.max(1, options.multiplier ?? 2);
+  if (options.useSourceResolution) {
+    multiplier = await resolveSelectionPngMultiplier(
+      scene,
+      selectedIds,
+      multiplier,
+    );
+  }
 
   let dataUrl: string;
   try {
-    dataUrl = canvas.toDataURL("image/png");
+    dataUrl = await renderSceneToPngDataUrl(result.virtualScene, {
+      multiplier,
+      skipArtboardBackgroundCommand: true,
+    });
   } catch (err) {
     throw new Error(
       "PNG export failed because a remote image tainted the canvas " +
@@ -207,20 +192,9 @@ export async function exportSelectionAsPng(
     );
   }
 
-  if (!hasNativeBridge()) {
-    downloadDataUrlViaBrowser(filename, dataUrl);
-    return;
-  }
-
-  try {
-    await ExportPng(filename, dataUrl);
-  } catch (err) {
-    console.error(
-      "[avnac] native selection PNG export failed, falling back to browser",
-      err,
-    );
-    downloadDataUrlViaBrowser(filename, dataUrl);
-  }
+  await exportPngNativeOrBrowser(filename, dataUrl, {
+    logLabel: "native selection PNG export",
+  });
 }
 
 // ─── SVG Export ──────────────────────────────────────────────────────────────
@@ -237,26 +211,6 @@ function uid(ctx: SvgCtx, prefix: string): string {
 /** Round to 2 decimal places and stringify. */
 function r2(n: number): string {
   return (Math.round(n * 100) / 100).toString();
-}
-
-/**
- * Compute the center coordinate used by the canvas transform system.
- * Mirrors `anchorToCenter` in the canvas2d shared module.
- */
-function anchorToCenter(
-  anchor: number,
-  origin: string,
-  renderedSize: number,
-  isX: boolean,
-): number {
-  const axisOrigin = origin || (isX ? "left" : "top");
-  const factor =
-    axisOrigin === "center"
-      ? 0.5
-      : axisOrigin === "right" || axisOrigin === "bottom"
-        ? 1
-        : 0;
-  return anchor + (0.5 - factor) * renderedSize;
 }
 
 /**
@@ -383,7 +337,17 @@ function rectToSvg(node: SaraswatiRectNode, svgCtx: SvgCtx): string {
   const shape = `<rect x="${r2(-w / 2)}" y="${r2(-h / 2)}" width="${r2(w)}" height="${r2(h)}"${rxAttr} fill="${fill}"${strokeAttrs}/>`;
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
@@ -402,7 +366,17 @@ function ellipseToSvg(node: SaraswatiEllipseNode, svgCtx: SvgCtx): string {
   const shape = `<ellipse cx="0" cy="0" rx="${r2(w / 2)}" ry="${r2(h / 2)}" fill="${fill}"${strokeAttrs}/>`;
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
@@ -424,7 +398,17 @@ function polygonToSvg(node: SaraswatiPolygonNode, svgCtx: SvgCtx): string {
   const shape = `<polygon points="${pts}" fill="${fill}"${strokeAttrs}/>`;
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
@@ -465,7 +449,11 @@ function lineToSvg(node: SaraswatiLineNode, svgCtx: SvgCtx): string {
     height: Math.max(1, Math.abs(y2 - y1)),
   };
   // SaraswatiColor is structurally identical to BgValue
-  const strokeColor = paintValue(node.stroke as unknown as BgValue, box, svgCtx);
+  const strokeColor = paintValue(
+    node.stroke as unknown as BgValue,
+    box,
+    svgCtx,
+  );
   if (strokeColor === "none" || node.strokeWidth <= 0) return "";
 
   const isCurved = node.pathType === "curved" && node.curveBulge !== 0;
@@ -524,12 +512,16 @@ function lineToSvg(node: SaraswatiLineNode, svgCtx: SvgCtx): string {
   if (node.arrowEnd) {
     const fromX = isCurved ? cpX : x1;
     const fromY = isCurved ? cpY : y1;
-    arrows.push(arrowheadPolygon(x2, y2, fromX, fromY, node.strokeWidth, strokeColor));
+    arrows.push(
+      arrowheadPolygon(x2, y2, fromX, fromY, node.strokeWidth, strokeColor),
+    );
   }
   if (node.arrowStart) {
     const fromX = isCurved ? cpX : x2;
     const fromY = isCurved ? cpY : y2;
-    arrows.push(arrowheadPolygon(x1, y1, fromX, fromY, node.strokeWidth, strokeColor));
+    arrows.push(
+      arrowheadPolygon(x1, y1, fromX, fromY, node.strokeWidth, strokeColor),
+    );
   }
 
   return `<g${opAttr}${fxAttr}>${shaftEl}${arrows.join("")}</g>`;
@@ -541,7 +533,8 @@ function textToSvg(node: SaraswatiTextNode, svgCtx: SvgCtx): string {
 
   const rawLines = node.text.split(/\r?\n/);
   const w = Math.max(1, node.width);
-  const lineHeightPx = Math.max(1, node.fontSize) * Math.max(1, node.lineHeight);
+  const lineHeightPx =
+    Math.max(1, node.fontSize) * Math.max(1, node.lineHeight);
   const h = Math.max(lineHeightPx, rawLines.length * lineHeightPx);
   const box = { x: -w / 2, y: -h / 2, width: w, height: h };
 
@@ -588,7 +581,17 @@ function textToSvg(node: SaraswatiTextNode, svgCtx: SvgCtx): string {
 
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
@@ -615,27 +618,31 @@ function imageToSvg(node: SaraswatiImageNode, svgCtx: SvgCtx): string {
 
   return wrapGroup(
     shape,
-    svgTransform(node.x, node.y, node.originX, node.originY, w, h, node.scaleX, node.scaleY, node.rotation),
+    svgTransform(
+      node.x,
+      node.y,
+      node.originX,
+      node.originY,
+      w,
+      h,
+      node.scaleX,
+      node.scaleY,
+      node.rotation,
+    ),
     node.opacity,
     filterAttr(node.shadow, node.blur, svgCtx),
   );
 }
 
 function escSvg(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function escSvgAttr(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
 
-function nodeToSvg(
-  node: SaraswatiRenderableNode,
-  svgCtx: SvgCtx,
-): string {
+function nodeToSvg(node: SaraswatiRenderableNode, svgCtx: SvgCtx): string {
   switch (node.type) {
     case "rect":
       return rectToSvg(node, svgCtx);
@@ -685,19 +692,8 @@ export async function exportSelectionAsSvg(
 
   const svg = buildSvgString(result.leafNodes, result.width, result.height);
 
-  if (!hasNativeBridge()) {
-    downloadSvgViaBrowser(filename, svg);
-    return;
-  }
-
-  try {
-    const bytes = Array.from(new TextEncoder().encode(svg));
-    await ExportFile(filename, bytes);
-  } catch (err) {
-    console.error(
-      "[avnac] native selection SVG export failed, falling back to browser",
-      err,
-    );
-    downloadSvgViaBrowser(filename, svg);
-  }
+  await exportTextFileNativeOrBrowser(filename, svg, {
+    logLabel: "native selection SVG export",
+    fallback: () => downloadSvgViaBrowser(filename, svg),
+  });
 }

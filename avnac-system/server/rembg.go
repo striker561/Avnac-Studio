@@ -10,10 +10,13 @@
 //	rembg:complete  — { nodeId, jobId, resultDataUrl }   on success
 //	rembg:error     — { nodeId, jobId, errorMsg }        on failure
 //
-// Required secrets (set via SecretsManager / Settings):
+// Configuration (environment variables):
 //
-//	boreas-url    Base URL of the Boreas API  e.g. https://api.example.com
-//	boreas-token  Optional bearer token sent as X-API-Key
+//	BOREAS_URL    Base URL of the Boreas API (defaults to https://boreas.kageapi.cloud)
+//	BOREAS_TOKEN  Optional API key sent as X-API-Key
+//
+// Boreas is an open-source background-removal microservice:
+// https://github.com/striker561/boreas
 package avnacserver
 
 import (
@@ -31,6 +34,10 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+// rembgEventsEmit is the Wails event sink used by RembgService. Tests may
+// replace it to capture emitted events without a live Wails runtime.
+var rembgEventsEmit = runtime.EventsEmit
 
 // ---------------------------------------------------------------------------
 // Event payload types (serialised as JSON by Wails)
@@ -62,7 +69,7 @@ type RembgErrorEvent struct {
 // It is NOT directly bound to Wails — use App.StartRemoveBackground instead.
 // Configuration is read from environment variables:
 //
-//	BOREAS_URL    Base URL of the Boreas API  (required)
+//	BOREAS_URL    Base URL of the Boreas API (optional; has a hosted default)
 type RembgService struct{}
 
 // NewRembgService returns a ready-to-use RembgService.
@@ -188,7 +195,7 @@ func (s *RembgService) StartRemoveBackground(ctx context.Context, imageBase64 st
 	}
 
 	// Emit initial queued status immediately so the UI can start showing the overlay.
-	runtime.EventsEmit(ctx, "rembg:progress", RembgProgressEvent{
+	rembgEventsEmit(ctx, "rembg:progress", RembgProgressEvent{
 		NodeID: nodeId,
 		JobID:  result.Data.JobID,
 		Status: result.Data.Status,
@@ -284,7 +291,7 @@ func (s *RembgService) handleSSEEvent(ctx context.Context, nodeId, jobID, data s
 			s.emitError(ctx, nodeId, jobID, fmt.Sprintf("download result image: %v", err))
 			return true
 		}
-		runtime.EventsEmit(ctx, "rembg:complete", RembgCompleteEvent{
+		rembgEventsEmit(ctx, "rembg:complete", RembgCompleteEvent{
 			NodeID:        nodeId,
 			JobID:         jobID,
 			ResultDataURL: "data:image/png;base64," + resultBase64,
@@ -301,7 +308,7 @@ func (s *RembgService) handleSSEEvent(ctx context.Context, nodeId, jobID, data s
 
 	default:
 		// queued / preparing / processing — emit progress and continue.
-		runtime.EventsEmit(ctx, "rembg:progress", RembgProgressEvent{
+		rembgEventsEmit(ctx, "rembg:progress", RembgProgressEvent{
 			NodeID: nodeId,
 			JobID:  jobID,
 			Status: snapshot.Status,
@@ -345,7 +352,7 @@ func (s *RembgService) downloadResult(url string) (string, error) {
 // ---------------------------------------------------------------------------
 
 func (s *RembgService) emitError(ctx context.Context, nodeId, jobID, msg string) {
-	runtime.EventsEmit(ctx, "rembg:error", RembgErrorEvent{
+	rembgEventsEmit(ctx, "rembg:error", RembgErrorEvent{
 		NodeID:   nodeId,
 		JobID:    jobID,
 		ErrorMsg: msg,

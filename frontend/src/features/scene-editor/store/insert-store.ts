@@ -1,11 +1,8 @@
 import {
   SARASWATI_ROOT_ID,
-  getNodeBounds,
-  isSaraswatiRenderableNode,
   type SaraswatiCommand,
   type SaraswatiScene,
 } from "@/lib/saraswati";
-import { boundsToClipPath } from "@/lib/editor/clip-edit";
 import type {
   SaraswatiEllipseNode,
   SaraswatiGroupNode,
@@ -422,77 +419,4 @@ export function insertVectorBoard(context: SceneEditorInsertContext) {
     { type: "ADD_NODE", node: labelNode },
   ]);
   context.setSelectedIds([groupId]);
-}
-
-export function addClipToSelection(context: SceneEditorInsertContext) {
-  if (!context.scene || context.selectedIds.length !== 1) return;
-  const nodeId = context.selectedIds[0]!;
-  const node = context.scene.nodes[nodeId];
-  if (!node || !isSaraswatiRenderableNode(node) || node.type === "line") {
-    return;
-  }
-  const bounds = getNodeBounds(node);
-  context.applyCommands([
-    {
-      type: "SET_NODE_CLIP_PATH",
-      id: nodeId,
-      clipPath: {
-        type: "rect",
-        x: bounds.x + bounds.width / 2,
-        y: bounds.y + bounds.height / 2,
-        width: Math.max(1, bounds.width),
-        height: Math.max(1, bounds.height),
-        radiusX: 0,
-        radiusY: 0,
-      },
-    },
-  ]);
-  context.setSelectedIds([nodeId]);
-}
-
-export function removeClipFromSelection(context: SceneEditorInsertContext) {
-  if (!context.scene || context.selectedIds.length !== 1) return;
-  const nodeId = context.selectedIds[0]!;
-  const node = context.scene.nodes[nodeId];
-  if (!node || !isSaraswatiRenderableNode(node) || node.type === "line") {
-    return;
-  }
-  if (!node.clipPath) return;
-  context.applyCommands([
-    {
-      type: "SET_NODE_CLIP_PATH",
-      id: nodeId,
-      clipPath: null,
-    },
-  ]);
-  context.setSelectedIds([nodeId]);
-}
-
-export function resetClipOnSelection(context: SceneEditorInsertContext) {
-  if (!context.scene || context.selectedIds.length !== 1) return;
-  const nodeId = context.selectedIds[0]!;
-  const node = context.scene.nodes[nodeId];
-  if (!node || !isSaraswatiRenderableNode(node) || node.type === "line") {
-    return;
-  }
-  const bounds = getNodeBounds(node);
-  const sourceClip =
-    node.clipPath ??
-    ({
-      type: "rect",
-      x: bounds.x + bounds.width / 2,
-      y: bounds.y + bounds.height / 2,
-      width: Math.max(1, bounds.width),
-      height: Math.max(1, bounds.height),
-      radiusX: 0,
-      radiusY: 0,
-    } as const);
-  context.applyCommands([
-    {
-      type: "SET_NODE_CLIP_PATH",
-      id: nodeId,
-      clipPath: boundsToClipPath(sourceClip, bounds),
-    },
-  ]);
-  context.setSelectedIds([nodeId]);
 }

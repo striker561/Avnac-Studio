@@ -53,20 +53,21 @@ import {
 } from "@/features/scene-editor/store/paging/page-history";
 import { clonePageDoc } from "@/features/scene-editor/store/paging/page-state";
 import {
+  collectSceneFontFamilies,
+  ensureGoogleFontsForFamilies,
+} from "@/lib/load-google-font";
+import {
   buildAddPageResult,
   buildDeletePageResult,
   buildInsertImportedPageResult,
 } from "@/features/scene-editor/store/paging/page-recipes";
 import { create } from "zustand";
 import {
-  addClipToSelection,
   insertArrow,
   insertEllipse,
   insertLine,
   insertPolygon,
   insertRect,
-  removeClipFromSelection,
-  resetClipOnSelection,
   insertStar,
   insertText,
   insertVectorBoard,
@@ -96,6 +97,8 @@ type SceneEditorState = {
   hasPendingChanges: boolean;
   saveState: "saved" | "dirty" | "saving" | "error";
   saveError: string | null;
+  /** Transient user-visible export failure (selection or artboard PNG). */
+  exportNotice: string | null;
   snapIntensity: number;
   /** Whether the aspect ratio is currently locked in the inspector panel. */
   arLocked: boolean;
@@ -118,6 +121,10 @@ type SceneEditorState = {
     ms: number;
     commands: number;
     duplicateCommands: number;
+    repaintMode: "full" | "partial" | "skipped";
+    dirtyRects: number;
+    dirtyCoveragePct: number;
+    commandsRepainted: number;
   };
   /** All pages in the document (Avnac-serialized, one per slot). */
   pages: AvnacDocumentV1[];
@@ -140,6 +147,10 @@ type SceneEditorActions = {
     ms: number;
     commands: number;
     duplicateCommands: number;
+    repaintMode: "full" | "partial" | "skipped";
+    dirtyRects: number;
+    dirtyCoveragePct: number;
+    commandsRepainted: number;
   }) => void;
   insertRect: () => void;
   insertEllipse: () => void;
@@ -149,9 +160,6 @@ type SceneEditorActions = {
   insertArrow: () => void;
   insertText: () => void;
   insertVectorBoard: () => void;
-  addClipToSelection: () => void;
-  removeClipFromSelection: () => void;
-  resetClipOnSelection: () => void;
   undo: () => void;
   redo: () => void;
   setArtboard: (width?: number, height?: number, bg?: SaraswatiColor) => void;
@@ -219,6 +227,7 @@ type SceneEditorActions = {
   /** Persist the current scene snapshot back to IDB via serializer. */
   save: () => Promise<void>;
   flushAutosaveNow: () => Promise<void>;
+  setExportNotice: (message: string | null) => void;
   setSnapIntensity: (value: number) => void;
   /** Apply snap intensity from preferences/events without re-persisting. */
   applySnapIntensity: (value: number) => void;
@@ -246,6 +255,7 @@ const INITIAL: SceneEditorState = {
   hasPendingChanges: false,
   saveState: "saved",
   saveError: null,
+  exportNotice: null,
   snapIntensity: initialSnapIntensity,
   arLocked: false,
   arLockedRatio: 1,
@@ -266,6 +276,10 @@ const INITIAL: SceneEditorState = {
     ms: 0,
     commands: 0,
     duplicateCommands: 0,
+    repaintMode: "full",
+    dirtyRects: 0,
+    dirtyCoveragePct: 0,
+    commandsRepainted: 0,
   },
   pages: [],
   currentPage: 0,
@@ -420,6 +434,8 @@ async function applyPageTransition(
     selectedIds: [],
     lockedIds: [],
   });
+
+  void ensureGoogleFontsForFamilies(collectSceneFontFamilies(scene));
 }
 
 function asInsertContext(state: SceneEditorStore): SceneEditorInsertContext {
@@ -509,6 +525,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
         saveError: null,
         lockedIds: [],
       });
+      void ensureGoogleFontsForFamilies(collectSceneFontFamilies(scene));
     } catch (err) {
       set({
         isLoading: false,
@@ -524,18 +541,29 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     for (const cmd of commands) {
       sceneEngineStore.dispatch(cmd);
     }
+    const editedFontFamilies = commands
+      .filter(
+        (cmd): cmd is Extract<SaraswatiCommand, { type: "SET_TEXT_FORMAT" }> =>
+          cmd.type === "SET_TEXT_FORMAT" && Boolean(cmd.fontFamily),
+      )
+      .map((cmd) => cmd.fontFamily!);
+    if (editedFontFamilies.length > 0) {
+      void ensureGoogleFontsForFamilies(editedFontFamilies);
+    }
     const engineState = sceneEngineStore.getState();
-    const nextBaseDocument = toAvnacDocument(engineState.scene);
     const { documentId } = get();
-    set({
+    const patch: Partial<SceneEditorState> = {
       hasPendingChanges: true,
       saveState: "dirty",
       saveError: null,
       scene: engineState.scene,
       canUndo: engineState.canUndo,
       canRedo: engineState.canRedo,
-      baseDocument: nextBaseDocument,
-    });
+    };
+    if (openHistoryBatchDepth === 0) {
+      patch.baseDocument = toAvnacDocument(engineState.scene);
+    }
+    set(patch);
     if (documentId)
       scheduleAutosave(
         documentId,
@@ -579,7 +607,10 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
   setSelectedIds: (selectedIds: string[]) => {
     const prev = get().selectedIds;
-    const sameFirst = prev[0] === selectedIds[0] && prev.length === 1 && selectedIds.length === 1;
+    const sameFirst =
+      prev[0] === selectedIds[0] &&
+      prev.length === 1 &&
+      selectedIds.length === 1;
     set({ selectedIds, ...(!sameFirst ? { arLocked: false } : {}) });
   },
 
@@ -605,10 +636,6 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
   insertArrow: () => insertArrow(asInsertContext(get())),
   insertText: () => insertText(asInsertContext(get())),
   insertVectorBoard: () => insertVectorBoard(asInsertContext(get())),
-  addClipToSelection: () => addClipToSelection(asInsertContext(get())),
-  removeClipFromSelection: () =>
-    removeClipFromSelection(asInsertContext(get())),
-  resetClipOnSelection: () => resetClipOnSelection(asInsertContext(get())),
 
   undo: () => {
     closeHistoryBatches();
@@ -838,6 +865,8 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     }
   },
 
+  setExportNotice: (exportNotice) => set({ exportNotice }),
+
   setSnapIntensity: (value: number) => {
     const next = Math.max(0, Math.min(1, value));
     setSceneSnapIntensity(next);
@@ -854,14 +883,20 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
   setArLocked: (locked: boolean, ratio?: number) => {
     set({
       arLocked: locked,
-      arLockedRatio: locked && ratio != null && ratio > 0 ? ratio : get().arLockedRatio,
+      arLockedRatio:
+        locked && ratio != null && ratio > 0 ? ratio : get().arLockedRatio,
     });
   },
 
   reset: () => {
     resetSceneEngineBinding();
     pageHistoryRef = null;
-    set({ ...INITIAL, snapIntensity: get().snapIntensity, arLocked: false, arLockedRatio: 1 });
+    set({
+      ...INITIAL,
+      snapIntensity: get().snapIntensity,
+      arLocked: false,
+      arLockedRatio: 1,
+    });
   },
 
   goToPage: async (index: number) => {
@@ -1004,8 +1039,12 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     const filename = `${safeAvnacFileBaseName(documentName)}-page-${currentPage + 1}.png`;
     try {
       await exportSceneAsPng(filename, scene, { multiplier, transparent });
+      set({ exportNotice: null });
     } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "PNG export failed.";
       console.error("[avnac] PNG export failed", err);
+      set({ exportNotice: message });
     }
   },
 

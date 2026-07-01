@@ -17,7 +17,7 @@ import {
   type ReactNode,
 } from "react";
 import { GOOGLE_FONT_FAMILIES } from "@/data/google-font-families";
-import { loadGoogleFontFamily } from "@/lib/load-google-font";
+import { ensureGoogleFontFamilyReady } from "@/lib/load-google-font";
 import {
   FloatingToolbarDivider,
   FloatingToolbarShell,
@@ -64,7 +64,7 @@ export default function TextFormatToolbar({
 
   useEffect(() => {
     if (!fontOpen) return;
-    loadGoogleFontFamily(values.fontFamily);
+    void ensureGoogleFontFamilyReady(values.fontFamily);
   }, [fontOpen, values.fontFamily]);
 
   useEffect(() => {
@@ -184,9 +184,9 @@ export default function TextFormatToolbar({
                     aria-selected={name === values.fontFamily}
                     className="flex w-full items-center px-3 py-1.5 text-left text-sm text-neutral-900 hover:bg-black/[0.05]"
                     style={{ fontFamily: `"${name}", sans-serif` }}
-                    onMouseEnter={() => loadGoogleFontFamily(name)}
+                    onMouseEnter={() => void ensureGoogleFontFamilyReady(name)}
                     onClick={() => {
-                      loadGoogleFontFamily(name);
+                      void ensureGoogleFontFamilyReady(name);
                       onChange({ fontFamily: name });
                       setFontOpen(false);
                       setFontQuery("");

@@ -7,7 +7,7 @@ import {
 } from "@/lib/saraswati";
 import { getRenderableNodeBounds } from "@/lib/editor/overlays";
 import { getNodeBounds } from "@/lib/saraswati/spatial";
-import { buildGroupSelectionCommands } from "@/scene/workspace";
+import { buildGroupSelectionCommands } from "./scene-group-commands";
 import { useSceneEditorStore } from "./store";
 import {
   exportSelectionAsPng,
@@ -455,6 +455,15 @@ export function useSceneSelectionActions() {
     );
   };
 
+  const onNudge = (dx: number, dy: number) => {
+    if (!scene || selectedIds.length === 0 || (dx === 0 && dy === 0)) return;
+    const movable = selectedIds.filter((id) => !lockedSet.has(id));
+    if (movable.length === 0) return;
+    applyCommands(
+      movable.map((id) => ({ type: "MOVE_NODE" as const, id, dx, dy })),
+    );
+  };
+
   const onGroup = () => {
     if (!scene || !canGroup) return;
     const groupId = crypto.randomUUID();
@@ -523,7 +532,17 @@ export function useSceneSelectionActions() {
 
   const onDownloadPng = () => {
     if (!scene || selectedIds.length === 0) return;
-    void exportSelectionAsPng("selection.png", scene, selectedIds);
+    void exportSelectionAsPng("selection.png", scene, selectedIds, {
+      useSourceResolution: true,
+    })
+      .then(() => {
+        useSceneEditorStore.getState().setExportNotice(null);
+      })
+      .catch((err) => {
+        const message =
+          err instanceof Error ? err.message : "PNG export failed.";
+        useSceneEditorStore.getState().setExportNotice(message);
+      });
   };
 
   const onDownloadSvg = () => {
@@ -545,6 +564,7 @@ export function useSceneSelectionActions() {
     onPaste,
     onPasteAt,
     onAlign,
+    onNudge,
     onGroup,
     onAlignElements,
     onUngroup,

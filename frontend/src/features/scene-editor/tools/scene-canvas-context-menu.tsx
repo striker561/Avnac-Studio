@@ -3,11 +3,13 @@ type Props = {
   y: number;
   hasSelection: boolean;
   locked: boolean;
+  canDownloadPng?: boolean;
   onCopy: () => void;
   onDuplicate: () => void;
   onToggleLock: () => void;
   onPaste: () => void;
   onDelete: () => void;
+  onDownloadPng?: () => void;
 };
 
 const itemClass =
@@ -18,11 +20,13 @@ export default function SceneCanvasContextMenu({
   y,
   hasSelection,
   locked,
+  canDownloadPng = false,
   onCopy,
   onDuplicate,
   onToggleLock,
   onPaste,
   onDelete,
+  onDownloadPng,
 }: Props) {
   return (
     <div
@@ -61,6 +65,16 @@ export default function SceneCanvasContextMenu({
           >
             {locked ? "Unlock" : "Lock"}
           </button>
+          {canDownloadPng && onDownloadPng ? (
+            <button
+              type="button"
+              role="menuitem"
+              className={itemClass}
+              onClick={onDownloadPng}
+            >
+              Download PNG
+            </button>
+          ) : null}
           <div className="my-1 h-px bg-black/6" aria-hidden />
         </>
       ) : null}

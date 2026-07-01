@@ -436,6 +436,8 @@ async function applyPageTransition(
     selectedIds: [],
     lockedIds: [],
   });
+
+  void ensureGoogleFontsForFamilies(collectSceneFontFamilies(scene));
 }
 
 function asInsertContext(state: SceneEditorStore): SceneEditorInsertContext {
@@ -540,6 +542,15 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     if (!sceneEngineStore || commands.length === 0) return;
     for (const cmd of commands) {
       sceneEngineStore.dispatch(cmd);
+    }
+    const editedFontFamilies = commands
+      .filter(
+        (cmd): cmd is Extract<SaraswatiCommand, { type: "SET_TEXT_FORMAT" }> =>
+          cmd.type === "SET_TEXT_FORMAT" && Boolean(cmd.fontFamily),
+      )
+      .map((cmd) => cmd.fontFamily!);
+    if (editedFontFamilies.length > 0) {
+      void ensureGoogleFontsForFamilies(editedFontFamilies);
     }
     const engineState = sceneEngineStore.getState();
     const { documentId } = get();

@@ -1,5 +1,6 @@
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, CropIcon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { readImageAlphaBounds } from "@/lib/image-pixel-utils";
 import {
   useCallback,
   useEffect,
@@ -66,6 +67,7 @@ export default function ImageCropModal({
     h: initialCrop.h ?? 0,
   });
   const [boxPx, setBoxPx] = useState({ left: 0, top: 0, width: 0, height: 0 });
+  const [trimming, setTrimming] = useState(false);
   const [, layoutBump] = useReducer((n: number) => n + 1, 0);
 
   const dragRef = useRef<{
@@ -79,6 +81,7 @@ export default function ImageCropModal({
   useEffect(() => {
     if (!open) {
       setNatural({ w: 0, h: 0 });
+      setTrimming(false);
       return;
     }
     setCrop({
@@ -229,6 +232,32 @@ export default function ImageCropModal({
     };
   }, [open, natural.w, natural.h]);
 
+  const onTrimTransparent = useCallback(async () => {
+    if (trimming || natural.w <= 0 || natural.h <= 0) return;
+    setTrimming(true);
+    try {
+      const bounds = await readImageAlphaBounds(imageSrc);
+      if (!bounds) return;
+      setCrop(
+        clampCrop(
+          {
+            x: bounds.x,
+            y: bounds.y,
+            w: bounds.width,
+            h: bounds.height,
+          },
+          natural.w,
+          natural.h,
+        ),
+      );
+      layoutBump();
+    } catch (error) {
+      console.error("[avnac] trim transparent preview failed", error);
+    } finally {
+      setTrimming(false);
+    }
+  }, [imageSrc, natural.w, natural.h, trimming]);
+
   const shade = (_dir: string, style: CSSProperties) => (
     <div
       className="pointer-events-none absolute bg-black/55"
@@ -358,32 +387,46 @@ export default function ImageCropModal({
             ) : null}
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-black/10 px-4 py-3">
+        <div className="flex items-center justify-between gap-2 border-t border-black/10 px-4 py-3">
           <button
             type="button"
-            className="rounded-lg border border-black/10 bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-black/[0.04]"
-            onClick={onCancel}
+            disabled={nw <= 0 || trimming}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-black/[0.04] disabled:pointer-events-none disabled:opacity-40"
+            title="Trim transparent padding"
+            aria-label="Trim transparent"
+            aria-busy={trimming}
+            onClick={() => void onTrimTransparent()}
           >
-            Cancel
+            <HugeiconsIcon icon={CropIcon} size={18} strokeWidth={1.75} />
+            {trimming ? "Trimming…" : "Trim transparent"}
           </button>
-          <button
-            type="button"
-            disabled={nw <= 0}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-transparent bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:pointer-events-none disabled:opacity-40"
-            onClick={() =>
-              onApply({
-                cropX: crop.x,
-                cropY: crop.y,
-                width: crop.w,
-                height: crop.h,
-                sourceNaturalWidth: natural.w,
-                sourceNaturalHeight: natural.h,
-              })
-            }
-          >
-            <HugeiconsIcon icon={Tick02Icon} size={18} strokeWidth={1.75} />
-            Apply crop
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="rounded-lg border border-black/10 bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-black/[0.04]"
+              onClick={onCancel}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={nw <= 0}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-transparent bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:pointer-events-none disabled:opacity-40"
+              onClick={() =>
+                onApply({
+                  cropX: crop.x,
+                  cropY: crop.y,
+                  width: crop.w,
+                  height: crop.h,
+                  sourceNaturalWidth: natural.w,
+                  sourceNaturalHeight: natural.h,
+                })
+              }
+            >
+              <HugeiconsIcon icon={Tick02Icon} size={18} strokeWidth={1.75} />
+              Apply crop
+            </button>
+          </div>
         </div>
       </div>
     </div>,

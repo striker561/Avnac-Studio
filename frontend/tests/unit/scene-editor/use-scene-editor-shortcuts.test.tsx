@@ -33,6 +33,7 @@ function Harness(props: {
     reorderPrimarySelection: vi.fn(),
     onCopy: vi.fn(),
     onPaste: vi.fn(),
+    onPasteInPlace: vi.fn(),
     onDelete: props.onDelete ?? vi.fn(),
     onDuplicate: vi.fn(),
     onImageFilesPaste: vi.fn(),

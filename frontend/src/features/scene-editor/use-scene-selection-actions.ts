@@ -449,6 +449,20 @@ export function useSceneSelectionActions() {
     onPasteAt();
   };
 
+  // Paste in place (Cmd+Shift+V): pastes at the exact source coordinates —
+  // useful when copying a whole page into another page.
+  const onPasteInPlace = () => {
+    const topClipIds = topmostClipboardIds(sceneClipboard);
+    if (topClipIds.length === 0) return;
+    const { commands, topNewIds } = buildClipboardPasteCommands(
+      sceneClipboard,
+      0,
+      0,
+    );
+    applyCommands(commands);
+    setSelectedIds(topNewIds);
+  };
+
   const onFlipH = () => {
     if (!scene) return;
     applyCommands(
@@ -636,6 +650,7 @@ export function useSceneSelectionActions() {
     onCopy,
     onPaste,
     onPasteAt,
+    onPasteInPlace,
     onAlign,
     onNudge,
     onGroup,

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { SaraswatiScene } from "@/lib/saraswati";
 import {
   collectSelectableNodeIds,
@@ -25,6 +25,8 @@ type Params = {
   ) => void;
   onCopy: () => void;
   onPaste: () => void;
+  /** Cmd+Shift+V — paste at the exact source coordinates. */
+  onPasteInPlace: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
   onImageFilesPaste: (files: File[]) => void;
@@ -53,6 +55,7 @@ export function useSceneEditorShortcuts({
   reorderPrimarySelection,
   onCopy,
   onPaste,
+  onPasteInPlace,
   onDelete,
   onDuplicate,
   onImageFilesPaste,
@@ -64,6 +67,10 @@ export function useSceneEditorShortcuts({
   selectedIds,
   onNudge,
 }: Params) {
+  // Timestamp of the last Cmd+Shift+V handled in keydown, so the paste event
+  // echo that some webviews fire afterwards doesn't paste a second copy.
+  const lastPasteInPlaceRef = useRef(0);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!scene) return;
@@ -123,6 +130,13 @@ export function useSceneEditorShortcuts({
         if (event.key === "c" || event.key === "C") {
           event.preventDefault();
           onCopy();
+          return;
+        }
+        if (event.shiftKey && (event.key === "v" || event.key === "V")) {
+          // Cmd+Shift+V = paste in place (exact source coordinates).
+          event.preventDefault();
+          lastPasteInPlaceRef.current = Date.now();
+          onPasteInPlace();
           return;
         }
         if (event.key === "g" || event.key === "G") {
@@ -194,6 +208,7 @@ export function useSceneEditorShortcuts({
     onDuplicate,
     onGroup,
     onShowShortcuts,
+    onPasteInPlace,
     onUngroup,
     onNudge,
     redo,
@@ -211,6 +226,12 @@ export function useSceneEditorShortcuts({
     const onPasteEvent = (event: ClipboardEvent) => {
       if (!scene) return;
       if (shouldIgnoreEditorHotkeys(event.target, inlineTextEditing)) return;
+
+      // Cmd+Shift+V is handled in keydown; ignore its paste-event echo.
+      if (Date.now() - lastPasteInPlaceRef.current < 300) {
+        event.preventDefault();
+        return;
+      }
 
       const files = extractClipboardImageFiles(event.clipboardData);
       if (files.length > 0) {

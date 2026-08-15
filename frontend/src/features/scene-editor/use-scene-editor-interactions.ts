@@ -29,6 +29,7 @@ import {
 import type { SaraswatiBounds } from "@/lib/saraswati/spatial";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSceneEditorStore } from "./store";
+import { resolveTopmostSelectedIds } from "./scene-editor-input-utils";
 
 type ScenePointConverter = (
   clientX: number,
@@ -539,13 +540,13 @@ export function useSceneEditorInteractions(
       }
 
       if (command.type === "MOVE_NODE") {
-        const moveIds =
-          store.selectedIds.length > 1 && store.selectedIds.includes(command.id)
-            ? store.selectedIds.filter((id) => {
-                const node = scene.nodes[id];
-                return Boolean(node && isSaraswatiRenderableNode(node));
-              })
-            : [command.id];
+        // Move the top-most selected nodes: a group move already covers its
+        // children, so grouped children are never moved twice, and selecting
+        // multiple groups moves all of them (the old renderable-only filter
+        // silently dropped groups when more than one was selected).
+        const moveIds = store.selectedIds.includes(command.id)
+          ? resolveTopmostSelectedIds(scene, store.selectedIds)
+          : [command.id];
         applyCommands(
           moveIds.map((id) => ({
             type: "MOVE_NODE" as const,

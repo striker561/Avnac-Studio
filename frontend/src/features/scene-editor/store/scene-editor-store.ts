@@ -394,6 +394,11 @@ async function applyPageTransition(
     fromAvnacDocumentWithDiagnostics(targetDoc);
   const { scene, issues } = adapted;
 
+  // Close any open object-edit history batch before swapping engines. If a
+  // style-drag batch were left open, its depth would leak into the new page's
+  // engine and cause spurious undo entries + autosaves on the next page.
+  closeHistoryBatches();
+
   detachSceneEngineSubscription?.();
   detachSceneEngineSubscription = null;
   sceneEngineStore = createSaraswatiEditorStore(scene);
@@ -1041,8 +1046,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
       await exportSceneAsPng(filename, scene, { multiplier, transparent });
       set({ exportNotice: null });
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "PNG export failed.";
+      const message = err instanceof Error ? err.message : "PNG export failed.";
       console.error("[avnac] PNG export failed", err);
       set({ exportNotice: message });
     }

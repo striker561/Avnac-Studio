@@ -45,6 +45,28 @@ export function collectSelectableNodeIds(
     .map((node) => node.id);
 }
 
+/**
+ * Resolve a selection to its top-most nodes so a node is never moved twice.
+ * Moving a group recursively moves its children, so if a group AND one of its
+ * descendants are both selected (e.g. Cmd+A), only the group should move.
+ */
+export function resolveTopmostSelectedIds(
+  scene: SaraswatiScene,
+  selectedIds: readonly string[],
+): string[] {
+  const selected = new Set(selectedIds);
+  return selectedIds.filter((id) => {
+    const node = scene.nodes[id];
+    if (!node) return false;
+    let parent = node.parentId;
+    while (parent) {
+      if (selected.has(parent)) return false;
+      parent = scene.nodes[parent]?.parentId ?? null;
+    }
+    return true;
+  });
+}
+
 export function reorderChildrenForSelection(params: {
   children: readonly string[];
   selectedId: string;

@@ -388,7 +388,7 @@ describe("saraswati reducer", () => {
     }
   });
 
-  it("scales text font size when resized vertically", () => {
+  it("does not scale text font size from a vertical resize (height is auto)", () => {
     const scene = createEmptySaraswatiScene({
       width: 400,
       height: 300,
@@ -438,7 +438,9 @@ describe("saraswati reducer", () => {
     const text = next.nodes["text-1"];
     expect(text?.type).toBe("text");
     if (text?.type !== "text") return;
-    expect(text.fontSize).toBeGreaterThan(20);
+    // Figma-style: text height is auto/content-driven, so a vertical resize
+    // (or a no-handle bounds change) must not touch the font size.
+    expect(text.fontSize).toBe(20);
     expect(text.width).toBe(160);
   });
 });

@@ -195,4 +195,41 @@ describe("unit: renderer / paint scheduler", () => {
     expect(first.stats.repaintMode).toBe("full");
     expect(second.stats.repaintMode).toBe("full");
   });
+
+  it("clears dirty regions even when the new scene is empty (no ghosting)", async () => {
+    const scheduler = createContentPaintScheduler();
+    const ctx = createMockCanvasContext();
+    const backend = createCanvas2dMockBackend();
+    const scene = sceneWithRects(1);
+    const presentationKey = "1920x1080|";
+
+    const first = await scheduler.paintContent({
+      target: ctx,
+      commands: buildRenderCommands(scene).slice(1),
+      artboardWidth: 1920,
+      artboardHeight: 1080,
+      presentationKey,
+      backend,
+    });
+    expect(first.stats.repaintMode).toBe("full");
+
+    const clearCallsBefore = vi.mocked(ctx.clearRect).mock.calls.length;
+
+    // Simulate switching to an empty page with the SAME artboard dimensions.
+    // The removed node's dirty region must still be cleared even though there
+    // is nothing to repaint — otherwise its pixels stay ghosted on screen.
+    const second = await scheduler.paintContent({
+      target: ctx,
+      commands: [],
+      artboardWidth: 1920,
+      artboardHeight: 1080,
+      presentationKey,
+      backend,
+    });
+
+    expect(second.stats.repaintMode).toBe("partial");
+    expect(vi.mocked(ctx.clearRect).mock.calls.length).toBeGreaterThan(
+      clearCallsBefore,
+    );
+  });
 });

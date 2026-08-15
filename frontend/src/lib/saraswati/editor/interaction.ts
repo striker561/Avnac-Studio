@@ -137,7 +137,7 @@ export function pointerMove(
     const b = computeResizeBounds(startBounds, handle, dx, dy);
     return {
       state: newState,
-      command: { type: "RESIZE_NODE", id: nodeId, ...b },
+      command: { type: "RESIZE_NODE", id: nodeId, handle, ...b },
     };
   }
 

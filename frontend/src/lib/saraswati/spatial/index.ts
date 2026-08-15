@@ -68,9 +68,66 @@ export function snapDeltaToGrid(
   };
 }
 
-export function getTextNodeVisualHeight(text: string, fontSize: number, lineHeight: number): number {
+export function getTextNodeVisualHeight(
+  text: string,
+  fontSize: number,
+  lineHeight: number,
+): number {
   const lineCount = Math.max(1, text.split(/\r?\n/).length);
   return Math.max(1, fontSize * Math.max(1, lineHeight) * lineCount);
+}
+
+/**
+ * Engine-pure text box estimate (no canvas / DOM / renderer).
+ *
+ * The engine must never touch Canvas or know which renderer is active, so it
+ * cannot measure real glyphs. This uses a deterministic average-glyph-width
+ * model to account for word wrapping — same input always yields the same box.
+ * The renderer draws the exact box (see renderer/backends/canvas2d/text-layout)
+ * and the dirty-region planner uses the renderer's measurement, so the trails
+ * fix is unaffected.
+ *
+ * The box is "tight": the per-line height is the em box (fontSize), not the
+ * full line box, so the selection/resize box hugs the glyphs instead of
+ * leaving line-height leading below. Line spacing still uses lineHeight.
+ */
+export function estimateTextNodeBox(
+  node: Extract<SaraswatiRenderableNode, { type: "text" }>,
+): { width: number; height: number } {
+  const fontSize = Math.max(1, node.fontSize);
+  const lineHeight = Math.max(1, node.lineHeight);
+  const maxWidth = Math.max(1, node.width);
+  // Average glyph advance ≈ 0.5em. A rough but deterministic model.
+  const avgCharWidth = fontSize * 0.5;
+
+  // Greedy character-width wrap to estimate the rendered line count.
+  let lineCount = 1;
+  let currentWidth = 0;
+  for (const ch of node.text) {
+    if (ch === "\n") {
+      lineCount += 1;
+      currentWidth = 0;
+      continue;
+    }
+    const charWidth = ch === " " ? avgCharWidth * 0.4 : avgCharWidth;
+    if (currentWidth > 0 && currentWidth + charWidth > maxWidth) {
+      lineCount += 1;
+      currentWidth = charWidth;
+    } else {
+      currentWidth += charWidth;
+    }
+  }
+
+  const widestWord = node.text
+    .split(/\s+/)
+    .reduce((max, word) => Math.max(max, word.length), 0);
+  // Tight box: last line is an em box tall, each preceding line adds lineHeight.
+  const height = Math.max(
+    1,
+    (lineCount - 1) * lineHeight * fontSize + fontSize,
+  );
+  const width = Math.max(maxWidth, widestWord * avgCharWidth);
+  return { width, height };
 }
 
 export function getNodeBounds(node: SaraswatiRenderableNode): SaraswatiBounds {
@@ -84,11 +141,16 @@ export function getNodeBounds(node: SaraswatiRenderableNode): SaraswatiBounds {
       height: Math.max(1, metrics.maxY - metrics.minY + hitPadding * 2),
     };
   }
-  const width = node.type === "text" ? Math.max(1, node.width) : node.width;
-  const height =
-    node.type === "text"
-      ? getTextNodeVisualHeight(node.text, node.fontSize, node.lineHeight)
-      : node.height;
+  let width: number;
+  let height: number;
+  if (node.type === "text") {
+    const box = estimateTextNodeBox(node);
+    width = box.width;
+    height = box.height;
+  } else {
+    width = node.width;
+    height = node.height;
+  }
   const scaledWidth = Math.abs(width * node.scaleX);
   const scaledHeight = Math.abs(height * node.scaleY);
   const startX = anchorToStart(node.x, node.originX, scaledWidth);
@@ -133,11 +195,16 @@ function pointHitsNode(
   hitScale = 1,
 ): boolean {
   if (node.type !== "line") {
-    const width = node.type === "text" ? Math.max(1, node.width) : node.width;
-    const height =
-      node.type === "text"
-        ? getTextNodeVisualHeight(node.text, node.fontSize, node.lineHeight)
-        : node.height;
+    let width: number;
+    let height: number;
+    if (node.type === "text") {
+      const box = estimateTextNodeBox(node);
+      width = box.width;
+      height = box.height;
+    } else {
+      width = node.width;
+      height = node.height;
+    }
     const scaledWidth = Math.abs(width * node.scaleX);
     const scaledHeight = Math.abs(height * node.scaleY);
     const centerX = anchorToCenter(node.x, node.originX, scaledWidth, true);

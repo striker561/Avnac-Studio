@@ -34,7 +34,10 @@ import type {
 } from "./saraswati/types";
 import { getNodeBounds } from "./saraswati/spatial";
 import { renderSceneToPngDataUrl } from "./renderer/offscreen-render";
-import { resolveSelectionPngMultiplier } from "./image-pixel-utils";
+import {
+  readImageNaturalSize,
+  resolveSelectionPngMultiplier,
+} from "./image-pixel-utils";
 import type { BgValue, GradientStop } from "./editor-paint";
 import { anchorToCenter } from "./saraswati/transform/anchor";
 
@@ -597,24 +600,63 @@ function textToSvg(node: SaraswatiTextNode, svgCtx: SvgCtx): string {
   );
 }
 
-function imageToSvg(node: SaraswatiImageNode, svgCtx: SvgCtx): string {
+function imageToSvg(
+  node: SaraswatiImageNode,
+  svgCtx: SvgCtx,
+  natural?: { width: number; height: number } | null,
+): string {
   const w = node.width;
   const h = node.height;
   const rx = node.borderRadius ?? 0;
   const rxAttr = rx > 0 ? ` rx="${r2(rx)}" ry="${r2(rx)}"` : "";
 
-  let clipAttr = "";
+  // Non-destructive crop: the node keeps the original src and stores a
+  // source-pixel crop rect (cropX/cropY/cropWidth/cropHeight). The canvas2d
+  // renderer draws only that source region stretched into the node box.
+  // Mirror that here so the exported SVG shows the cropped image instead of
+  // the full original. SVG <image> cannot crop a source rect directly, so we
+  // clip the image to the crop region and scale the clip into the node box.
+  const cropW = node.cropWidth ?? 0;
+  const cropH = node.cropHeight ?? 0;
+  const isCropped =
+    natural != null &&
+    cropW > 0 &&
+    cropH > 0 &&
+    (node.cropX > 0 ||
+      node.cropY > 0 ||
+      cropW < natural.width ||
+      cropH < natural.height);
+
+  // Rounded-corner clip around the displayed node box.
+  let outerClip = "";
   if (rx > 0) {
     const clipId = uid(svgCtx, "clip");
     svgCtx.defs.push(
       `<clipPath id="${clipId}"><rect x="${r2(-w / 2)}" y="${r2(-h / 2)}" width="${r2(w)}" height="${r2(h)}"${rxAttr}/></clipPath>`,
     );
-    clipAttr = ` clip-path="url(#${clipId})"`;
+    outerClip = ` clip-path="url(#${clipId})"`;
   }
 
-  const shape =
-    `<image href="${escSvgAttr(node.src)}" x="${r2(-w / 2)}" y="${r2(-h / 2)}"` +
-    ` width="${r2(w)}" height="${r2(h)}" preserveAspectRatio="xMidYMid slice"${clipAttr}/>`;
+  let inner: string;
+  if (isCropped && natural) {
+    const cropId = uid(svgCtx, "clip");
+    svgCtx.defs.push(
+      `<clipPath id="${cropId}"><rect x="0" y="0" width="${r2(cropW)}" height="${r2(cropH)}"/></clipPath>`,
+    );
+    const scaleX = w / cropW;
+    const scaleY = h / cropH;
+    inner =
+      `<g transform="scale(${r2(scaleX)},${r2(scaleY)})" clip-path="url(#${cropId})">` +
+      `<image href="${escSvgAttr(node.src)}" x="${r2(-node.cropX)}" y="${r2(-node.cropY)}"` +
+      ` width="${r2(natural.width)}" height="${r2(natural.height)}" preserveAspectRatio="none"/>` +
+      `</g>`;
+  } else {
+    inner =
+      `<image href="${escSvgAttr(node.src)}" x="${r2(-w / 2)}" y="${r2(-h / 2)}"` +
+      ` width="${r2(w)}" height="${r2(h)}" preserveAspectRatio="xMidYMid slice"/>`;
+  }
+
+  const shape = outerClip ? `<g${outerClip}>${inner}</g>` : inner;
 
   return wrapGroup(
     shape,
@@ -642,7 +684,11 @@ function escSvgAttr(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
 
-function nodeToSvg(node: SaraswatiRenderableNode, svgCtx: SvgCtx): string {
+function nodeToSvg(
+  node: SaraswatiRenderableNode,
+  svgCtx: SvgCtx,
+  naturalSize?: { width: number; height: number } | null,
+): string {
   switch (node.type) {
     case "rect":
       return rectToSvg(node, svgCtx);
@@ -655,19 +701,48 @@ function nodeToSvg(node: SaraswatiRenderableNode, svgCtx: SvgCtx): string {
     case "text":
       return textToSvg(node, svgCtx);
     case "image":
-      return imageToSvg(node, svgCtx);
+      return imageToSvg(node, svgCtx, naturalSize);
   }
 }
 
-function buildSvgString(
+async function buildSvgString(
   leafNodes: SaraswatiRenderableNode[],
   width: number,
   height: number,
-): string {
+): Promise<string> {
   const svgCtx: SvgCtx = { defs: [], counter: 0 };
 
+  // Pre-load natural dimensions for cropped images so we can clip the source
+  // to the crop rect. SVG <image> cannot crop a source rect without knowing
+  // the source dimensions. Unavailable images (offline/cross-origin) fall
+  // back to the uncropped representation.
+  const croppedImages = leafNodes.filter(
+    (n): n is SaraswatiImageNode =>
+      n.type === "image" &&
+      n.cropWidth != null &&
+      n.cropHeight != null,
+  );
+  const naturalSizes = new Map<string, { width: number; height: number }>();
+  if (croppedImages.length > 0) {
+    const resolved = await Promise.all(
+      croppedImages.map(async (n) => {
+        try {
+          return {
+            id: n.id,
+            size: await readImageNaturalSize(n.src),
+          };
+        } catch {
+          return { id: n.id, size: null };
+        }
+      }),
+    );
+    for (const { id, size } of resolved) {
+      if (size) naturalSizes.set(id, size);
+    }
+  }
+
   const shapes = leafNodes
-    .map((n) => nodeToSvg(n, svgCtx))
+    .map((n) => nodeToSvg(n, svgCtx, naturalSizes.get(n.id)))
     .filter(Boolean)
     .join("\n  ");
 
@@ -690,7 +765,7 @@ export async function exportSelectionAsSvg(
   const result = buildSelectionScene(scene, selectedIds);
   if (!result) return;
 
-  const svg = buildSvgString(result.leafNodes, result.width, result.height);
+  const svg = await buildSvgString(result.leafNodes, result.width, result.height);
 
   await exportTextFileNativeOrBrowser(filename, svg, {
     logLabel: "native selection SVG export",

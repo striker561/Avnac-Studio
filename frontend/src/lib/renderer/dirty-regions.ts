@@ -1,5 +1,9 @@
 import type { SaraswatiRenderCommand } from "@/lib/saraswati";
 import { anchorToCenter } from "@/lib/saraswati/transform/anchor";
+import {
+  getSharedTextMeasure,
+  layoutTextLines,
+} from "@/lib/renderer/backends/canvas2d/text-layout";
 
 export type DirtyRect = {
   x: number;
@@ -119,17 +123,32 @@ export function renderCommandBounds(
     };
   }
 
-  const visualHeight =
-    command.type === "text"
-      ? Math.max(
-          1,
-          command.fontSize *
-            Math.max(1, command.lineHeight) *
-            Math.max(1, command.text.split(/\r?\n/).length),
-        )
-      : command.height;
+  // Text uses the shared wrap/measure layout so the dirty region covers the
+  // full painted box (wrapped lines + measured width). A raw-line estimate is
+  // smaller than what the renderer draws, which left trails when moving text.
+  let boxWidth: number;
+  let boxHeight: number;
+  if (command.type === "text") {
+    const layout = layoutTextLines(
+      {
+        text: command.text,
+        fontSize: command.fontSize,
+        lineHeight: command.lineHeight,
+        fontFamily: command.fontFamily,
+        fontWeight: command.fontWeight,
+        fontStyle: command.fontStyle,
+        width: command.width,
+      },
+      getSharedTextMeasure(),
+    );
+    boxWidth = Math.max(1, layout.boxWidth);
+    boxHeight = Math.max(1, layout.boxHeight);
+  } else {
+    boxWidth = command.width;
+    boxHeight = command.height;
+  }
 
-  const bounds = axisBoundsFromTransform(command, command.width, visualHeight);
+  const bounds = axisBoundsFromTransform(command, boxWidth, boxHeight);
   return {
     x: bounds.x - pad,
     y: bounds.y - pad,
@@ -240,7 +259,12 @@ function axisBoundsFromTransform(
   }
 
   const centerX = anchorToCenter(command.x, command.originX, scaledWidth, true);
-  const centerY = anchorToCenter(command.y, command.originY, scaledHeight, false);
+  const centerY = anchorToCenter(
+    command.y,
+    command.originY,
+    scaledHeight,
+    false,
+  );
   const halfW = scaledWidth / 2;
   const halfH = scaledHeight / 2;
   const rad = (command.rotation * Math.PI) / 180;

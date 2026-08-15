@@ -502,20 +502,23 @@ export function useSceneEditorInteractions(
           );
           let constrainedBounds = snapped.bounds;
 
-          // Constrain AR when:
-          //  1. shift is held (ad-hoc AR from drag start), or
-          //  2. the inspector AR lock is active (persistent lock from store).
+          // Text height is auto-derived (wraps at width), so a box aspect-ratio
+          // constraint doesn't map to a stable text scale — it fought the
+          // auto-height and made shift/AR-lock resize jumpy. Text corner resize
+          // already scales font+width proportionally, so skip AR for text.
+          const resizeNode = scene.nodes[command.id];
+          const isTextNode = resizeNode?.type === "text";
           const { arLocked, arLockedRatio } = store as {
             arLocked: boolean;
             arLockedRatio: number;
           };
-          if (options?.shiftKey) {
+          if (!isTextNode && options?.shiftKey) {
             constrainedBounds = constrainResizeBoundsToAr(
               constrainedBounds,
               resizeState.handle,
               resizeStartArRef.current,
             );
-          } else if (arLocked && arLockedRatio > 0) {
+          } else if (!isTextNode && arLocked && arLockedRatio > 0) {
             constrainedBounds = constrainResizeBoundsToAr(
               constrainedBounds,
               resizeState.handle,

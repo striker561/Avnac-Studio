@@ -10,8 +10,12 @@ import type {
   SaraswatiNodeOriginX,
   SaraswatiNodeOriginY,
 } from "../types";
-import { getNodeBounds, getTextNodeVisualHeight, type SaraswatiBounds } from "../spatial";
-import type { SaraswatiCommand } from "./types";
+import {
+  estimateTextNodeBox,
+  getNodeBounds,
+  type SaraswatiBounds,
+} from "../spatial";
+import type { SaraswatiCommand, SaraswatiResizeHandle } from "./types";
 
 export function applyCommand(
   scene: SaraswatiScene,
@@ -30,6 +34,7 @@ export function applyCommand(
         command.y,
         command.width,
         command.height,
+        command.handle,
       );
     case "ADD_NODE":
       return addNode(scene, command.node);
@@ -154,7 +159,10 @@ function rotateNode(
     return rotateGroupNode(scene, nodeId, rotation);
   }
   // Skip clone when rotation is already the same value.
-  if ("rotation" in node && (node as { rotation?: number }).rotation === rotation) {
+  if (
+    "rotation" in node &&
+    (node as { rotation?: number }).rotation === rotation
+  ) {
     return scene;
   }
   const next = cloneSaraswatiScene(scene);
@@ -221,8 +229,20 @@ function rotateGroupNode(
     }
 
     if (current.type === "line") {
-      const p1 = rotatePointAround(current.x1, current.y1, centerX, centerY, rad);
-      const p2 = rotatePointAround(current.x2, current.y2, centerX, centerY, rad);
+      const p1 = rotatePointAround(
+        current.x1,
+        current.y1,
+        centerX,
+        centerY,
+        rad,
+      );
+      const p2 = rotatePointAround(
+        current.x2,
+        current.y2,
+        centerX,
+        centerY,
+        rad,
+      );
       next.nodes[id] = {
         ...current,
         x1: p1.x,
@@ -234,7 +254,13 @@ function rotateGroupNode(
       continue;
     }
 
-    const anchor = rotatePointAround(current.x, current.y, centerX, centerY, rad);
+    const anchor = rotatePointAround(
+      current.x,
+      current.y,
+      centerX,
+      centerY,
+      rad,
+    );
     next.nodes[id] = {
       ...current,
       x: anchor.x,
@@ -439,6 +465,7 @@ function resizeNode(
   by: number,
   bw: number,
   bh: number,
+  handle?: SaraswatiResizeHandle,
 ): SaraswatiScene {
   const node = scene.nodes[nodeId];
   if (!node) return scene;
@@ -478,21 +505,42 @@ function resizeNode(
   const nx = boundsToAnchorX(clamped.bx, node.originX, clamped.bw);
   const ny = boundsToAnchorY(clamped.by, node.originY, clamped.bh);
   if (node.type === "text") {
-    const sx = safeAbsScale(node.scaleX);
-    const sy = safeAbsScale(node.scaleY);
-    const prevHeight =
-      getTextNodeVisualHeight(node.text, node.fontSize, node.lineHeight) * sy;
-    const prevWidth = Math.max(1, node.width) * sx;
-    let nextFontSize = node.fontSize;
-    let nextWidth = clamped.bw / sx;
+    // Figma-style text resize: height is auto (content-driven) and font size is
+    // edited via the text toolbar. So vertical (n/s) drags are a no-op, side
+    // (e/w) drags set the wrap width, and corner drags scale uniformly.
+    if (handle === "n" || handle === "s") return scene;
 
-    if (Math.abs(clamped.bh - prevHeight) > 0.5) {
-      const heightScale = clamped.bh / prevHeight;
-      nextFontSize = Math.max(1, node.fontSize * heightScale);
-    }
-    if (Math.abs(clamped.bw - prevWidth) > 0.5) {
+    const sx = safeAbsScale(node.scaleX);
+    // Reference box from the engine's wrapped-aware estimate so resize is
+    // consistent with the selection box (tight, no line-height leading).
+    const box = estimateTextNodeBox(node);
+    const prevWidth = Math.max(1, box.width) * sx;
+    let nextFontSize = node.fontSize;
+    let nextWidth = node.width;
+
+    if (handle === "e" || handle === "w") {
+      // Horizontal drag = set the wrap width; text re-wraps and height follows
+      // automatically. Font unchanged.
       nextWidth = Math.max(1, clamped.bw / sx);
+    } else if (handle != null) {
+      // Corner drag: uniform scale driven by the width ratio. Text width is the
+      // free dimension (height auto-follows the font), so scaling font + width
+      // together by one stable factor keeps wrapping constant — no jumps or
+      // excess vertical space from a width/height geometric mean.
+      const widthRatio = prevWidth > 0 ? clamped.bw / prevWidth : 1;
+      const uniform = Math.max(0.01, widthRatio);
+      nextFontSize = node.fontSize * uniform;
+      nextWidth = Math.max(1, node.width * uniform);
+    } else {
+      // No handle (programmatic resize, e.g. the inspector width field): only
+      // the wrap width changes; font/height are auto, edited via the toolbar.
+      if (Math.abs(clamped.bw - prevWidth) > 0.5) {
+        nextWidth = Math.max(1, clamped.bw / sx);
+      }
     }
+
+    // Fractional font sizes render blurry on canvas — always round.
+    nextFontSize = Math.max(1, Math.round(nextFontSize));
 
     next.nodes[nodeId] = {
       ...node,

@@ -624,6 +624,8 @@ export function useSceneEditorInteractions(
       x: number,
       y: number,
     ) => {
+      // Locked nodes can't be resized.
+      if (useSceneEditorStore.getState().lockedIds.includes(nodeId)) return;
       pointerStateRef.current = resizeHandlePointerDown(
         nodeId,
         handle,
@@ -662,6 +664,8 @@ export function useSceneEditorInteractions(
       x: number,
       y: number,
     ) => {
+      // Locked nodes can't be rotated.
+      if (useSceneEditorStore.getState().lockedIds.includes(nodeId)) return;
       const scene = useSceneEditorStore.getState().scene;
       const node = scene?.nodes[nodeId];
       const startRotation =

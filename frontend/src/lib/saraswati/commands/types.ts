@@ -23,6 +23,8 @@ export type SaraswatiCommand =
       y: number;
       width: number;
       height: number;
+      /** Handle being dragged when this comes from a pointer resize gesture. */
+      handle?: SaraswatiResizeHandle;
     }
   | { type: "ADD_NODE"; node: SaraswatiNode }
   | { type: "DELETE_NODE"; id: string }

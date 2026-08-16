@@ -2,20 +2,102 @@ import { useMemo } from "react";
 import type { CanvasAlignKind } from "@/components/editor/canvas/canvas-selection-toolbar";
 import {
   isSaraswatiRenderableNode,
+  type SaraswatiCommand,
   type SaraswatiNode,
   type SaraswatiRenderableNode,
 } from "@/lib/saraswati";
 import { getRenderableNodeBounds } from "@/lib/editor/overlays";
 import { getNodeBounds } from "@/lib/saraswati/spatial";
 import { buildGroupSelectionCommands } from "./scene-group-commands";
+import { resolveTopmostSelectedIds } from "./scene-editor-input-utils";
 import { useSceneEditorStore } from "./store";
 import {
   exportSelectionAsPng,
   exportSelectionAsSvg,
 } from "@/lib/avnac-selection-export";
 
-const sceneClipboard: SaraswatiNode[] = [];
+// Clipboard is a snapshot of the selected subtrees (groups + their
+// descendants) taken at copy time, so pasting a group keeps its children and
+// later edits to the source never leak into a paste.
+const sceneClipboard: Record<string, SaraswatiNode> = {};
+
 const PASTE_OFFSET = 16;
+
+export function collectSubtreeNodes(
+  nodes: Record<string, SaraswatiNode>,
+  nodeId: string,
+  out: Record<string, SaraswatiNode>,
+): void {
+  const node = nodes[nodeId];
+  if (!node) return;
+  out[nodeId] = node;
+  if (node.type === "group") {
+    for (const childId of node.children) {
+      collectSubtreeNodes(nodes, childId, out);
+    }
+  }
+}
+
+export function topmostClipboardIds(
+  clipboard: Record<string, SaraswatiNode>,
+): string[] {
+  return Object.keys(clipboard).filter((id) => {
+    const parentId = clipboard[id]?.parentId ?? null;
+    return parentId === null || !clipboard[parentId];
+  });
+}
+
+/** Union of the clipboard's top-level subtree bounds (handles groups). */
+function clipboardSelectionBounds(
+  clipboard: Record<string, SaraswatiNode>,
+  topIds: string[],
+): { x: number; y: number; width: number; height: number } | null {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  const visited = new Set<string>();
+  const visit = (nodeId: string) => {
+    if (visited.has(nodeId)) return;
+    visited.add(nodeId);
+    const node = clipboard[nodeId];
+    if (!node) return;
+    if (node.type === "group") {
+      for (const childId of node.children) visit(childId);
+      return;
+    }
+    if (!isSaraswatiRenderableNode(node)) return;
+    const b = getNodeBounds(node);
+    if (b.x < minX) minX = b.x;
+    if (b.y < minY) minY = b.y;
+    if (b.x + b.width > maxX) maxX = b.x + b.width;
+    if (b.y + b.height > maxY) maxY = b.y + b.height;
+  };
+  for (const id of topIds) visit(id);
+  if (!Number.isFinite(minX)) return null;
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+/** Deep-clone the clipboard subtree with fresh ids, groups before children. */
+export function buildClipboardPasteCommands(
+  clipboard: Record<string, SaraswatiNode>,
+  dx: number,
+  dy: number,
+): {
+  commands: { type: "ADD_NODE"; node: SaraswatiNode }[];
+  topNewIds: string[];
+} {
+  const topIds = topmostClipboardIds(clipboard);
+  const idMap = new Map<string, string>();
+  for (const id of Object.keys(clipboard)) idMap.set(id, crypto.randomUUID());
+  const commands: { type: "ADD_NODE"; node: SaraswatiNode }[] = [];
+  for (const topId of topIds) {
+    commands.push(
+      ...buildDeepDuplicateCommands(clipboard, topId, idMap, dx, dy),
+    );
+  }
+  return { commands, topNewIds: topIds.map((id) => idMap.get(id)!) };
+}
 
 // ─── Group helpers ────────────────────────────────────────────────────────────
 
@@ -182,24 +264,6 @@ function cloneNode(
   } as SaraswatiNode;
 }
 
-function moveNode(node: SaraswatiNode, dx: number, dy: number): SaraswatiNode {
-  if (node.type === "line") {
-    return {
-      ...node,
-      x1: node.x1 + dx,
-      y1: node.y1 + dy,
-      x2: node.x2 + dx,
-      y2: node.y2 + dy,
-    };
-  }
-  if (node.type === "group") return node;
-  return {
-    ...(node as Extract<SaraswatiNode, { x: number }>),
-    x: node.x + dx,
-    y: node.y + dy,
-  } as SaraswatiNode;
-}
-
 function flipNode(node: SaraswatiNode, axis: "x" | "y"): SaraswatiNode {
   if (node.type === "group") return node;
   if (node.type === "line") {
@@ -340,54 +404,63 @@ export function useSceneSelectionActions() {
 
   const onCopy = () => {
     if (!scene) return;
-    sceneClipboard.length = 0;
-    for (const id of selectedIds) {
-      const node = scene.nodes[id];
-      if (node) sceneClipboard.push(node);
-    }
+    for (const key of Object.keys(sceneClipboard)) delete sceneClipboard[key];
+    // Snapshot the selected subtrees (including group children) at copy time.
+    const topIds = resolveTopmostSelectedIds(scene, selectedIds);
+    for (const id of topIds)
+      collectSubtreeNodes(scene.nodes, id, sceneClipboard);
   };
 
   const onPasteAt = (target?: { x: number; y: number }) => {
-    if (sceneClipboard.length === 0) return;
+    const topClipIds = topmostClipboardIds(sceneClipboard);
+    if (topClipIds.length === 0) return;
 
-    const pastedNodes: SaraswatiNode[] = [];
-    for (const node of sceneClipboard) {
-      const nextId = crypto.randomUUID();
-      pastedNodes.push(cloneNode(node, nextId, PASTE_OFFSET, PASTE_OFFSET));
-    }
+    const { commands, topNewIds } = buildClipboardPasteCommands(
+      sceneClipboard,
+      PASTE_OFFSET,
+      PASTE_OFFSET,
+    );
 
-    let finalNodes = pastedNodes;
+    let finalCommands: SaraswatiCommand[] = commands;
     if (target) {
-      const renderableBounds = pastedNodes.flatMap((node) => {
-        if (!isSaraswatiRenderableNode(node)) return [];
-        return [getNodeBounds(node)];
-      });
-
-      if (renderableBounds.length > 0) {
-        const minX = Math.min(...renderableBounds.map((b) => b.x));
-        const minY = Math.min(...renderableBounds.map((b) => b.y));
-        const maxX = Math.max(...renderableBounds.map((b) => b.x + b.width));
-        const maxY = Math.max(...renderableBounds.map((b) => b.y + b.height));
-        const centerX = minX + (maxX - minX) / 2;
-        const centerY = minY + (maxY - minY) / 2;
-        const dx = target.x - centerX;
-        const dy = target.y - centerY;
-        finalNodes = pastedNodes.map((node) => moveNode(node, dx, dy));
+      const bounds = clipboardSelectionBounds(sceneClipboard, topClipIds);
+      if (bounds) {
+        const pastedCenterX = bounds.x + PASTE_OFFSET + bounds.width / 2;
+        const pastedCenterY = bounds.y + PASTE_OFFSET + bounds.height / 2;
+        const dx = target.x - pastedCenterX;
+        const dy = target.y - pastedCenterY;
+        finalCommands = [
+          ...commands,
+          ...topNewIds.map((id) => ({
+            type: "MOVE_NODE" as const,
+            id,
+            dx,
+            dy,
+          })),
+        ];
       }
     }
 
-    const commands = finalNodes.map((node) => ({
-      type: "ADD_NODE" as const,
-      node,
-    }));
-    const newIds = finalNodes.map((node) => node.id);
-
-    applyCommands(commands);
-    setSelectedIds(newIds);
+    applyCommands(finalCommands);
+    setSelectedIds(topNewIds);
   };
 
   const onPaste = () => {
     onPasteAt();
+  };
+
+  // Paste in place (Cmd+Shift+V): pastes at the exact source coordinates —
+  // useful when copying a whole page into another page.
+  const onPasteInPlace = () => {
+    const topClipIds = topmostClipboardIds(sceneClipboard);
+    if (topClipIds.length === 0) return;
+    const { commands, topNewIds } = buildClipboardPasteCommands(
+      sceneClipboard,
+      0,
+      0,
+    );
+    applyCommands(commands);
+    setSelectedIds(topNewIds);
   };
 
   const onFlipH = () => {
@@ -450,14 +523,22 @@ export function useSceneSelectionActions() {
       dy = artH - (selectionBounds.y + selectionBounds.height);
     }
     if (dx === 0 && dy === 0) return;
+    // Only move the top-most selected nodes (a group move covers its children)
+    // and never move locked nodes.
+    const movable = resolveTopmostSelectedIds(scene, selectedIds).filter(
+      (id) => !lockedSet.has(id),
+    );
+    if (movable.length === 0) return;
     applyCommands(
-      selectedIds.map((id) => ({ type: "MOVE_NODE" as const, id, dx, dy })),
+      movable.map((id) => ({ type: "MOVE_NODE" as const, id, dx, dy })),
     );
   };
 
   const onNudge = (dx: number, dy: number) => {
     if (!scene || selectedIds.length === 0 || (dx === 0 && dy === 0)) return;
-    const movable = selectedIds.filter((id) => !lockedSet.has(id));
+    const movable = resolveTopmostSelectedIds(scene, selectedIds).filter(
+      (id) => !lockedSet.has(id),
+    );
     if (movable.length === 0) return;
     applyCommands(
       movable.map((id) => ({ type: "MOVE_NODE" as const, id, dx, dy })),
@@ -475,10 +556,13 @@ export function useSceneSelectionActions() {
 
   const onAlignElements = (kind: CanvasAlignKind) => {
     if (!scene || selectedIds.length < 2) return;
-    const boundsById = selectedIds.flatMap((id) => {
-      const node = scene.nodes[id];
-      if (!node || !isSaraswatiRenderableNode(node)) return [];
-      return [{ id, bounds: getNodeBounds(node) }];
+    const movable = resolveTopmostSelectedIds(scene, selectedIds).filter(
+      (id) => !lockedSet.has(id),
+    );
+    const boundsById = movable.flatMap((id) => {
+      const bounds = getRenderableNodeBounds(scene, id);
+      if (!bounds) return [];
+      return [{ id, bounds }];
     });
     if (boundsById.length < 2) return;
     const unionX = Math.min(...boundsById.map((entry) => entry.bounds.x));
@@ -514,8 +598,11 @@ export function useSceneSelectionActions() {
 
   const onDelete = () => {
     if (selectedIds.length === 0) return;
+    // Locked nodes can't be deleted.
+    const deletable = selectedIds.filter((id) => !lockedSet.has(id));
+    if (deletable.length === 0) return;
     applyCommands(
-      selectedIds.map((id) => ({ type: "DELETE_NODE" as const, id })),
+      deletable.map((id) => ({ type: "DELETE_NODE" as const, id })),
     );
     setSelectedIds([]);
   };
@@ -563,6 +650,7 @@ export function useSceneSelectionActions() {
     onCopy,
     onPaste,
     onPasteAt,
+    onPasteInPlace,
     onAlign,
     onNudge,
     onGroup,

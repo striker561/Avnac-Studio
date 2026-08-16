@@ -107,6 +107,9 @@ export function createEmptyPage(from?: AvnacDocumentV1): AvnacDocumentV1 {
 
   return {
     ...base,
+    // A new page keeps the artboard size from the current page, but starts
+    // with the default background — not the previous page's fill.
+    bg: { type: "solid", color: "#ffffff" } as AvnacDocumentV1["bg"],
     fabric: { objects: [] },
   };
 }

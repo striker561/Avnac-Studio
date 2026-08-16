@@ -11,6 +11,7 @@ const ROWS: Row[] = [
   { keys: "Cmd/Ctrl + Shift + Z / Y", action: "Redo" },
   { keys: "Cmd/Ctrl + D", action: "Duplicate selection" },
   { keys: "Cmd/Ctrl + C / V", action: "Copy / paste" },
+  { keys: "Cmd/Ctrl + Shift + V", action: "Paste in place" },
   { keys: "Cmd/Ctrl + A", action: "Select all" },
   { keys: "Cmd/Ctrl + L", action: "Lock / unlock selection" },
   { keys: "Delete / Backspace", action: "Delete selection" },

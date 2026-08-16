@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { AvnacDocumentV1 } from "@/lib/avnac-document";
 import {
   buildMultiPageDocument,
+  createEmptyPage,
   parseMultiPageDocument,
 } from "@/lib/avnac-multi-page-document";
 import {
@@ -95,5 +96,20 @@ describe("feature: storage / large multi-page persistence", () => {
     expect(first?.[0]?.text?.length).toBe(100_000);
     expect(second?.[0]?.text?.length).toBe(100_000);
     expect(merged.currentPage).toBe(1);
+  });
+
+  it("createEmptyPage keeps the artboard size but resets the background", () => {
+    const blue = makeDoc("page-1");
+    blue.bg = { type: "solid", color: "#3366ff" };
+    blue.artboard = { width: 1280, height: 720 };
+
+    const empty = createEmptyPage(blue);
+
+    // New page starts with the default background, not the previous page's fill.
+    expect(empty.bg).toEqual({ type: "solid", color: "#ffffff" });
+    // But it keeps the artboard dimensions as a convenience.
+    expect(empty.artboard).toEqual({ width: 1280, height: 720 });
+    // And it is blank.
+    expect((empty.fabric as { objects: unknown[] }).objects).toHaveLength(0);
   });
 });

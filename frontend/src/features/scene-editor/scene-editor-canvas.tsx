@@ -447,6 +447,7 @@ export default function SceneEditorCanvas({
     reorderPrimarySelection,
     onCopy: actions.onCopy,
     onPaste: () => actions.onPasteAt(lastScenePointRef.current),
+    onPasteInPlace: actions.onPasteInPlace,
     onDelete: actions.onDelete,
     onDuplicate: actions.onDuplicate,
     canGroup: actions.canGroup,
@@ -505,112 +506,114 @@ export default function SceneEditorCanvas({
           className="relative"
           style={{ width: scaledWidth, height: scaledHeight }}
         >
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: scene.artboard.width,
-            height: scene.artboard.height,
-            transform: `scale(${scale})`,
-            transformOrigin: "top left",
-          }}
-        >
-          <SceneWorkspaceStage
-            scene={scene}
-            viewScale={scale}
-            interactive={!inlineTextEdit}
-            selectedIds={selectedIds}
-            hiddenNodeIds={inlineTextEdit ? [inlineTextEdit.nodeId] : undefined}
-            lockedIds={lockedIds}
-            hoveredId={interactions.hoveredId}
-            guides={interactions.guides}
-            measurement={interactions.measurement}
-            interactionCursor={viewportPanCursor ?? interactions.activeCursor}
-            onScenePointerDown={interactions.onPointerDown}
-            onScenePointerMove={interactions.onPointerMove}
-            onScenePointerUp={interactions.onPointerUp}
-            onScenePointerLeave={interactions.onPointerLeave}
-            onHandlePointerDown={interactions.onHandlePointerDown}
-            onRotateHandlePointerDown={interactions.onRotateHandlePointerDown}
-            onCurveHandlePointerDown={interactions.onCurveHandlePointerDown}
-            onSceneDoubleClick={onSceneDoubleClick}
-            marqueeBounds={interactions.marqueeBounds}
-            onRenderStats={onRenderStats}
-          />
-        </div>
-
-        {(() => {
-          const m = interactions.measurement;
-          if (!m) return null;
-          // Convert scene coords → CSS px (these are inside surfaceRef which is scaledWidth×scaledHeight)
-          const cx = (m.x + m.width / 2) * scale;
-          const topEdgePx = m.y * scale;
-          const bottomEdgePx = (m.y + m.height) * scale;
-          // Show above when there's at least 32px gap from the artboard top, otherwise below
-          const showAbove = topEdgePx > 32;
-          const labelTop = showAbove ? topEdgePx - 6 : bottomEdgePx + 6;
-          const labelTransform = showAbove
-            ? "translate(-50%, -100%)"
-            : "translate(-50%, 0%)";
-          // Clamp horizontal center so the label doesn't overflow the artboard
-          const clampedCx = Math.max(60, Math.min(scaledWidth - 60, cx));
-          const label =
-            m.kind === "move"
-              ? `X • ${m.x} · Y • ${m.y}`
-              : `W • ${m.width} · H • ${m.height}`;
-          const labelClass =
-            m.kind === "move"
-              ? "pointer-events-none absolute z-20 rounded-md border border-fuchsia-300/40 bg-fuchsia-600/90 px-2 py-1 text-[11px] font-semibold tracking-wide text-white shadow-lg whitespace-nowrap"
-              : "pointer-events-none absolute z-20 rounded-md border border-black/10 bg-black/80 px-2 py-1 text-[11px] font-semibold tracking-wide text-white shadow-lg whitespace-nowrap";
-          return (
-            <div
-              key={m.kind}
-              className={labelClass}
-              style={{
-                left: clampedCx,
-                top: labelTop,
-                transform: labelTransform,
-              }}
-            >
-              {label}
-            </div>
-          );
-        })()}
-
-        {interactions.rotationIndicator ? (
           <div
-            className={`pointer-events-none absolute z-20 rounded-md px-2 py-1 text-[11px] font-semibold tracking-wide text-white shadow-lg whitespace-nowrap ${interactions.rotationIndicator.snapped ? "border border-emerald-300/50 bg-emerald-600/90" : "border border-sky-300/40 bg-sky-600/85"}`}
             style={{
-              left: Math.max(68, Math.min(scaledWidth - 68, scaledWidth / 2)),
-              top: 12,
-              transform: "translateX(-50%)",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: scene.artboard.width,
+              height: scene.artboard.height,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
             }}
           >
-            {interactions.rotationIndicator.snapped &&
-            interactions.rotationIndicator.snapTarget != null
-              ? `Angle ${Math.round(interactions.rotationIndicator.angle)}° · Snapped ${interactions.rotationIndicator.snapTarget}°`
-              : `Angle ${Math.round(interactions.rotationIndicator.angle)}°`}
+            <SceneWorkspaceStage
+              scene={scene}
+              viewScale={scale}
+              interactive={!inlineTextEdit}
+              selectedIds={selectedIds}
+              hiddenNodeIds={
+                inlineTextEdit ? [inlineTextEdit.nodeId] : undefined
+              }
+              lockedIds={lockedIds}
+              hoveredId={interactions.hoveredId}
+              guides={interactions.guides}
+              measurement={interactions.measurement}
+              interactionCursor={viewportPanCursor ?? interactions.activeCursor}
+              onScenePointerDown={interactions.onPointerDown}
+              onScenePointerMove={interactions.onPointerMove}
+              onScenePointerUp={interactions.onPointerUp}
+              onScenePointerLeave={interactions.onPointerLeave}
+              onHandlePointerDown={interactions.onHandlePointerDown}
+              onRotateHandlePointerDown={interactions.onRotateHandlePointerDown}
+              onCurveHandlePointerDown={interactions.onCurveHandlePointerDown}
+              onSceneDoubleClick={onSceneDoubleClick}
+              marqueeBounds={interactions.marqueeBounds}
+              onRenderStats={onRenderStats}
+            />
           </div>
-        ) : null}
 
-        {inlineTextEdit ? (
-          <SceneInlineTextEditor
-            scene={scene}
-            edit={inlineTextEdit}
-            scale={scale}
-            onChange={(value) =>
-              setInlineTextEdit((current) =>
-                current ? { ...current, value } : current,
-              )
-            }
-            onCommit={commitInlineText}
-            onCancel={() => setInlineTextEdit(null)}
-          />
-        ) : null}
+          {(() => {
+            const m = interactions.measurement;
+            if (!m) return null;
+            // Convert scene coords → CSS px (these are inside surfaceRef which is scaledWidth×scaledHeight)
+            const cx = (m.x + m.width / 2) * scale;
+            const topEdgePx = m.y * scale;
+            const bottomEdgePx = (m.y + m.height) * scale;
+            // Show above when there's at least 32px gap from the artboard top, otherwise below
+            const showAbove = topEdgePx > 32;
+            const labelTop = showAbove ? topEdgePx - 6 : bottomEdgePx + 6;
+            const labelTransform = showAbove
+              ? "translate(-50%, -100%)"
+              : "translate(-50%, 0%)";
+            // Clamp horizontal center so the label doesn't overflow the artboard
+            const clampedCx = Math.max(60, Math.min(scaledWidth - 60, cx));
+            const label =
+              m.kind === "move"
+                ? `X • ${m.x} · Y • ${m.y}`
+                : `W • ${m.width} · H • ${m.height}`;
+            const labelClass =
+              m.kind === "move"
+                ? "pointer-events-none absolute z-20 rounded-md border border-fuchsia-300/40 bg-fuchsia-600/90 px-2 py-1 text-[11px] font-semibold tracking-wide text-white shadow-lg whitespace-nowrap"
+                : "pointer-events-none absolute z-20 rounded-md border border-black/10 bg-black/80 px-2 py-1 text-[11px] font-semibold tracking-wide text-white shadow-lg whitespace-nowrap";
+            return (
+              <div
+                key={m.kind}
+                className={labelClass}
+                style={{
+                  left: clampedCx,
+                  top: labelTop,
+                  transform: labelTransform,
+                }}
+              >
+                {label}
+              </div>
+            );
+          })()}
 
-        {/* Background-removal processing overlay */}
-        {actions.selectionBounds &&
+          {interactions.rotationIndicator ? (
+            <div
+              className={`pointer-events-none absolute z-20 rounded-md px-2 py-1 text-[11px] font-semibold tracking-wide text-white shadow-lg whitespace-nowrap ${interactions.rotationIndicator.snapped ? "border border-emerald-300/50 bg-emerald-600/90" : "border border-sky-300/40 bg-sky-600/85"}`}
+              style={{
+                left: Math.max(68, Math.min(scaledWidth - 68, scaledWidth / 2)),
+                top: 12,
+                transform: "translateX(-50%)",
+              }}
+            >
+              {interactions.rotationIndicator.snapped &&
+              interactions.rotationIndicator.snapTarget != null
+                ? `Angle ${Math.round(interactions.rotationIndicator.angle)}° · Snapped ${interactions.rotationIndicator.snapTarget}°`
+                : `Angle ${Math.round(interactions.rotationIndicator.angle)}°`}
+            </div>
+          ) : null}
+
+          {inlineTextEdit ? (
+            <SceneInlineTextEditor
+              scene={scene}
+              edit={inlineTextEdit}
+              scale={scale}
+              onChange={(value) =>
+                setInlineTextEdit((current) =>
+                  current ? { ...current, value } : current,
+                )
+              }
+              onCommit={commitInlineText}
+              onCancel={() => setInlineTextEdit(null)}
+            />
+          ) : null}
+
+          {/* Background-removal processing overlay */}
+          {actions.selectionBounds &&
           selectedIds.length === 1 &&
           rembgProcessingNodes[selectedIds[0]!] ? (
             <ImageRembgOverlay
@@ -623,31 +626,31 @@ export default function SceneEditorCanvas({
             />
           ) : null}
 
-        {actions.selectionBounds && toolbarStyle && (
-          <CanvasSelectionToolbar
-            style={toolbarStyle}
-            placement={toolbarPlacement}
-            viewportRef={scrollContainerRef}
-            locked={actions.isLocked}
-            onDuplicate={actions.onDuplicate}
-            onToggleLock={actions.onToggleLock}
-            onDelete={actions.onDelete}
-            onCopy={actions.onCopy}
-            onPaste={actions.onPaste}
-            onAlign={actions.onAlign}
-            alignAlreadySatisfied={actions.alignAlreadySatisfied}
-            canGroup={actions.canGroup}
-            canAlignElements={actions.canAlignElements}
-            canUngroup={actions.canUngroup}
-            onGroup={actions.onGroup}
-            onAlignElements={actions.onAlignElements}
-            onUngroup={actions.onUngroup}
-            onFlipH={actions.onFlipH}
-            onFlipV={actions.onFlipV}
-            onDownloadPng={actions.onDownloadPng}
-            onDownloadSvg={actions.onDownloadSvg}
-          />
-        )}
+          {actions.selectionBounds && toolbarStyle && (
+            <CanvasSelectionToolbar
+              style={toolbarStyle}
+              placement={toolbarPlacement}
+              viewportRef={scrollContainerRef}
+              locked={actions.isLocked}
+              onDuplicate={actions.onDuplicate}
+              onToggleLock={actions.onToggleLock}
+              onDelete={actions.onDelete}
+              onCopy={actions.onCopy}
+              onPaste={actions.onPaste}
+              onAlign={actions.onAlign}
+              alignAlreadySatisfied={actions.alignAlreadySatisfied}
+              canGroup={actions.canGroup}
+              canAlignElements={actions.canAlignElements}
+              canUngroup={actions.canUngroup}
+              onGroup={actions.onGroup}
+              onAlignElements={actions.onAlignElements}
+              onUngroup={actions.onUngroup}
+              onFlipH={actions.onFlipH}
+              onFlipV={actions.onFlipV}
+              onDownloadPng={actions.onDownloadPng}
+              onDownloadSvg={actions.onDownloadSvg}
+            />
+          )}
         </div>
       </div>
 

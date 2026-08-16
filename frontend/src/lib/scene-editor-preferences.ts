@@ -16,7 +16,11 @@ const DEVELOPER_MODE_EVENT = "avnac:scene-developer-mode";
 // ─── Wails bridge ─────────────────────────────────────────────────────────────
 
 type ConfigBridge = {
-  Get: () => Promise<{ snap_intensity: number; developer_mode: boolean; rotation_sensitivity: number }>;
+  Get: () => Promise<{
+    snap_intensity: number;
+    developer_mode: boolean;
+    rotation_sensitivity: number;
+  }>;
   Save: (cfg: {
     snap_intensity?: number;
     developer_mode?: boolean;
@@ -211,13 +215,21 @@ export function onSceneRotationSensitivityChange(
 
 // ─── developer mode ───────────────────────────────────────────────────────────
 
-export function getSceneDeveloperMode(): boolean {
-  if (typeof localStorage === "undefined") return false;
+function getStoredDeveloperModeValue(): string | null {
+  if (typeof localStorage === "undefined") return null;
   try {
-    return localStorage.getItem(DEVELOPER_MODE_KEY) === "1";
+    return localStorage.getItem(DEVELOPER_MODE_KEY);
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function getSceneDeveloperMode(): boolean {
+  const stored = getStoredDeveloperModeValue();
+  // Developer mode (render-stats bar) is ON by default for all users until
+  // they explicitly turn it off.
+  if (stored === null) return true;
+  return stored === "1";
 }
 
 export function setSceneDeveloperMode(value: boolean): void {
@@ -256,7 +268,12 @@ export async function loadSceneDeveloperModeFromConfig(): Promise<boolean> {
   if (!bridge) return getSceneDeveloperMode();
   try {
     const cfg = await bridge.Get();
-    const value = Boolean(cfg.developer_mode ?? false);
+    // A stored preference is the user's explicit choice and wins. Otherwise
+    // default developer mode ON — the config's Go zero-value `false` can't
+    // distinguish "off" from "not set", so we don't trust it as an off signal.
+    const stored = getStoredDeveloperModeValue();
+    const value = stored !== null ? stored === "1" : true;
+    void cfg;
     if (typeof localStorage !== "undefined") {
       try {
         localStorage.setItem(DEVELOPER_MODE_KEY, value ? "1" : "0");

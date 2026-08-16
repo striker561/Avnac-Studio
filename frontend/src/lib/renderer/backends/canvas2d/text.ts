@@ -1,8 +1,8 @@
 import type { SaraswatiRenderTextCommand } from "../../../saraswati/render/commands";
+import { layoutTextLines, textFontString } from "./text-layout";
 import {
   applyCanvas2DClipPaths,
   centeredCanvas2DBox,
-  layoutCanvas2DTextLines,
   measureCanvas2DTextLineWidth,
   normalizeCanvas2DTextAlign,
   paintCanvas2DStyle,
@@ -14,31 +14,32 @@ export function renderCanvas2DTextCommand(
   command: SaraswatiRenderTextCommand,
 ) {
   if (!command.text.trim()) return;
-  const font = [
-    command.fontStyle === "italic" ? "italic" : "",
-    command.fontWeight,
-    `${Math.max(1, command.fontSize)}px`,
-    command.fontFamily,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  ctx.save();
-  ctx.font = font;
-  const rawLines = command.text.split(/\r?\n/);
-  const maxWidth = Math.max(1, command.width);
-  const lines = layoutCanvas2DTextLines(ctx, font, rawLines, maxWidth);
-  const measuredWidth = Math.max(
-    command.width,
-    ...lines.map((line) => measureCanvas2DTextLineWidth(ctx, font, line)),
+  // Single source of truth for text layout: the same wrap/measure used by the
+  // dirty-region planner and selection bounds, so the painted box always
+  // matches what gets cleared and selected.
+  const font = textFontString({
+    fontStyle: command.fontStyle,
+    fontWeight: command.fontWeight,
+    fontSize: command.fontSize,
+    fontFamily: command.fontFamily,
+  });
+  const layout = layoutTextLines(
+    {
+      text: command.text,
+      fontSize: command.fontSize,
+      lineHeight: command.lineHeight,
+      fontFamily: command.fontFamily,
+      fontWeight: command.fontWeight,
+      fontStyle: command.fontStyle,
+      width: command.width,
+    },
+    (measureFont, text) => measureCanvas2DTextLineWidth(ctx, measureFont, text),
   );
-  const lineHeightPx =
-    Math.max(1, command.fontSize) * Math.max(1, command.lineHeight);
-  const boxWidth = Math.max(1, measuredWidth);
-  const boxHeight = Math.max(lineHeightPx, lines.length * lineHeightPx);
-  const box = centeredCanvas2DBox(boxWidth, boxHeight);
+  const { lines } = layout;
+  const box = centeredCanvas2DBox(layout.boxWidth, layout.boxHeight);
   const align = normalizeCanvas2DTextAlign(command.textAlign);
-  ctx.restore();
+  const lineHeightPx =
+    Math.max(1, Math.round(command.fontSize)) * Math.max(1, command.lineHeight);
 
   withCanvas2DTransform(ctx, command, box.width, box.height, () => {
     applyCanvas2DClipPaths(ctx, command.clipPathStack, command.clipPath);
@@ -66,7 +67,7 @@ export function renderCanvas2DTextCommand(
       }
       if (command.underline && fillStyle) {
         const measured = measureCanvas2DTextLineWidth(ctx, font, line);
-        const underlineY = y + command.fontSize;
+        const underlineY = y + Math.max(1, Math.round(command.fontSize));
         const startX =
           align === "center"
             ? -measured / 2
@@ -75,7 +76,7 @@ export function renderCanvas2DTextCommand(
               : drawX;
         ctx.beginPath();
         ctx.strokeStyle = fillStyle;
-        ctx.lineWidth = Math.max(1, command.fontSize * 0.06);
+        ctx.lineWidth = Math.max(1, Math.round(command.fontSize) * 0.06);
         ctx.moveTo(startX, underlineY);
         ctx.lineTo(startX + measured, underlineY);
         ctx.stroke();

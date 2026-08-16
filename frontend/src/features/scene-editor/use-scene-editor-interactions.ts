@@ -29,6 +29,7 @@ import {
 import type { SaraswatiBounds } from "@/lib/saraswati/spatial";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSceneEditorStore } from "./store";
+import { resolveTopmostSelectedIds } from "./scene-editor-input-utils";
 
 type ScenePointConverter = (
   clientX: number,
@@ -502,20 +503,23 @@ export function useSceneEditorInteractions(
           );
           let constrainedBounds = snapped.bounds;
 
-          // Constrain AR when:
-          //  1. shift is held (ad-hoc AR from drag start), or
-          //  2. the inspector AR lock is active (persistent lock from store).
+          // Text height is auto-derived (wraps at width), so a box aspect-ratio
+          // constraint doesn't map to a stable text scale — it fought the
+          // auto-height and made shift/AR-lock resize jumpy. Text corner resize
+          // already scales font+width proportionally, so skip AR for text.
+          const resizeNode = scene.nodes[command.id];
+          const isTextNode = resizeNode?.type === "text";
           const { arLocked, arLockedRatio } = store as {
             arLocked: boolean;
             arLockedRatio: number;
           };
-          if (options?.shiftKey) {
+          if (!isTextNode && options?.shiftKey) {
             constrainedBounds = constrainResizeBoundsToAr(
               constrainedBounds,
               resizeState.handle,
               resizeStartArRef.current,
             );
-          } else if (arLocked && arLockedRatio > 0) {
+          } else if (!isTextNode && arLocked && arLockedRatio > 0) {
             constrainedBounds = constrainResizeBoundsToAr(
               constrainedBounds,
               resizeState.handle,
@@ -536,13 +540,13 @@ export function useSceneEditorInteractions(
       }
 
       if (command.type === "MOVE_NODE") {
-        const moveIds =
-          store.selectedIds.length > 1 && store.selectedIds.includes(command.id)
-            ? store.selectedIds.filter((id) => {
-                const node = scene.nodes[id];
-                return Boolean(node && isSaraswatiRenderableNode(node));
-              })
-            : [command.id];
+        // Move the top-most selected nodes: a group move already covers its
+        // children, so grouped children are never moved twice, and selecting
+        // multiple groups moves all of them (the old renderable-only filter
+        // silently dropped groups when more than one was selected).
+        const moveIds = store.selectedIds.includes(command.id)
+          ? resolveTopmostSelectedIds(scene, store.selectedIds)
+          : [command.id];
         applyCommands(
           moveIds.map((id) => ({
             type: "MOVE_NODE" as const,
@@ -620,6 +624,8 @@ export function useSceneEditorInteractions(
       x: number,
       y: number,
     ) => {
+      // Locked nodes can't be resized.
+      if (useSceneEditorStore.getState().lockedIds.includes(nodeId)) return;
       pointerStateRef.current = resizeHandlePointerDown(
         nodeId,
         handle,
@@ -658,6 +664,8 @@ export function useSceneEditorInteractions(
       x: number,
       y: number,
     ) => {
+      // Locked nodes can't be rotated.
+      if (useSceneEditorStore.getState().lockedIds.includes(nodeId)) return;
       const scene = useSceneEditorStore.getState().scene;
       const node = scene?.nodes[nodeId];
       const startRotation =

@@ -75,10 +75,25 @@ export function textFontString(
     input.fontStyle === "italic" ? "italic" : "",
     input.fontWeight,
     `${size}px`,
-    input.fontFamily,
+    quoteFontFamily(input.fontFamily),
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+/**
+ * Quote a font family for the CSS `font` shorthand when needed. Unquoted
+ * multi-word families ("Baloo 2", "Plus Jakarta Sans") make the whole
+ * `ctx.font` assignment invalid and Canvas silently keeps the previous font,
+ * which used to render text at a stale fallback size. Families that are
+ * already quoted, or that are a single valid CSS identifier, pass through.
+ */
+export function quoteFontFamily(family: string): string {
+  const trimmed = (family ?? "").trim();
+  if (!trimmed) return "sans-serif";
+  if (/^["'].*["']$/.test(trimmed)) return trimmed;
+  if (/^-?[a-zA-Z_][a-zA-Z0-9_-]*$/.test(trimmed)) return trimmed;
+  return `"${trimmed.replace(/["\\]/g, "\\$&")}"`;
 }
 
 // Cache of laid-out text boxes keyed by (measure source, font, width, text).

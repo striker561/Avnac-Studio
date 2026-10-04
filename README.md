@@ -12,7 +12,6 @@
   <a href="https://github.com/striker561">
     <img src="https://github.com/striker561.png" width="56" height="56" style="border-radius:100%;" alt="striker561" />
   </a>
-  &nbsp;&nbsp;
   <a href="https://github.com/d3uceY">
     <img src="https://github.com/d3uceY.png" width="56" height="56" style="border-radius:100%;" alt="d3uceY" />
   </a>
@@ -21,7 +20,7 @@
 </p>
 
 <p align="center">
-  <a href="./LICENSE">MIT License</a>
+  <img src="https://img.shields.io/github/license/striker561/avnac-studio" alt="GitHub License">
 </p>
 
 Designed on the browser, openly now built for desktop.

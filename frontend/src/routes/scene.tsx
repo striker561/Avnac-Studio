@@ -7,6 +7,7 @@ type SceneSearch = {
   id?: string;
   w?: number;
   h?: number;
+  name?: string;
 };
 
 function parseSearchDimension(v: unknown): number | undefined {
@@ -22,12 +23,16 @@ export const Route = createFileRoute("/scene")({
       typeof raw.id === "string" && raw.id.length > 0 ? raw.id : undefined,
     w: parseSearchDimension(raw.w),
     h: parseSearchDimension(raw.h),
+    name:
+      typeof raw.name === "string" && raw.name.trim().length > 0
+        ? raw.name.slice(0, 120)
+        : undefined,
   }),
   component: ScenePage,
 });
 
 function ScenePage() {
-  const { id, w, h } = Route.useSearch();
+  const { id, w, h, name } = Route.useSearch();
   const load = useSceneEditorStore((s) => s.load);
   const reset = useSceneEditorStore((s) => s.reset);
   const navigate = Route.useNavigate();
@@ -44,11 +49,11 @@ function ScenePage() {
 
   useEffect(() => {
     if (!id) return;
-    void load(id, { w, h });
+    void load(id, { w, h, name });
     return () => {
       reset();
     };
-  }, [id, load, reset, w, h]);
+  }, [id, load, reset, w, h, name]);
 
   return <SceneEditorPage documentId={id ?? null} />;
 }

@@ -136,7 +136,10 @@ type HTTPOptions struct {
 func (m *AvnacMCP) StartHTTP(opts HTTPOptions) error {
 	m.startMu.Lock()
 	defer m.startMu.Unlock()
+	return m.startHTTPLocked(opts)
+}
 
+func (m *AvnacMCP) startHTTPLocked(opts HTTPOptions) error {
 	if m.httpServer != nil {
 		return errors.New("mcp: server already running")
 	}
@@ -347,7 +350,7 @@ func (m *AvnacMCP) UpdateConfig(cfg *avnacconfig.AppConfig) {
 	}
 
 	token := m.resolveToken()
-	if err := m.StartHTTP(HTTPOptions{Port: cfg.MCPPort, Token: token}); err != nil {
+	if err := m.startHTTPLocked(HTTPOptions{Port: cfg.MCPPort, Token: token}); err != nil {
 		log.Printf("[MCP] could not start server: %v", err)
 	}
 }

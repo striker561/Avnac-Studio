@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"Avnac/avnac-system/config"
 )
 
 // startTestServer boots the MCP HTTP server on an ephemeral loopback port.
@@ -222,5 +224,30 @@ func TestMCPServerBindsLoopbackOnly(t *testing.T) {
 	info := server.GetMCPInfo()
 	if info.URL == "" || !strings.HasPrefix(info.URL, "http://127.0.0.1:") {
 		t.Fatalf("expected loopback URL, got %q", info.URL)
+	}
+}
+
+// TestUpdateConfigLifecycle guards against UpdateConfig deadlocking on
+// startMu (it previously called StartHTTP, which re-acquired the mutex, and
+// blocked app startup forever with no visible error).
+func TestUpdateConfigLifecycle(t *testing.T) {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		server := NewAvnacMCP(nil, nil, nil)
+		server.Start(context.Background())
+		server.UpdateConfig(&avnacconfig.AppConfig{MCPEnabled: true})
+		if info := server.GetMCPInfo(); !info.Running {
+			t.Errorf("expected server running after UpdateConfig(enabled), got %+v", info)
+		}
+		server.UpdateConfig(&avnacconfig.AppConfig{})
+		if info := server.GetMCPInfo(); info.Running {
+			t.Errorf("expected server stopped after UpdateConfig(disabled), got %+v", info)
+		}
+	}()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("UpdateConfig did not return within 10s — deadlock on startMu")
 	}
 }

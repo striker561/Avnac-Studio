@@ -142,6 +142,73 @@ In short: Avnac Studio starts fast, uses very little memory, ships as a light ex
 
 ---
 
+## 🤖 Let AI Agents Design — Built-in MCP Server
+
+Avnac Studio ships with a built-in [Model Context Protocol](https://modelcontextprotocol.io) server. While the app is running, any MCP client — Cursor, Claude Desktop, Windsurf, MCPJam Inspector, and more — can create, inspect, and edit designs on your canvas in real time.
+
+Every design below was created end-to-end by an AI agent driving Avnac Studio through MCP.
+
+| Event flyer | Packaging study | App splash |
+| --- | --- | --- |
+| <img src="docs/images/mcp-ramen-flyer.png" width="300" alt="Grand Opening Ramen Flyer designed via MCP" /> | <img src="docs/images/mcp-nocturne-packaging.png" width="300" alt="Nocturne packaging study designed via MCP" /> | <img src="docs/images/mcp-sweet-route-collage.png" width="300" alt="Sweet Route sticker collage designed via MCP" /> |
+
+The flyer pulls photos from Unsplash; the packaging study and splash use shapes, text, and built-in stickers — all rendered by the same Saraswati engine you drive by hand.
+
+### Connecting an agent
+
+The server is **opt-in**: enable it in **Avnac Studio → Settings → MCP server**, which binds it to `127.0.0.1` on a free port and shows the exact connect URL and bearer token (stored in your OS keyring). Copy both into your MCP client — every request must send the token as an `Authorization: Bearer` header.
+
+| Transport | Endpoint | Best for |
+| --- | --- | --- |
+| **Streamable HTTP** (recommended) | the URL shown in Settings | Cursor, Claude Code, VS Code, MCPJam |
+| SSE (legacy) | the URL shown in Settings + `/sse` | SSE-only clients |
+
+**Cursor** — add to `.cursor/mcp.json` (or project `.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "avnac-studio": {
+      "url": "http://127.0.0.1:<port-from-settings>/",
+      "headers": {
+        "Authorization": "Bearer <token-from-settings>"
+      }
+    }
+  }
+}
+```
+
+**Claude Code** — run:
+
+```bash
+claude mcp add --transport http avnac-studio http://127.0.0.1:<port-from-settings>/ --header "Authorization: Bearer <token-from-settings>"
+```
+
+> Tip: open the connect URL in any browser (no token needed) to confirm the server is up before connecting a client.
+
+### What agents can do — 27 tools
+
+- **Files** — `list_files`, `open_canvas`, `rename_file` (work even with no canvas open)
+- **Canvas setup** — `create_canvas` (size, background, name), `apply_artboard_preset` (IG, HD, A4…), `set_background`, `clear_canvas`, `get_canvas_summary`
+- **Create & edit** — `render_elements` creates rects, ellipses, polygons, stars, lines, text, images, and stickers in one call (solid or gradient paints); `modify_elements`, `delete_object`, `group_objects` / `ungroup_objects`
+- **Layout** — `align_objects`, `distribute_objects`, `fit_to_artboard`
+- **Assets** — `search_unsplash`, `list_stickers`, `get_font_list` (Google Fonts)
+- **Verify & export** — `get_canvas_image` (screenshot so the agent can visually check its own work), `get_object_properties`, `export_png`, `export_object`
+
+Three ready-made workflows ship as MCP prompts: **`design-graphic`** (write a brief → render → screenshot audit → verify against the request), **`edit-canvas`** (diff-oriented edits on the open design), and **`design-audit`** (critique + fix the most impactful issues).
+
+### Try it
+
+With the app open, tell your agent:
+
+> Design a grand-opening flyer for a ramen shop — 1080×1350, bold Japanese comfort-food energy, appetizing photography.
+
+The agent creates the canvas, pulls photography from Unsplash, renders typography and shapes, screenshots the artboard to review itself, and exports the final PNG — all through the protocol.
+
+Full tool reference, prompt details, and client-by-client setup: [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md) · [`docs/MCP_TEST_PROMPTS.md`](docs/MCP_TEST_PROMPTS.md).
+
+---
+
 ## What's Different from the Web App
 
 The original [Avnac web app](https://github.com/akinloluwami/avnac) is a browser-first editor. Avnac Studio is a ground-up desktop port of that product. Here is what changed:

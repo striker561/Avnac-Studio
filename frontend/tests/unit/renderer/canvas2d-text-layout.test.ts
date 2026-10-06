@@ -3,6 +3,10 @@ import {
   layoutCanvas2DTextLines,
   measureCanvas2DTextLineWidth,
 } from "@/lib/renderer/backends/canvas2d/shared";
+import {
+  quoteFontFamily,
+  textFontString,
+} from "@/lib/renderer/backends/canvas2d/text-layout";
 
 function createMockContext(measureWidth = (text: string) => text.length * 8) {
   return {
@@ -28,5 +32,28 @@ describe("unit: canvas2d / text layout cache", () => {
     const first = layoutCanvas2DTextLines(ctx, font, lines, 120);
     const second = layoutCanvas2DTextLines(ctx, font, lines, 120);
     expect(second).toBe(first);
+  });
+});
+
+describe("unit: canvas2d / font string quoting", () => {
+  it("quotes multi-word families so ctx.font stays valid", () => {
+    expect(textFontString({ fontStyle: "normal", fontWeight: "700", fontSize: 94, fontFamily: "Baloo 2" })).toBe(
+      '700 94px "Baloo 2"',
+    );
+    expect(textFontString({ fontStyle: "italic", fontWeight: "400", fontSize: 24, fontFamily: "Plus Jakarta Sans" })).toBe(
+      'italic 400 24px "Plus Jakarta Sans"',
+    );
+  });
+
+  it("leaves single-identifier and already-quoted families untouched", () => {
+    expect(quoteFontFamily("Poppins")).toBe("Poppins");
+    expect(quoteFontFamily("Inter")).toBe("Inter");
+    expect(quoteFontFamily('"Baloo 2"')).toBe('"Baloo 2"');
+    expect(quoteFontFamily("'Baloo 2'")).toBe("'Baloo 2'");
+  });
+
+  it("falls back to sans-serif for empty families", () => {
+    expect(quoteFontFamily("")).toBe("sans-serif");
+    expect(quoteFontFamily("   ")).toBe("sans-serif");
   });
 });

@@ -5,3 +5,12 @@ build/windows/installer/tmp/
 frontend/dist/*
 !frontend/dist/index.html
 frontend/package.json.md5
+
+# AI and tooling directories
+.gemini/
+.agents/
+.zcode/
+
+# Ignore any folder that starts with . (except .github)
+.*/
+!.github/

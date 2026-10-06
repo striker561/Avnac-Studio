@@ -9,10 +9,40 @@
     />
     <title>Avnac — open design in the browser</title>
     <link rel="shortcut icon" href="logo.png" type="image/x-icon">
-    <script type="module" crossorigin src="/assets/index-CYdh7cwS.js"></script>
+    <script>
+      window.addEventListener('error', function (e) {
+        var msg = (e.error ? (e.error.stack || e.error.message) : e.message) || '';
+        if (typeof msg === 'string' && msg.indexOf('ResizeObserver') !== -1) {
+          return;
+        }
+        var el = document.getElementById('runtime-error-banner');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'runtime-error-banner';
+          el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999999;background:#ef4444;color:white;padding:16px;font-family:monospace;font-size:13px;white-space:pre-wrap;box-shadow:0 4px 6px rgba(0,0,0,0.3);';
+          document.documentElement.appendChild(el);
+        }
+        el.textContent += '\n' + msg;
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        var reason = e.reason && (e.reason.stack || e.reason.message) ? (e.reason.stack || e.reason.message) : String(e.reason);
+        if (typeof reason === 'string' && reason.indexOf('ResizeObserver') !== -1) {
+          return;
+        }
+        var el = document.getElementById('runtime-error-banner');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'runtime-error-banner';
+          el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999999;background:#ef4444;color:white;padding:16px;font-family:monospace;font-size:13px;white-space:pre-wrap;box-shadow:0 4px 6px rgba(0,0,0,0.3);';
+          document.documentElement.appendChild(el);
+        }
+        el.textContent += '\nUnhandled Promise Rejection: ' + reason;
+      });
+    </script>
+    <script type="module" crossorigin src="/assets/index-CdGyxa2h.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/chunk-BNv3lrIs.js">
     <link rel="modulepreload" crossorigin href="/assets/core-Baay0S8r.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-wXH-4HbD.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-UbhRtqy0.css">
   </head>
   <body
     class="font-sans antialiased selection:bg-neutral-200 selection:text-[var(--text)]"

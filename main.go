@@ -29,15 +29,17 @@ func main() {
 			Middleware: app.MediaProxyMiddleware(),
 		},
 		BackgroundColour:         &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		EnableDefaultContextMenu: false,
+		EnableDefaultContextMenu: true,
 		OnStartup:                app.startup,
 		OnDomReady:               app.domReady,
+		OnShutdown:               app.shutdown,
 		Bind: []interface{}{
 			app,
 			app.ioManager,
 			app.Unsplash,
 			app.Config,
 			app.Secrets,
+			app.MCPServer,
 		},
 	}
 

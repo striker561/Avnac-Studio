@@ -95,10 +95,18 @@ func normalizeConfig(cfg *AppConfig) *AppConfig {
 	// If snap is exactly 0 and was never set (zero-value), default to 1.
 	// We distinguish "explicitly 0" from "never saved" only when the field
 	// is already present on the struct — keep it as-is if it has been set.
+	// MCP port 0 means "choose a free port at startup"; explicit values must
+	// be unprivileged ports, anything else falls back to dynamic selection.
+	mcpPort := cfg.MCPPort
+	if mcpPort != 0 && (mcpPort < 1024 || mcpPort > 65535) {
+		mcpPort = 0
+	}
 	return &AppConfig{
 		SnapIntensity:       snap,
 		DeveloperMode:       cfg.DeveloperMode,
 		RotationSensitivity: rotSensitivity,
+		MCPEnabled:          cfg.MCPEnabled,
+		MCPPort:             mcpPort,
 	}
 }
 

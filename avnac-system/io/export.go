@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -78,7 +80,20 @@ func (m *IOManager) workspaceFilePath(persistId string, fileName string) (string
 	return filepath.Join(dir, fileName), nil
 }
 
+// workspaceWriteMu serializes atomic workspace writes within this process.
+//
+// create_canvas (and autosave racing it) can issue two WriteDocumentRecord
+// calls for the same workspace nearly simultaneously. On Windows, two
+// concurrent os.Rename calls targeting the same destination race and the
+// loser fails with "Access is denied". Serializing here removes the
+// in-process race; the retry loop below covers out-of-process holds
+// (antivirus/file watcher briefly locking the destination).
+var workspaceWriteMu sync.Mutex
+
 func writeWorkspaceFile(path string, data []byte) error {
+	workspaceWriteMu.Lock()
+	defer workspaceWriteMu.Unlock()
+
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("create workspace directories: %w", err)
@@ -100,11 +115,19 @@ func writeWorkspaceFile(path string, data []byte) error {
 		os.Remove(tmpPath)
 		return fmt.Errorf("close temp file: %w", err)
 	}
-	if err := os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath)
-		return fmt.Errorf("rename workspace file: %w", err)
+	var lastErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt*25) * time.Millisecond)
+		}
+		if err := os.Rename(tmpPath, path); err == nil {
+			return nil
+		} else {
+			lastErr = err
+		}
 	}
-	return nil
+	os.Remove(tmpPath)
+	return fmt.Errorf("rename workspace file: %w", lastErr)
 }
 
 // ExportFile opens a native Save File dialog pre-filled with title as the

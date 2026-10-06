@@ -22,10 +22,18 @@ export function Start(arg1) {
   return window['go']['mcp']['AvnacMCP']['Start'](arg1);
 }
 
+export function StartHTTP(arg1) {
+  return window['go']['mcp']['AvnacMCP']['StartHTTP'](arg1);
+}
+
 export function Stop(arg1) {
   return window['go']['mcp']['AvnacMCP']['Stop'](arg1);
 }
 
 export function SubmitResponse(arg1, arg2) {
   return window['go']['mcp']['AvnacMCP']['SubmitResponse'](arg1, arg2);
+}
+
+export function UpdateConfig(arg1) {
+  return window['go']['mcp']['AvnacMCP']['UpdateConfig'](arg1);
 }

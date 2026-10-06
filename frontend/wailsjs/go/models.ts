@@ -25,33 +25,6 @@ export namespace avnacconfig {
 
 }
 
-export namespace mcp {
-	
-	export class MCPState {
-	    enabled: boolean;
-	    running: boolean;
-	    port: number;
-	    url: string;
-	    sse_url: string;
-	    error?: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new MCPState(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.enabled = source["enabled"];
-	        this.running = source["running"];
-	        this.port = source["port"];
-	        this.url = source["url"];
-	        this.sse_url = source["sse_url"];
-	        this.error = source["error"];
-	    }
-	}
-
-}
-
 export namespace avnacserver {
 	
 	export class UnsplashUserLinks {
@@ -208,6 +181,47 @@ export namespace avnacserver {
 	
 	
 	
+
+}
+
+export namespace mcp {
+	
+	export class HTTPOptions {
+	    Port: number;
+	    Token: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HTTPOptions(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Port = source["Port"];
+	        this.Token = source["Token"];
+	    }
+	}
+	export class MCPState {
+	    enabled: boolean;
+	    running: boolean;
+	    port: number;
+	    url: string;
+	    sse_url: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MCPState(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.running = source["running"];
+	        this.port = source["port"];
+	        this.url = source["url"];
+	        this.sse_url = source["sse_url"];
+	        this.error = source["error"];
+	    }
+	}
 
 }
 

@@ -5,6 +5,8 @@ export namespace avnacconfig {
 	    snap_intensity: number;
 	    developer_mode: boolean;
 	    rotation_sensitivity: number;
+	    mcp_enabled: boolean;
+	    mcp_port: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -16,6 +18,35 @@ export namespace avnacconfig {
 	        this.snap_intensity = source["snap_intensity"];
 	        this.developer_mode = source["developer_mode"];
 	        this.rotation_sensitivity = source["rotation_sensitivity"];
+	        this.mcp_enabled = source["mcp_enabled"];
+	        this.mcp_port = source["mcp_port"];
+	    }
+	}
+
+}
+
+export namespace mcp {
+	
+	export class MCPState {
+	    enabled: boolean;
+	    running: boolean;
+	    port: number;
+	    url: string;
+	    sse_url: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MCPState(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.running = source["running"];
+	        this.port = source["port"];
+	        this.url = source["url"];
+	        this.sse_url = source["sse_url"];
+	        this.error = source["error"];
 	    }
 	}
 

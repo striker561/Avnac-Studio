@@ -6,41 +6,66 @@ Avnac Studio includes a built-in Model Context Protocol (MCP) server that allows
 
 ## 1. Connection Details
 
-The MCP server runs on **port 12345** and supports both **Streamable HTTP** (recommended by modern MCP specs) and legacy **Server-Sent Events (SSE)**.
+The MCP server is **opt-in and secure by default**. Enable it in **Avnac Studio → Settings → MCP server**, then copy the connect URL and bearer token shown there. The server binds to **`127.0.0.1` on a free ephemeral port** (nothing is reachable from your network, and there are no port conflicts), and every API request requires a **bearer token** stored in the OS keyring (Windows Credential Manager / macOS Keychain / Secret Service).
 
 | Transport | Endpoint URL | Use With |
 |---|---|---|
-| **Streamable HTTP (Recommended)** | `http://localhost:12345/` | Modern MCP clients, Cursor, Claude Desktop, MCPJam |
-| **SSE (Legacy)** | `http://localhost:12345/sse` | Legacy SSE clients, EventSource |
-| **Browser Status Page** | `http://localhost:12345/` | Open in any browser to verify the server is running |
+| **Streamable HTTP (Recommended)** | URL from Settings (e.g. `http://127.0.0.1:54321/`) | Cursor, Claude Code, VS Code, MCPJam |
+| **SSE (Legacy)** | URL from Settings + `/sse` | Legacy SSE clients |
+| **Browser Status Page** | URL from Settings, opened in a browser | Verify the server is running (no token needed) |
+
+Security model:
+
+- **Loopback only** — the listener never binds a network interface, so LAN devices cannot reach it.
+- **Bearer token required** — send `Authorization: Bearer <token>` with every request; regenerate the token any time from Settings.
+- **No wildcard CORS** — web pages you visit cannot read or write MCP responses cross-origin.
+- **DNS-rebinding protection** stays enabled (SDK defaults are restored).
+- The server shuts down cleanly with the app (`OnShutdown`), so relaunching never hits a stale listener holding the port.
 
 ### Client Configuration Examples
+
+Replace the port and token with the values shown in Avnac Settings.
 
 #### Cursor (`~/.cursor/mcp.json` or project `.cursor/mcp.json`)
 ```json
 {
   "mcpServers": {
     "avnac-studio": {
-      "url": "http://localhost:12345/"
+      "url": "http://127.0.0.1:54321/",
+      "headers": {
+        "Authorization": "Bearer <token from Avnac Settings>"
+      }
     }
   }
 }
 ```
 
-#### Claude Desktop (`claude_desktop_config.json`)
+#### Claude Code (CLI)
+```bash
+claude mcp add --transport http avnac-studio http://127.0.0.1:54321/ --header "Authorization: Bearer <token from Avnac Settings>"
+```
+
+#### VS Code (`.vscode/mcp.json`)
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "avnac-studio": {
-      "url": "http://localhost:12345/sse"
+      "type": "http",
+      "url": "http://127.0.0.1:54321/",
+      "headers": {
+        "Authorization": "Bearer <token from Avnac Settings>"
+      }
     }
   }
 }
 ```
 
 #### MCPJam Inspector
-- **Transport**: SSE or Streamable HTTP
-- **URL**: `http://localhost:12345/` or `http://localhost:12345/sse`
+- **Transport**: Streamable HTTP (or SSE)
+- **URL**: the URL shown in Avnac Settings
+- **Headers**: `Authorization: Bearer <token from Avnac Settings>`
+
+> **Claude Desktop** currently only launches `stdio` servers and cannot connect to this HTTP endpoint. Support for stdio-only clients may arrive later as a small relay; the HTTP server above already covers Cursor, Claude Code, and VS Code.
 
 ---
 

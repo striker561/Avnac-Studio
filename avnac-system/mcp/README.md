@@ -4,13 +4,13 @@ This directory contains the Model Context Protocol (MCP) server implementation f
 
 ## Overview
 
-The MCP server allows external AI agents and clients to interact with the Avnac Studio canvas directly. It leverages the official Go SDK for MCP (`github.com/modelcontextprotocol/go-sdk`) and exposes a standard SSE (Server-Sent Events) HTTP transport.
+The MCP server allows external AI agents and clients to interact with the Avnac Studio canvas directly. It leverages the official Go SDK for MCP (`github.com/modelcontextprotocol/go-sdk`) and serves both Streamable HTTP and legacy SSE.
 
 ### Architecture
 
-1. **MCP Server (`server.go`)**: Runs an HTTP server on `127.0.0.1:12345`. It listens for incoming SSE connections on `/sse`, `/message`, and `/`.
+1. **MCP Server (`server.go`)**: An opt-in HTTP server bound to `127.0.0.1` on a free ephemeral port (or the pinned `mcp_port` from config). Every request requires a bearer token (32 random bytes, stored in the OS keyring under the `mcp` entry) sent as `Authorization: Bearer`. Streamable HTTP and legacy SSE are served through the official Go SDK with its security defaults (localhost/DNS-rebinding protection on, no CORS headers). A `ConfigManager` watcher starts/stops the listener with the `mcp_enabled` setting, and `OnShutdown` stops it on app exit.
 2. **Tool Registration (`tools.go`)**: Defines the tools available to MCP clients. When a tool is invoked by a client, the Go backend processes the request and emits a Wails IPC event (`mcp:action`) to the frontend.
-3. **Frontend Listener (`frontend/src/lib/mcp-listener.ts`)**: The React frontend listens for the `mcp:action` event and applies the requested changes directly to the Fabric.js canvas.
+3. **Frontend Listener (`frontend/src/lib/mcp-listener.ts`)**: The React frontend listens for the `mcp:action` event and applies the requested changes as Saraswati commands through the scene editor store (`useSceneEditorStore.applyCommands`). The renderer is Canvas2D (Saraswati); Fabric was removed in v0.2.0.
 
 ## Available Tools
 
@@ -54,6 +54,6 @@ The MCP server provides 27 tools for canvas automation. Tool names equal their e
 
 ## Development
 
-The MCP server is initialized in `app.go` and started automatically when the Wails application launches.
+The MCP server is constructed in `app.go` and registered in `App.startup`. The HTTP listener itself starts when the `mcp_enabled` config value is set (Settings toggle or `config.json`) and stops when it is cleared.
 
 If you add new tools in `tools.go`, make sure to update the corresponding frontend handler in `mcp-listener.ts` to process the action payload correctly.

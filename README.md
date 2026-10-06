@@ -157,12 +157,12 @@ The flyer pulls photos from Unsplash; the packaging study and splash use shapes,
 
 ### Connecting an agent
 
-The server starts automatically with the app — nothing to configure inside Avnac Studio. With the app open, point your MCP client at one of:
+The server is **opt-in**: enable it in **Avnac Studio → Settings → MCP server**, which binds it to `127.0.0.1` on a free port and shows the exact connect URL and bearer token (stored in your OS keyring). Copy both into your MCP client — every request must send the token as an `Authorization: Bearer` header.
 
-| Transport | URL | Best for |
+| Transport | Endpoint | Best for |
 | --- | --- | --- |
-| **Streamable HTTP** (recommended) | `http://localhost:12345/` | Cursor, MCPJam, modern MCP clients |
-| SSE (legacy) | `http://localhost:12345/sse` | Claude Desktop and SSE-only clients |
+| **Streamable HTTP** (recommended) | the URL shown in Settings | Cursor, Claude Code, VS Code, MCPJam |
+| SSE (legacy) | the URL shown in Settings + `/sse` | SSE-only clients |
 
 **Cursor** — add to `.cursor/mcp.json` (or project `.cursor/mcp.json`):
 
@@ -170,25 +170,22 @@ The server starts automatically with the app — nothing to configure inside Avn
 {
   "mcpServers": {
     "avnac-studio": {
-      "url": "http://localhost:12345/"
+      "url": "http://127.0.0.1:<port-from-settings>/",
+      "headers": {
+        "Authorization": "Bearer <token-from-settings>"
+      }
     }
   }
 }
 ```
 
-**Claude Desktop** — add to `claude_desktop_config.json`:
+**Claude Code** — run:
 
-```json
-{
-  "mcpServers": {
-    "avnac-studio": {
-      "url": "http://localhost:12345/sse"
-    }
-  }
-}
+```bash
+claude mcp add --transport http avnac-studio http://127.0.0.1:<port-from-settings>/ --header "Authorization: Bearer <token-from-settings>"
 ```
 
-> Tip: open `http://localhost:12345/` in any browser to confirm the server is up before connecting a client.
+> Tip: open the connect URL in any browser (no token needed) to confirm the server is up before connecting a client.
 
 ### What agents can do — 27 tools
 

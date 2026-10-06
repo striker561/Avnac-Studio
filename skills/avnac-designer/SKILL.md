@@ -5,15 +5,18 @@ description: Expert AI Graphic Designer for Avnac Studio. Use to design graphics
 
 # Avnac Studio AI Designer Guide
 
-Avnac Studio is a modern, web-native graphic design canvas built with Wails, React, and the Saraswati vector engine. As an AI design assistant, you interact with Avnac Studio via its built-in **Model Context Protocol (MCP)** server on **port 12345**.
+Avnac Studio is a modern, web-native graphic design canvas built with Wails, React, and the Saraswati vector engine. As an AI design assistant, you interact with Avnac Studio via its built-in **Model Context Protocol (MCP)** HTTP server, bound to `127.0.0.1`.
 
 ---
 
 ## 1. MCP Connection
 
-- **Streamable HTTP (Recommended)**: `http://localhost:12345/` (or `http://127.0.0.1:12345/`)
-- **SSE (Legacy)**: `http://localhost:12345/sse`
-- **Browser Status Check**: Open `http://localhost:12345/` in any browser to verify the server is live.
+The server is opt-in and authenticated:
+
+- Enable it in **Avnac Studio → Settings → MCP server**.
+- Copy the **connect URL** (e.g. `http://127.0.0.1:54321/`) and the **bearer token** shown there; the token lives in the OS keyring.
+- Every request must send header `Authorization: Bearer <token>`.
+- **Status check**: open the connect URL in a browser (no token needed) to verify the server is live.
 
 ---
 

@@ -4,8 +4,8 @@ Practical, real-world prompts for testing the Avnac Studio MCP server end to end
 
 ## How to use this file
 
-1. Launch Avnac Studio and open (or create) a canvas in the editor first. The MCP server runs inside the desktop app on port **12345** — tools are executed by the running app, so an open canvas is required.
-2. Connect your MCP client to `http://localhost:12345/` (Streamable HTTP, recommended) or `http://localhost:12345/sse` (legacy).
+1. Launch Avnac Studio, enable **Settings → MCP server**, and open (or create) a canvas in the editor first — tools are executed by the running app, so an open canvas is required.
+2. Connect your MCP client to the **connect URL shown in Settings** (Streamable HTTP, recommended) with header `Authorization: Bearer <token from Settings>`; SSE clients can append `/sse`.
 3. Paste one prompt at a time, watch the canvas, and finish each prompt with a visual check (the agent should call `get_canvas_image` on its own — all prompts in Category A–C instruct it to).
 
 **Legend:**

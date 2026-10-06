@@ -256,20 +256,18 @@ Expected: `create_canvas` accepts `name` without error but **the name has no eff
 
 ## Known gaps appendix
 
-Status of advertised-but-not-fully-working surface, as of 2026-09-22 (verified against `avnac-system/mcp/tools.go` and `frontend/src/lib/mcp-listener.ts`). Re-run Category E probes after code changes and update this table.
+Status of advertised-but-not-fully-working surface, as of 2026-10-06 (re-verified against `avnac-system/mcp/tools.go` and the frontend handler in `frontend/src/features/scene-editor/use-mcp-actions.ts` after the listener split). An earlier version of this table (2026-09-22) predated the sync request/response work (`emitSync`); most frontend-side gaps from that version are resolved. Re-run Category E probes after code changes and update this table.
 
 | Tool / property | Advertised | Actual behavior |
 |---|---|---|
-| `list_objects`, `get_selection` | Request/response tools | Always time out (~5s) — no frontend handler |
-| `align_objects`, `distribute_objects`, `group_objects`, `ungroup_objects`, `fit_to_artboard` | Fire-and-forget | Emitted, never applied — no visual effect |
-| `export_png`, `export_object` | Fire-and-forget | No file is produced |
-| `modify_elements` `action` (bringToFront etc.) | Z-order changes | Ignored by frontend |
-| `render_elements`/`modify_elements` `gradientStops`/`gradientAngle` | Gradients | Ignored — renders solid fill |
-| `modify_elements` `scaleX`/`scaleY`, `locked`, `stroke`/`strokeWidth` (mod), `type` | Schema fields | Ignored by frontend |
-| text `fontWeight`, `align`, `lineHeight` | — | Not settable via MCP (hardcoded in frontend) |
-| `line` `strokeWidth` | Border width | Actually driven by the `width` field |
-| `create_canvas` `name` | Canvas name | Accepted, unused |
-| `delete_object` without `objectId` | Deletes selection | No-op (no selection handler) |
+| `list_objects`, `get_selection` | Request/response tools | ✅ Works (sync responses) |
+| `align_objects`, `distribute_objects`, `group_objects`, `ungroup_objects`, `fit_to_artboard` | Applied to selection | ✅ Works (applied via `applyCommands`) |
+| `export_png`, `export_object` | Image export | ✅ Works (returns base64 PNG content) |
+| `render_elements`/`modify_elements` `gradientStops`/`gradientAngle` | Gradients | ✅ Works (solid + gradient paints) |
+| text `fontWeight`, `align`, `lineHeight`, `underline` | — | ✅ Settable via MCP |
+| `line` `strokeWidth` | Border width | ✅ Driven by `strokeWidth` (falls back to 2) |
+| `create_canvas` `name` | Canvas name | ✅ Persisted with the document |
+| `delete_object` without `objectId` | Deletes selection | ✅ Deletes the current selection |
+| `modify_elements` `action` (bringToFront etc.) | Z-order changes | ❌ Ignored by frontend |
+| `modify_elements` `scaleX`/`scaleY`, `locked`, `type` | Schema fields | ❌ Ignored by frontend |
 | `search_unsplash` | Works Go-side | Requires an Unsplash API key in Settings; empty query returns empty results |
-
-Also note: `avnac-system/mcp/README.md` is stale — it still describes the removed Fabric.js listener and tools that no longer exist (`add_shape`, `add_text`, `update_object`, etc.). Prefer `docs/MCP_GUIDE.md` for tool docs, and read `tools.go` for ground truth on schemas.

@@ -4,7 +4,6 @@ import { RouterProvider } from "@tanstack/react-router";
 
 import { getRouter } from "./router";
 import { scheduleAppChromeFonts } from "./lib/load-google-font";
-import { initMCPListener } from "./lib/mcp-listener";
 import "./styles.css";
 
 // Suppress the browser/WebView2 context menu everywhere — this is a desktop
@@ -19,13 +18,7 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
-try {
-  initMCPListener((options) => {
-    void router.navigate(options);
-  });
-} catch (err) {
-  console.error("[MCP] Listener init failed:", err);
-}
+// MCP tool actions are subscribed by useMCPActions() in routes/__root.tsx.
 
 scheduleAppChromeFonts();
 

@@ -10,7 +10,7 @@ The MCP server allows external AI agents and clients to interact with the Avnac 
 
 1. **MCP Server (`server.go`)**: An opt-in HTTP server bound to `127.0.0.1` on a free ephemeral port (or the pinned `mcp_port` from config). Every request requires a bearer token (32 random bytes, stored in the OS keyring under the `mcp` entry) sent as `Authorization: Bearer`. Streamable HTTP and legacy SSE are served through the official Go SDK with its security defaults (localhost/DNS-rebinding protection on, no CORS headers). A `ConfigManager` watcher starts/stops the listener with the `mcp_enabled` setting, and `OnShutdown` stops it on app exit.
 2. **Tool Registration (`tools.go`)**: Defines the tools available to MCP clients. When a tool is invoked by a client, the Go backend processes the request and emits a Wails IPC event (`mcp:action`) to the frontend.
-3. **Frontend Listener (`frontend/src/lib/mcp-listener.ts`)**: The React frontend listens for the `mcp:action` event and applies the requested changes as Saraswati commands through the scene editor store (`useSceneEditorStore.applyCommands`). The renderer is Canvas2D (Saraswati); Fabric was removed in v0.2.0.
+3. **Frontend orchestration (`frontend/src/features/scene-editor/use-mcp-actions.ts`)**: The scene editor root route subscribes to the `mcp:action` event via `subscribeToMCPActions` (`frontend/src/lib/mcp/transport.ts`) and runs a thin dispatcher — one named function per tool, shaped like the engine's `applyCommand` reducer. Payload → command conversion is pure and lives in `frontend/src/lib/mcp/commands.ts` (mutations), `frontend/src/lib/mcp/summaries.ts` (read-only responses), and `frontend/src/lib/mcp/canvas-export.ts` (image rendering). Everything reaches the scene only through the scene editor store (`useSceneEditorStore.applyCommands`); the renderer is Canvas2D (Saraswati); Fabric was removed in v0.2.0.
 
 ## Available Tools
 
@@ -56,4 +56,4 @@ The MCP server provides 27 tools for canvas automation. Tool names equal their e
 
 The MCP server is constructed in `app.go` and registered in `App.startup`. The HTTP listener itself starts when the `mcp_enabled` config value is set (Settings toggle or `config.json`) and stops when it is cleared.
 
-If you add new tools in `tools.go`, make sure to update the corresponding frontend handler in `mcp-listener.ts` to process the action payload correctly.
+If you add new tools in `tools.go`, make sure to update the corresponding handler in `frontend/src/features/scene-editor/use-mcp-actions.ts` (add a dispatcher case plus a named action function), and keep payload → command conversion in `frontend/src/lib/mcp/commands.ts` so it stays unit-testable.

@@ -35,6 +35,11 @@ func NewApp() *App {
 	proxy := avnacserver.NewMediaProxy(cfgMgr.Get())
 	cfgMgr.AddWatcher(proxy.UpdateConfig)
 	ioManager := avnacio.NewIOManager()
+	mcpServer := mcp.NewAvnacMCP(unsplash, ioManager, secrets)
+	// The watcher fires once during ConfigManager.Startup with the loaded
+	// config and again on every save, so the MCP listener starts/stops live
+	// with the Settings toggle.
+	cfgMgr.AddWatcher(mcpServer.UpdateConfig)
 	return &App{
 		Config:     cfgMgr,
 		Secrets:    secrets,
@@ -42,7 +47,7 @@ func NewApp() *App {
 		Unsplash:   unsplash,
 		Rembg:      rembg,
 		mediaProxy: proxy,
-		MCPServer:  mcp.NewAvnacMCP(unsplash, ioManager),
+		MCPServer:  mcpServer,
 	}
 }
 
@@ -88,6 +93,15 @@ func (a *App) startup(ctx context.Context) {
 // it is safe to make Go IPC calls. This fires on every page load/reload.
 func (a *App) domReady(ctx context.Context) {
 	runtime.EventsEmit(ctx, "avnac:ready")
+}
+
+// shutdown releases runtime resources on app exit. Stopping the MCP server
+// here frees the loopback port so a relaunch never hits a stale listener
+// holding :port (the likely cause of the b5295a1 connection timeouts).
+func (a *App) shutdown(ctx context.Context) {
+	if err := a.MCPServer.Stop(ctx); err != nil {
+		log.Printf("[avnac] mcp server shutdown: %v", err)
+	}
 }
 
 // GetVersion returns the current application version string.

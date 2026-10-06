@@ -32,6 +32,7 @@ func main() {
 		EnableDefaultContextMenu: true,
 		OnStartup:                app.startup,
 		OnDomReady:               app.domReady,
+		OnShutdown:               app.shutdown,
 		Bind: []interface{}{
 			app,
 			app.ioManager,

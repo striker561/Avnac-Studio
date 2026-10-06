@@ -3,30 +3,69 @@ package mcp
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
 
+	avnacconfig "Avnac/avnac-system/config"
 	avnacio "Avnac/avnac-system/io"
+	avnacsecrets "Avnac/avnac-system/secrets"
 	avnacserver "Avnac/avnac-system/server"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+// mcpTokenKeyringName is the keyring entry the bearer token is stored under
+// via SecretsManager. It never touches config.json.
+const mcpTokenKeyringName = "mcp"
+
+// MCPState is the runtime status of the MCP HTTP server, surfaced to the
+// Settings page via GetMCPInfo.
+type MCPState struct {
+	// Enabled reflects the mcp_enabled config value.
+	Enabled bool `json:"enabled"`
+	// Running is true once the loopback listener is bound and serving.
+	Running bool `json:"running"`
+	// Port is the resolved loopback port (0 when not running).
+	Port int `json:"port"`
+	// URL is the Streamable HTTP connect URL, e.g. http://127.0.0.1:54321/.
+	URL string `json:"url"`
+	// SSEURL is the legacy SSE endpoint URL.
+	SSEURL string `json:"sse_url"`
+	// Error carries the last start failure (e.g. pinned port already in use).
+	Error string `json:"error,omitempty"`
+}
+
 type AvnacMCP struct {
-	server          *mcp.Server
-	httpServer      *http.Server
-	pendingRequests map[string]chan any
-	mu              sync.Mutex
-	Unsplash        *avnacserver.UnsplashService
+	server     *mcp.Server
+	httpServer *http.Server
+	listener   net.Listener
+	Unsplash   *avnacserver.UnsplashService
+	Secrets    *avnacsecrets.SecretsManager
 	// IO gives file-level tools (list_files) direct access to workspace
 	// metadata without a frontend round-trip. The IOManager pointer is
 	// initialized by App.startup after NewApp returns, so holders must call
 	// its methods lazily (inside handlers), never at construction time.
 	IO *avnacio.IOManager
+
+	pendingRequests map[string]chan any
+	mu              sync.Mutex
+
+	// startMu serializes StartHTTP/StopHTTP/UpdateConfig.
+	startMu sync.Mutex
+	// stMu guards state and token; the auth middleware takes a read lock on
+	// every request, so keep this lock free of slow operations.
+	stMu  sync.RWMutex
+	state MCPState
+	token string
 }
 
 const DesignerInstructions = `You are the Avnac Studio AI Design Director.
@@ -60,7 +99,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - If something mismatches, fix it with modify_elements (or align_objects / group_objects), take one more screenshot, then report an honest pass/fail per requirement. Explicitly flag any content you invented.
 `
 
-func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager) *AvnacMCP {
+func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, secrets *avnacsecrets.SecretsManager) *AvnacMCP {
 	return &AvnacMCP{
 		server: mcp.NewServer(&mcp.Implementation{
 			Name:    "Avnac Studio",
@@ -70,51 +109,89 @@ func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager) *
 		}),
 		pendingRequests: make(map[string]chan any),
 		Unsplash:        unsplash,
+		Secrets:         secrets,
 		IO:              io,
 	}
 }
 
+// Start registers tools and prompts. It does not bind any network resource;
+// the HTTP listener is started by UpdateConfig when mcp_enabled is set.
+// Called once from App.startup before ConfigManager.Startup fires watchers.
 func (m *AvnacMCP) Start(wailsCtx context.Context) {
 	m.RegisterTools(wailsCtx)
 	m.RegisterPrompts()
+}
+
+// HTTPOptions controls StartHTTP. Token is the required bearer token; when
+// empty the server runs without auth and must only be reachable on loopback.
+type HTTPOptions struct {
+	Port  int
+	Token string
+}
+
+// StartHTTP binds the MCP server to 127.0.0.1 on the requested port (0 picks
+// a free ephemeral port) and serves until Stop. SDK handler defaults are kept
+// (localhost protection on) and no CORS headers are emitted: browser pages
+// must not be able to read or write MCP responses cross-origin.
+func (m *AvnacMCP) StartHTTP(opts HTTPOptions) error {
+	m.startMu.Lock()
+	defer m.startMu.Unlock()
+
+	if m.httpServer != nil {
+		return errors.New("mcp: server already running")
+	}
+
+	addr := fmt.Sprintf("127.0.0.1:%d", opts.Port)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		m.setState(MCPState{Enabled: true, Error: fmt.Sprintf("bind %s: %v", addr, err)})
+		return fmt.Errorf("mcp: bind %s: %w", addr, err)
+	}
 
 	streamable := mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {
 		return m.server
-	}, &mcp.StreamableHTTPOptions{
-		DisableLocalhostProtection: true,
-	})
+	}, nil)
 
 	sse := mcp.NewSSEHandler(func(req *http.Request) *mcp.Server {
 		return m.server
-	}, &mcp.SSEOptions{
-		DisableLocalhostProtection: true,
+	}, nil)
+
+	srv := &http.Server{Handler: m.buildHandler(streamable, sse)}
+	port := ln.Addr().(*net.TCPAddr).Port
+	url := fmt.Sprintf("http://127.0.0.1:%d/", port)
+
+	m.httpServer = srv
+	m.listener = ln
+	m.stMu.Lock()
+	m.token = opts.Token
+	m.stMu.Unlock()
+	m.setState(MCPState{
+		Enabled: true,
+		Running: true,
+		Port:    port,
+		URL:     url,
+		SSEURL:  strings.TrimSuffix(url, "/") + "/sse",
 	})
+	if opts.Token == "" {
+		log.Printf("[MCP] WARNING: no bearer token available; server runs on %s without auth (loopback only)", url)
+	} else {
+		log.Printf("[MCP] listening on %s (bearer token required)", url)
+	}
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Log incoming request
-		log.Printf("[MCP] %s %s from %s (Accept: %q, Mcp-Session-Id: %q)",
-			r.Method, r.URL.String(), r.RemoteAddr, r.Header.Get("Accept"), r.Header.Get("Mcp-Session-Id"))
-
-		// Comprehensive CORS Headers for browser-based / WebView clients
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Expose-Headers", "*")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
+	go func() {
+		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("[MCP] server error: %v", err)
 		}
+	}()
+	return nil
+}
 
-		// Friendly browser test page if someone navigates to http://localhost:12345 in a browser
-		if r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html") && !strings.Contains(r.Header.Get("Accept"), "text/event-stream") {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `<!DOCTYPE html><html><head><title>Avnac MCP Server</title></head><body style="font-family:sans-serif;padding:2rem;line-height:1.5;"><h2>Avnac MCP Server is running</h2><p>Port: <strong>12345</strong></p><p>Transports supported:</p><ul><li><strong>Streamable HTTP</strong>: <code>http://localhost:12345/</code></li><li><strong>SSE</strong>: <code>http://localhost:12345/sse</code></li></ul></body></html>`)
-			return
-		}
-
-		// Handle server/discover capability negotiation probe
+// buildHandler returns the root handler: request log, unauthenticated browser
+// status page, then bearer-token auth before the transport routing. The token
+// is read per request so RegenerateToken takes effect on a running server.
+func (m *AvnacMCP) buildHandler(streamable, sse http.Handler) http.Handler {
+	route := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Handle server/discover capability negotiation probe.
 		if r.Method == http.MethodPost {
 			body, err := io.ReadAll(r.Body)
 			if err == nil {
@@ -188,23 +265,161 @@ func (m *AvnacMCP) Start(wailsCtx context.Context) {
 		streamable.ServeHTTP(w, r)
 	})
 
-	mux := http.NewServeMux()
-	mux.Handle("/", handler)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Log incoming request (no Authorization header).
+		log.Printf("[MCP] %s %s from %s (Accept: %q, Mcp-Session-Id: %q)",
+			r.Method, r.URL.String(), r.RemoteAddr, r.Header.Get("Accept"), r.Header.Get("Mcp-Session-Id"))
 
-	m.httpServer = &http.Server{
-		Addr:    ":12345",
-		Handler: mux,
-	}
-
-	go func() {
-		if err := m.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("[MCP] Server failed to start on port 12345: %v\n", err)
-		} else {
-			log.Printf("[MCP] Server stopped.\n")
+		// Unauthenticated status page so the user can verify the server is
+		// up by opening the URL in a browser. It carries no design data.
+		if r.Method == http.MethodGet &&
+			strings.Contains(r.Header.Get("Accept"), "text/html") &&
+			!strings.Contains(r.Header.Get("Accept"), "text/event-stream") {
+			m.writeStatusPage(w)
+			return
 		}
-	}()
+
+		if token := m.currentToken(); token != "" && !bearerTokenMatches(r.Header.Get("Authorization"), token) {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="avnac-mcp"`)
+			http.Error(w, "Unauthorized: missing or invalid bearer token (see Avnac Studio Settings)", http.StatusUnauthorized)
+			return
+		}
+
+		route.ServeHTTP(w, r)
+	})
 }
 
+// currentToken returns the active bearer token (empty when auth is off).
+func (m *AvnacMCP) currentToken() string {
+	m.stMu.RLock()
+	defer m.stMu.RUnlock()
+	return m.token
+}
+
+// bearerTokenMatches checks an "Authorization: Bearer <token>" header value
+// against the expected token in constant time.
+func bearerTokenMatches(header, token string) bool {
+	const prefix = "Bearer "
+	if len(header) <= len(prefix) || !strings.EqualFold(header[:len(prefix)], prefix) {
+		return false
+	}
+	got := header[len(prefix):]
+	return subtle.ConstantTimeCompare([]byte(got), []byte(token)) == 1
+}
+
+func (m *AvnacMCP) writeStatusPage(w http.ResponseWriter) {
+	m.stMu.RLock()
+	url := m.state.URL
+	m.stMu.RUnlock()
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `<!DOCTYPE html><html><head><title>Avnac MCP Server</title></head><body style="font-family:sans-serif;padding:2rem;line-height:1.6;max-width:42rem;"><h2>Avnac Studio MCP server is running</h2><p>Connect URL: <strong>%s</strong></p><p>Requests require a bearer token. Copy the URL and token from <strong>Avnac Studio → Settings → MCP server</strong> and add them to your MCP client config.</p></body></html>`, url)
+}
+
+// UpdateConfig is the ConfigManager watcher entry point. It starts or stops
+// the HTTP listener to match mcp_enabled, restarting it when the port changes.
+func (m *AvnacMCP) UpdateConfig(cfg *avnacconfig.AppConfig) {
+	if cfg == nil {
+		return
+	}
+	m.startMu.Lock()
+	defer m.startMu.Unlock()
+
+	alreadyRunning := m.httpServer != nil
+	current := m.GetMCPInfo()
+	// A dynamic (0) port keeps the already-resolved listener across unrelated
+	// config saves; a pinned port restarts only when the pin changes.
+	portUnchanged := (alreadyRunning && cfg.MCPPort == 0) || current.Port == cfg.MCPPort
+
+	if !cfg.MCPEnabled {
+		if alreadyRunning {
+			m.stopHTTPLocked()
+		}
+		m.setState(MCPState{})
+		return
+	}
+
+	if alreadyRunning && portUnchanged {
+		return
+	}
+	if alreadyRunning {
+		m.stopHTTPLocked()
+	}
+
+	token := m.resolveToken()
+	if err := m.StartHTTP(HTTPOptions{Port: cfg.MCPPort, Token: token}); err != nil {
+		log.Printf("[MCP] could not start server: %v", err)
+	}
+}
+
+// resolveToken returns the keyring bearer token, generating and persisting a
+// fresh one on first use. An empty result means the server must run without
+// auth (loopback bind only).
+func (m *AvnacMCP) resolveToken() string {
+	if m.Secrets == nil {
+		return ""
+	}
+	tok, err := m.Secrets.GetKey(mcpTokenKeyringName)
+	if err != nil {
+		log.Printf("[MCP] could not read token from keyring: %v", err)
+		return ""
+	}
+	if tok != "" {
+		return tok
+	}
+	tok, err = generateToken()
+	if err != nil {
+		log.Printf("[MCP] could not generate token: %v", err)
+		return ""
+	}
+	if err := m.Secrets.SetKey(mcpTokenKeyringName, tok); err != nil {
+		log.Printf("[MCP] could not store token in keyring: %v", err)
+		return ""
+	}
+	return tok
+}
+
+// RegenerateToken replaces the keyring bearer token. It takes effect
+// immediately for a running server.
+func (m *AvnacMCP) RegenerateToken() error {
+	if m.Secrets == nil {
+		return errors.New("mcp: keyring unavailable")
+	}
+	tok, err := generateToken()
+	if err != nil {
+		return err
+	}
+	if err := m.Secrets.SetKey(mcpTokenKeyringName, tok); err != nil {
+		return err
+	}
+	m.stMu.Lock()
+	m.token = tok
+	m.stMu.Unlock()
+	return nil
+}
+
+func generateToken() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
+}
+
+// GetMCPInfo reports the current server state for the Settings page.
+func (m *AvnacMCP) GetMCPInfo() MCPState {
+	m.stMu.RLock()
+	defer m.stMu.RUnlock()
+	return m.state
+}
+
+func (m *AvnacMCP) setState(s MCPState) {
+	m.stMu.Lock()
+	m.state = s
+	m.stMu.Unlock()
+}
+
+// SubmitResponse delivers the frontend's result for a pending tool call.
 func (m *AvnacMCP) SubmitResponse(requestID string, data any) {
 	m.mu.Lock()
 	ch, ok := m.pendingRequests[requestID]
@@ -218,9 +433,31 @@ func (m *AvnacMCP) SubmitResponse(requestID string, data any) {
 	}
 }
 
+// Stop shuts the HTTP server down. Safe to call when never started.
 func (m *AvnacMCP) Stop(ctx context.Context) error {
-	if m.httpServer != nil {
-		return m.httpServer.Shutdown(ctx)
+	m.startMu.Lock()
+	defer m.startMu.Unlock()
+	return m.stopHTTPLocked()
+}
+
+func (m *AvnacMCP) stopHTTPLocked() error {
+	m.stMu.Lock()
+	m.token = ""
+	running := m.httpServer != nil
+	m.stMu.Unlock()
+
+	if !running {
+		return nil
 	}
-	return nil
+
+	err := m.httpServer.Shutdown(context.Background())
+	closeErr := m.listener.Close()
+	m.httpServer = nil
+	m.listener = nil
+	m.setState(MCPState{Enabled: m.GetMCPInfo().Enabled})
+	log.Printf("[MCP] server stopped.")
+	if err != nil {
+		return err
+	}
+	return closeErr
 }

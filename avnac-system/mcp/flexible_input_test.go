@@ -284,7 +284,7 @@ func TestListWorkspaceMetasViaIOManager(t *testing.T) {
 
 	io := avnacio.NewIOManager()
 	io.Startup(context.Background(), appDir)
-	m := NewAvnacMCP(nil, io)
+	m := NewAvnacMCP(nil, io, nil)
 
 	metas, err := m.listWorkspaceMetas()
 	if err != nil {

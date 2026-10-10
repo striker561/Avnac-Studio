@@ -2,7 +2,11 @@
 node_modules/
 build/bin/
 build/windows/installer/tmp/
-frontend/dist/
+# Vite build output is not tracked; .gitkeep keeps //go:embed all:frontend/dist
+# in main.go satisfiable on fresh checkouts (CI runs go test before any
+# frontend build).
+frontend/dist/*
+!frontend/dist/.gitkeep
 frontend/package.json.md5
 
 # AI and tooling directories

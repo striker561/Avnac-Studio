@@ -136,7 +136,7 @@ type SceneEditorActions = {
   /** Load a document by persisted ID. Replaces any existing state.
    * When the document does not yet exist (new canvas), pass `opts.w`/`opts.h`
    * to set artboard dimensions; an empty document is created and saved. */
-  load: (id: string, opts?: { w?: number; h?: number }) => Promise<void>;
+  load: (id: string, opts?: { w?: number; h?: number; name?: string }) => Promise<void>;
   /** Apply one or more Saraswati commands to the live scene. */
   applyCommands: (commands: SaraswatiCommand[]) => void;
   beginHistoryBatch: () => void;
@@ -455,7 +455,7 @@ function asInsertContext(state: SceneEditorStore): SceneEditorInsertContext {
 export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
   ...INITIAL,
 
-  load: async (id: string, opts?: { w?: number; h?: number }) => {
+  load: async (id: string, opts?: { w?: number; h?: number; name?: string }) => {
     const snapIntensity = get().snapIntensity;
     set({ ...INITIAL, snapIntensity, isLoading: true, documentId: id });
     resetSceneEngineBinding();
@@ -473,6 +473,9 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
       if (!record) {
         // New document — create empty canvas with optional artboard dimensions.
+        // opts.name makes creation atomic (single writer): the row is written
+        // with the requested name so a later set/commit race can't wipe it.
+        const requestedName = opts?.name?.trim() || "";
         const emptyDoc = createEmptyPage();
         if (opts?.w != null && Number.isFinite(opts.w)) {
           emptyDoc.artboard.width = Math.min(
@@ -486,9 +489,9 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
             Math.max(100, Math.round(opts.h)),
           );
         }
-        await idbPutDocument(id, emptyDoc);
+        docName = requestedName || "Untitled";
+        await idbPutDocument(id, emptyDoc, { name: docName });
         doc = emptyDoc;
-        docName = "Untitled";
       } else {
         doc = record.document;
         docName = record.name ?? "Untitled";

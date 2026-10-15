@@ -117,6 +117,48 @@ func TestWriteWorkspaceFileAtomic(t *testing.T) {
 	}
 }
 
+func TestConcurrentDocumentRecordWrites(t *testing.T) {
+	// Regression test for the MCP create_canvas "Access is denied" failure:
+	// two concurrent WriteDocumentRecord calls for the same workspace (route
+	// load racing a direct store.load) must not fail the rename on Windows
+	// and must leave a valid record behind.
+	m := newTestIOManager(t)
+	const persistID = "concurrent-doc"
+	const writers = 8
+
+	records := make([]string, writers)
+	for i := range records {
+		records[i] = buildDocumentRecord(t, persistID, "Poster", 4096+i)
+	}
+
+	errs := make(chan error, writers)
+	for i := 0; i < writers; i++ {
+		go func(i int) {
+			errs <- m.WriteDocumentRecord(persistID, records[i])
+		}(i)
+	}
+	for i := 0; i < writers; i++ {
+		if err := <-errs; err != nil {
+			t.Fatalf("concurrent WriteDocumentRecord() error = %v", err)
+		}
+	}
+
+	got, err := m.ReadDocumentRecord(persistID)
+	if err != nil {
+		t.Fatalf("ReadDocumentRecord() error = %v", err)
+	}
+	if got == "" {
+		t.Fatal("expected non-empty record after concurrent writes")
+	}
+	var envelope documentRecordEnvelope
+	if err := json.Unmarshal([]byte(got), &envelope); err != nil {
+		t.Fatalf("final record is corrupt: %v", err)
+	}
+	if envelope.ID != persistID || len(envelope.Document) == 0 {
+		t.Fatalf("final envelope invalid: %#v", envelope)
+	}
+}
+
 func TestDocumentRecordRoundTrip(t *testing.T) {
 	m := newTestIOManager(t)
 	const persistID = "doc-roundtrip"

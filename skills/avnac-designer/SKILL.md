@@ -14,7 +14,7 @@ Avnac Studio is a modern, web-native graphic design canvas built with Wails, Rea
 The server is opt-in and authenticated:
 
 - Enable it in **Avnac Studio → Settings → MCP server**.
-- Copy the **connect URL** (e.g. `http://127.0.0.1:54321/`) and the **bearer token** shown there; the token lives in the OS keyring.
+- Copy the **connect URL** (e.g. `http://127.0.0.1:12345/`) and the **bearer token** shown there; the token lives in the OS keyring.
 - Every request must send header `Authorization: Bearer <token>`.
 - **Status check**: open the connect URL in a browser (no token needed) to verify the server is live.
 

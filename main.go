@@ -32,12 +32,14 @@ func main() {
 		EnableDefaultContextMenu: false,
 		OnStartup:                app.startup,
 		OnDomReady:               app.domReady,
+		OnShutdown:               app.shutdown,
 		Bind: []interface{}{
 			app,
 			app.ioManager,
 			app.Unsplash,
 			app.Config,
 			app.Secrets,
+			app.MCPServer,
 		},
 	}
 

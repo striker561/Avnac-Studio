@@ -18,4 +18,7 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
+// MCP tool actions are subscribed by useMCPActions() in routes/__root.tsx.
+
 scheduleAppChromeFonts();
+

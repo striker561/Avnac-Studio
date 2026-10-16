@@ -109,12 +109,16 @@ export default function SceneEditorCanvas({
   useEffect(() => {
     const element = scrollContainerRef.current;
     if (!element) return;
+    let rafId: number;
     const observer = new ResizeObserver((entries) => {
-      const rect = entries[0]?.contentRect;
-      if (rect) {
-        setContainerSize({ w: rect.width, h: rect.height });
-        setCanvasViewport(rect.width, rect.height);
-      }
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const rect = entries[0]?.contentRect;
+        if (rect) {
+          setContainerSize({ w: rect.width, h: rect.height });
+          setCanvasViewport(rect.width, rect.height);
+        }
+      });
     });
     observer.observe(element);
 
@@ -124,6 +128,7 @@ export default function SceneEditorCanvas({
     element.addEventListener("scroll", onScroll);
 
     return () => {
+      cancelAnimationFrame(rafId);
       observer.disconnect();
       element.removeEventListener("scroll", onScroll);
       setCanvasViewport(0, 0);

@@ -6,7 +6,7 @@ Avnac Studio includes a built-in Model Context Protocol (MCP) server that allows
 
 ## 1. Connection Details
 
-The MCP server is **opt-in and secure by default**. Enable it in **Avnac Studio → Settings → MCP server**, then copy the connect URL and bearer token shown there. The server binds to **`127.0.0.1` on a free ephemeral port** (nothing is reachable from your network, and there are no port conflicts), and every API request requires a **bearer token** stored in the OS keyring (Windows Credential Manager / macOS Keychain / Secret Service).
+The MCP server is **opt-in and secure by default**. Enable it in **Avnac Studio → Settings → MCP server**, then copy the connect URL and bearer token shown there. The server binds to **`127.0.0.1` on a fixed default port (`12345`)** so the connect URL stays stable across launches, falling back to a free port only when that one is taken (nothing is reachable from your network either way), and every API request requires a **bearer token** stored in the OS keyring (Windows Credential Manager / macOS Keychain / Secret Service).
 
 | Transport | Endpoint URL | Use With |
 |---|---|---|

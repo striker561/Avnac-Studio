@@ -602,7 +602,7 @@ export const Route = createFileRoute("/settings")({
                           Enable MCP server
                         </p>
                         <p className="text-xs text-[var(--text-muted)]">
-                          Off by default. Binds to 127.0.0.1 on a free port.
+                          Off by default. Binds to 127.0.0.1 on a fixed port (free-port fallback if taken).
                         </p>
                       </div>
                       <input

@@ -124,13 +124,23 @@ func (m *AvnacMCP) Start(wailsCtx context.Context) {
 
 // HTTPOptions controls StartHTTP. Token is the required bearer token; when
 // empty the server runs without auth and must only be reachable on loopback.
+//
+// Port 0 (the default) auto-binds: the fixed DefaultMCPPort when free, else a
+// free ephemeral port — the connect URL stays stable across launches in the
+// common case without ever hard-failing on a conflict. A positive port is a
+// strict pin from config and surfaces a bind error when taken.
 type HTTPOptions struct {
 	Port  int
 	Token string
 }
 
-// StartHTTP binds the MCP server to 127.0.0.1 on the requested port (0 picks
-// a free ephemeral port) and serves until Stop. SDK handler defaults are kept
+// DefaultMCPPort is the fixed loopback port the MCP server prefers. It keeps
+// the connect URL stable across launches (Figma does the same with 3845);
+// when another process holds it, startup falls back to a free ephemeral port.
+const DefaultMCPPort = 12345
+
+// StartHTTP binds the MCP server to 127.0.0.1 (see HTTPOptions for port
+// semantics) and serves until Stop. SDK handler defaults are kept
 // (localhost protection on) and no CORS headers are emitted: browser pages
 // must not be able to read or write MCP responses cross-origin.
 func (m *AvnacMCP) StartHTTP(opts HTTPOptions) error {
@@ -144,11 +154,34 @@ func (m *AvnacMCP) startHTTPLocked(opts HTTPOptions) error {
 		return errors.New("mcp: server already running")
 	}
 
-	addr := fmt.Sprintf("127.0.0.1:%d", opts.Port)
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		m.setState(MCPState{Enabled: true, Error: fmt.Sprintf("bind %s: %v", addr, err)})
-		return fmt.Errorf("mcp: bind %s: %w", addr, err)
+	listen := func(port int) (net.Listener, error) {
+		return net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	}
+
+	var ln net.Listener
+	if opts.Port > 0 {
+		addr := fmt.Sprintf("127.0.0.1:%d", opts.Port)
+		l, err := listen(opts.Port)
+		if err != nil {
+			m.setState(MCPState{Enabled: true, Error: fmt.Sprintf("bind %s: %v", addr, err)})
+			return fmt.Errorf("mcp: bind %s: %w", addr, err)
+		}
+		ln = l
+	} else {
+		// Auto: prefer the fixed default so the pasted URL survives relaunch,
+		// falling back to an ephemeral port only when it is taken.
+		l, fixedErr := listen(DefaultMCPPort)
+		if fixedErr != nil {
+			fallback, err := listen(0)
+			if err != nil {
+				m.setState(MCPState{Enabled: true, Error: fmt.Sprintf("listen: %v", err)})
+				return fmt.Errorf("mcp: listen: %w", err)
+			}
+			ln = fallback
+			log.Printf("[MCP] default port %d in use (%v); using a free ephemeral port", DefaultMCPPort, fixedErr)
+		} else {
+			ln = l
+		}
 	}
 
 	streamable := mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {

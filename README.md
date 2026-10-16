@@ -156,7 +156,7 @@ The flyer pulls photos from Unsplash; the packaging study and splash use shapes,
 
 ### Connecting an agent
 
-The server is **opt-in**: enable it in **Avnac Studio → Settings → MCP server**, which binds it to `127.0.0.1` on a free port and shows the exact connect URL and bearer token (stored in your OS keyring). Copy both into your MCP client — every request must send the token as an `Authorization: Bearer` header.
+The server is **opt-in**: enable it in **Avnac Studio → Settings → MCP server**, which binds it to `127.0.0.1` on a fixed default port (with a free-port fallback when taken) and shows the exact connect URL and bearer token (stored in your OS keyring). Copy both into your MCP client — every request must send the token as an `Authorization: Bearer` header.
 
 | Transport | Endpoint | Best for |
 | --- | --- | --- |

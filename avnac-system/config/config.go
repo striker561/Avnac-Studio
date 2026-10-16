@@ -24,8 +24,10 @@ type AppConfig struct {
 	// the server is enabled from Settings.
 	MCPEnabled bool `json:"mcp_enabled"`
 	// MCPPort is the loopback port the MCP server binds. 0 (the default)
-	// picks a free ephemeral port at startup; the resolved URL is surfaced
-	// in Settings. Non-zero values are clamped to 1024–65535.
+	// means auto: the fixed default port (mcp.DefaultMCPPort) when free, else
+	// a free ephemeral port, so the connect URL is stable across launches in
+	// the common case. The resolved URL is surfaced in Settings. Non-zero
+	// values are strict pins, clamped to 1024–65535.
 	MCPPort int `json:"mcp_port"`
 }
 

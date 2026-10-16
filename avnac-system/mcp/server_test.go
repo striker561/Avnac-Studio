@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -14,8 +15,9 @@ import (
 	"Avnac/avnac-system/config"
 )
 
-// startTestServer boots the MCP HTTP server on an ephemeral loopback port.
-// It returns the server and its base URL ("http://127.0.0.1:<port>").
+// startTestServer boots the MCP HTTP server with auto port selection
+// (fixed default, ephemeral fallback). It returns the server and its base
+// URL ("http://127.0.0.1:<resolved port>").
 func startTestServer(t *testing.T, token string) (*AvnacMCP, string) {
 	t.Helper()
 	server := NewAvnacMCP(nil, nil, nil)
@@ -59,6 +61,78 @@ func postJSON(t *testing.T, url string, headers map[string]string, payload map[s
 	}
 	t.Cleanup(func() { resp.Body.Close() })
 	return resp
+}
+
+func TestStartHTTPPrefersFixedDefaultPort(t *testing.T) {
+	// Skip on machines where the default port is already held; the fallback
+	// behavior is covered by TestStartHTTPFallsBackWhenDefaultPortTaken.
+	probe, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", DefaultMCPPort))
+	if err != nil {
+		t.Skipf("default port %d already in use on this machine: %v", DefaultMCPPort, err)
+	}
+	if err := probe.Close(); err != nil {
+		t.Skipf("cannot release probe listener: %v", err)
+	}
+
+	server := NewAvnacMCP(nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	server.Start(ctx)
+
+	if err := server.StartHTTP(HTTPOptions{Port: 0, Token: "t"}); err != nil {
+		t.Fatalf("StartHTTP: %v", err)
+	}
+	t.Cleanup(func() { _ = server.Stop(context.Background()) })
+
+	if got := server.GetMCPInfo().Port; got != DefaultMCPPort {
+		t.Fatalf("auto port = %d, want fixed default %d (is something bound to it?)", got, DefaultMCPPort)
+	}
+}
+
+func TestStartHTTPFallsBackWhenDefaultPortTaken(t *testing.T) {
+	blocker, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", DefaultMCPPort))
+	if err != nil {
+		t.Skipf("cannot hold default port %d: %v", DefaultMCPPort, err)
+	}
+	t.Cleanup(func() { _ = blocker.Close() })
+
+	server := NewAvnacMCP(nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	server.Start(ctx)
+
+	if err := server.StartHTTP(HTTPOptions{Port: 0, Token: "t"}); err != nil {
+		t.Fatalf("StartHTTP with default port taken: %v", err)
+	}
+	t.Cleanup(func() { _ = server.Stop(context.Background()) })
+
+	got := server.GetMCPInfo().Port
+	if got <= 0 || got == DefaultMCPPort {
+		t.Fatalf("fallback port = %d, want a free ephemeral port different from %d", got, DefaultMCPPort)
+	}
+}
+
+func TestMCPServerExplicitPortTakenFails(t *testing.T) {
+	blocker, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("grab free port: %v", err)
+	}
+	t.Cleanup(func() { _ = blocker.Close() })
+	pinned := blocker.Addr().(*net.TCPAddr).Port
+
+	server := NewAvnacMCP(nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	server.Start(ctx)
+
+	if err := server.StartHTTP(HTTPOptions{Port: pinned, Token: "t"}); err == nil {
+		t.Fatalf("expected bind error for pinned port %d already in use", pinned)
+	}
+	t.Cleanup(func() { _ = server.Stop(context.Background()) })
+
+	if info := server.GetMCPInfo(); info.Running {
+		t.Fatalf("server must not be running after a failed explicit bind")
+	}
 }
 
 func TestMCPServerRejectsRequestsWithoutBearerToken(t *testing.T) {

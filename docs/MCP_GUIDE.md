@@ -10,7 +10,7 @@ The MCP server is **opt-in and secure by default**. Enable it in **Avnac Studio 
 
 | Transport | Endpoint URL | Use With |
 |---|---|---|
-| **Streamable HTTP (Recommended)** | URL from Settings (e.g. `http://127.0.0.1:54321/`) | Cursor, Claude Code, VS Code, MCPJam |
+| **Streamable HTTP (Recommended)** | URL from Settings (e.g. `http://127.0.0.1:12345/`) | Cursor, Claude Code, VS Code, MCPJam |
 | **SSE (Legacy)** | URL from Settings + `/sse` | Legacy SSE clients |
 | **Browser Status Page** | URL from Settings, opened in a browser | Verify the server is running (no token needed) |
 
@@ -31,7 +31,7 @@ Replace the port and token with the values shown in Avnac Settings.
 {
   "mcpServers": {
     "avnac-studio": {
-      "url": "http://127.0.0.1:54321/",
+      "url": "http://127.0.0.1:12345/",
       "headers": {
         "Authorization": "Bearer <token from Avnac Settings>"
       }
@@ -42,7 +42,7 @@ Replace the port and token with the values shown in Avnac Settings.
 
 #### Claude Code (CLI)
 ```bash
-claude mcp add --transport http avnac-studio http://127.0.0.1:54321/ --header "Authorization: Bearer <token from Avnac Settings>"
+claude mcp add --transport http avnac-studio http://127.0.0.1:12345/ --header "Authorization: Bearer <token from Avnac Settings>"
 ```
 
 #### VS Code (`.vscode/mcp.json`)
@@ -51,7 +51,7 @@ claude mcp add --transport http avnac-studio http://127.0.0.1:54321/ --header "A
   "servers": {
     "avnac-studio": {
       "type": "http",
-      "url": "http://127.0.0.1:54321/",
+      "url": "http://127.0.0.1:12345/",
       "headers": {
         "Authorization": "Bearer <token from Avnac Settings>"
       }

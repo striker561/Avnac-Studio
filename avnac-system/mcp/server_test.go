@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -323,5 +324,155 @@ func TestUpdateConfigLifecycle(t *testing.T) {
 	case <-done:
 	case <-time.After(10 * time.Second):
 		t.Fatal("UpdateConfig did not return within 10s — deadlock on startMu")
+	}
+}
+
+// ─── request body cap ─────────────────────────────────────────────────────────
+
+// lowerBodyCap shrinks maxRequestBodyBytes for one test so the cap can be
+// exercised with a few hundred bytes instead of 32 MiB.
+func lowerBodyCap(t *testing.T, limit int64) {
+	t.Helper()
+	previous := maxRequestBodyBytes
+	maxRequestBodyBytes = limit
+	t.Cleanup(func() { maxRequestBodyBytes = previous })
+}
+
+// readSpy stands in for the transport handlers and reports what it managed to
+// read, so the cap can be asserted without the go-sdk in the way.
+type readSpy struct {
+	called  bool
+	readLen int
+	err     error
+}
+
+func (s *readSpy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.called = true
+	body, err := io.ReadAll(r.Body)
+	s.readLen, s.err = len(body), err
+	w.WriteHeader(http.StatusOK)
+}
+
+func buildHandlerForTest(t *testing.T) (http.Handler, *readSpy) {
+	t.Helper()
+	server := NewAvnacMCP(nil, nil, nil)
+	const token = "test-token"
+	server.stMu.Lock()
+	server.token = token
+	server.stMu.Unlock()
+	spy := &readSpy{}
+	noop := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	return server.buildHandler(spy, noop), spy
+}
+
+func authorizedRequest(body []byte, token string) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	req.Header.Set("Authorization", "Bearer "+token)
+	return req
+}
+
+// A body that declares a length over the cap is refused before anything reads
+// it — the check sits after auth, so an unauthorized caller is still free.
+func TestBuildHandlerRejectsDeclaredOversizedBody(t *testing.T) {
+	lowerBodyCap(t, 1024)
+	handler, spy := buildHandlerForTest(t)
+
+	req := authorizedRequest([]byte("{}"), "test-token")
+	req.ContentLength = maxRequestBodyBytes + 1
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+	if spy.called {
+		t.Fatalf("oversized request reached the transport handler")
+	}
+}
+
+// A chunked body declares no length, so the guard cannot pre-empt it and
+// MaxBytesReader has to bound the read.
+func TestBuildHandlerCapsUndeclaredBody(t *testing.T) {
+	lowerBodyCap(t, 1024)
+	handler, spy := buildHandlerForTest(t)
+
+	body := bytes.Repeat([]byte("x"), int(maxRequestBodyBytes)*4)
+	req := authorizedRequest(body, "test-token")
+	req.ContentLength = -1
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if !spy.called {
+		t.Fatalf("request never reached the transport handler")
+	}
+	if spy.err == nil {
+		t.Fatalf("expected the body read to fail at the cap")
+	}
+	if int64(spy.readLen) > maxRequestBodyBytes {
+		t.Fatalf("read %d bytes past a cap of %d", spy.readLen, maxRequestBodyBytes)
+	}
+}
+
+// End to end through the real listener: one oversized request must not cost
+// ~7x its size in memory, so it is refused rather than buffered.
+func TestMCPServerRejectsOversizedRequest(t *testing.T) {
+	_, base := startTestServer(t, "test-token")
+	lowerBodyCap(t, 256)
+
+	resp := postJSON(t, base, map[string]string{"Authorization": "Bearer test-token"},
+		map[string]any{
+			"jsonrpc": "2.0", "id": 1, "method": "initialize",
+			"params": map[string]any{
+				"protocolVersion": "2025-11-25",
+				"clientInfo":      map[string]any{"name": strings.Repeat("x", 1024), "version": "1"},
+				"capabilities":    map[string]any{},
+			},
+		})
+	if resp.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413 for an oversized body, got %d", resp.StatusCode)
+	}
+}
+
+// The unauthenticated 401 path must stay allocation-free: it is checked before
+// the cap, so an oversized body from an unknown caller is rejected as
+// unauthorized without reading a byte.
+func TestBuildHandlerRejectsUnauthorizedBeforeCapping(t *testing.T) {
+	handler, spy := buildHandlerForTest(t)
+
+	req := authorizedRequest([]byte("{}"), "wrong-token")
+	req.ContentLength = maxRequestBodyBytes
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
+	}
+	if spy.called {
+		t.Fatalf("unauthorized request reached the transport handler")
+	}
+}
+
+// The probe only sniffs a bounded prefix now, so a small server/discover must
+// still be answered rather than falling through to the SDK.
+func TestDiscoverProbeStillAnswered(t *testing.T) {
+	_, base := startTestServer(t, "")
+
+	resp := postJSON(t, base, nil, map[string]any{
+		"jsonrpc": "2.0", "id": 1, "method": "server/discover",
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 for server/discover, got %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	if !strings.Contains(string(body), "2025-11-25") {
+		t.Fatalf("discover response missing protocol version: %s", body)
 	}
 }

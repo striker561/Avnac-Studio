@@ -139,6 +139,28 @@ type HTTPOptions struct {
 // when another process holds it, startup falls back to a free ephemeral port.
 const DefaultMCPPort = 12345
 
+// maxRequestBodyBytes caps a single MCP request body. The largest legitimate
+// call is a big render_elements batch, which is a few hundred KB, so this sits
+// far above real traffic. Without it one oversized body costs roughly 7x its
+// size in peak memory: the go-sdk exposes no request-size option (checked in
+// v1.6.0 — StreamableHTTPOptions and SSEOptions have none), so the limit has
+// to live here. One number, one place, if it ever needs raising.
+//
+// A var rather than a const so tests can lower it instead of writing 32 MiB.
+var maxRequestBodyBytes int64 = 32 << 20
+
+// discoverProbeWindow bounds how much of a POST body the server/discover probe
+// buffers. A discover request is three small fields, so a body larger than
+// this cannot be one and skips the probe entirely.
+const discoverProbeWindow = 4 << 10
+
+// prefixBody re-attaches bytes consumed by the discover probe ahead of the
+// original body, preserving its Close.
+type prefixBody struct {
+	io.Reader
+	io.Closer
+}
+
 // StartHTTP binds the MCP server to 127.0.0.1 (see HTTPOptions for port
 // semantics) and serves until Stop. SDK handler defaults are kept
 // (localhost protection on) and no CORS headers are emitted: browser pages
@@ -227,16 +249,19 @@ func (m *AvnacMCP) startHTTPLocked(opts HTTPOptions) error {
 // is read per request so RegenerateToken takes effect on a running server.
 func (m *AvnacMCP) buildHandler(streamable, sse http.Handler) http.Handler {
 	route := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Handle server/discover capability negotiation probe.
-		if r.Method == http.MethodPost {
-			body, err := io.ReadAll(r.Body)
+		// Handle server/discover capability negotiation probe. Only a small
+		// POST can be one, so sniff a bounded prefix rather than buffering the
+		// whole body — this runs on every POST, and an unbounded read here
+		// cost roughly 7x the request size in peak memory.
+		if r.Method == http.MethodPost && r.ContentLength <= discoverProbeWindow {
+			prefix, err := io.ReadAll(io.LimitReader(r.Body, discoverProbeWindow))
 			if err == nil {
 				var probe struct {
 					JSONRPC string `json:"jsonrpc"`
 					ID      any    `json:"id"`
 					Method  string `json:"method"`
 				}
-				if json.Unmarshal(body, &probe) == nil && probe.Method == "server/discover" {
+				if json.Unmarshal(prefix, &probe) == nil && probe.Method == "server/discover" {
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusOK)
 					resp := map[string]any{
@@ -263,7 +288,10 @@ func (m *AvnacMCP) buildHandler(streamable, sse http.Handler) http.Handler {
 					_ = json.NewEncoder(w).Encode(resp)
 					return
 				}
-				r.Body = io.NopCloser(bytes.NewReader(body))
+				r.Body = &prefixBody{
+					Reader: io.MultiReader(bytes.NewReader(prefix), r.Body),
+					Closer: r.Body,
+				}
 			}
 		}
 
@@ -320,6 +348,18 @@ func (m *AvnacMCP) buildHandler(streamable, sse http.Handler) http.Handler {
 			http.Error(w, "Unauthorized: missing or invalid bearer token (see Avnac Studio Settings)", http.StatusUnauthorized)
 			return
 		}
+
+		// Cap the body before anything reads it. A declared length over the
+		// limit is refused outright; MaxBytesReader is the backstop for chunked
+		// bodies that declare nothing. Both sit after auth, so an unauthorized
+		// request still costs no allocation.
+		if r.ContentLength > maxRequestBodyBytes {
+			http.Error(w,
+				fmt.Sprintf("Request body too large: the limit is %d MiB", maxRequestBodyBytes>>20),
+				http.StatusRequestEntityTooLarge)
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 
 		route.ServeHTTP(w, r)
 	})

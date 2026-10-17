@@ -18,7 +18,7 @@ import {
   buildObjectList,
   buildSelectionSummary,
 } from "@/lib/mcp/summaries";
-import { normalizeFontWeight, resolveModifyPaint } from "@/lib/mcp/payload";
+import { normalizeFontWeight, parseColor, resolveModifyPaint } from "@/lib/mcp/payload";
 
 function buildRectNode(
   id: string,
@@ -488,5 +488,182 @@ describe("payload normalizers", () => {
 
   it("resolveModifyPaint returns null when nothing changes", () => {
     expect(resolveModifyPaint({}, { type: "solid", color: "#000000" })).toBeNull();
+  });
+
+  it("parseColor accepts the {color} object form and rejects junk", () => {
+    expect(parseColor({ color: "#ff00ff" })).toEqual({
+      type: "solid",
+      color: "#ff00ff",
+    });
+    // An unreadable paint degrades to transparent rather than nesting the
+    // object inside the paint's color field.
+    expect(parseColor({ nope: 1 })).toEqual({
+      type: "solid",
+      color: "transparent",
+    });
+  });
+});
+
+/**
+ * Regressions from the PR review: text nodes carry no height field, so every
+ * path that read node.width / node.height reported `height: 0` for text and
+ * silently corrupted layout. Bounds now come from getNodeBounds.
+ */
+describe("text bounds", () => {
+  function sceneWithRectAndText(): SaraswatiScene {
+    const scene = sceneWith(
+      buildTextNode("t", {
+        x: 100,
+        y: 200,
+        width: 400,
+        text: "Hello",
+        fontSize: 40,
+      }),
+      buildRectNode("r", { x: 500, y: 500, width: 100, height: 100 }),
+    );
+    return scene;
+  }
+
+  it("gives text a measured default width instead of the 100px rect default", () => {
+    const scene = createEmptySaraswatiScene({ width: 1080, height: 1080 });
+    const { commands, created } = buildRenderElementsCommands(scene, [
+      { type: "text", text: "COASTAL FIELD GUIDE", left: 100, top: 100, fontSize: 30 },
+    ]);
+    if (commands[0]!.type !== "ADD_NODE") throw new Error("unreachable");
+    const node = commands[0]!.node as SaraswatiTextNode;
+    expect(node.width).toBe(360);
+    expect(created[0]!.bounds).toEqual({
+      left: 100,
+      top: 100,
+      width: 360,
+      height: 30,
+    });
+  });
+
+  it("uses the injected measurement, and reports its box, when no width is given", () => {
+    const scene = createEmptySaraswatiScene({ width: 1080, height: 1080 });
+    const calls: Array<number | undefined> = [];
+    const { commands, created } = buildRenderElementsCommands(
+      scene,
+      [{ type: "text", text: "COASTAL", left: 10, top: 20, fontSize: 72 }],
+      (input) => {
+        calls.push(input.width);
+        return { width: 812, height: 86 };
+      },
+    );
+    if (commands[0]!.type !== "ADD_NODE") throw new Error("unreachable");
+    const node = commands[0]!.node as SaraswatiTextNode;
+    // Asked to measure the natural width (no wrap width supplied).
+    expect(calls).toEqual([undefined]);
+    expect(node.width).toBe(812);
+    expect(created[0]!.bounds).toEqual({
+      left: 10,
+      top: 20,
+      width: 812,
+      height: 86,
+    });
+  });
+
+  it("measures against the caller's width when one is given", () => {
+    const scene = createEmptySaraswatiScene({ width: 1080, height: 1080 });
+    const calls: Array<number | undefined> = [];
+    const { commands, created } = buildRenderElementsCommands(
+      scene,
+      [{ type: "text", text: "COASTAL", width: 400, fontSize: 72 }],
+      (input) => {
+        calls.push(input.width);
+        return { width: 400, height: 172 };
+      },
+    );
+    if (commands[0]!.type !== "ADD_NODE") throw new Error("unreachable");
+    const node = commands[0]!.node as SaraswatiTextNode;
+    expect(calls).toEqual([400]);
+    expect(node.width).toBe(400);
+    // Two wrapped lines of 72px: the height the caller has to lay out around.
+    expect(created[0]!.bounds.height).toBe(172);
+  });
+
+  it("centers text by its box rather than its top edge", () => {
+    const { commands } = buildAlignCommands(
+      sceneWithRectAndText(),
+      ["t", "r"],
+      "centerV",
+    );
+    // Union spans y 200..600 → center 400. The text box is 40 tall, so its
+    // center needs dy = +180; a 0-height box gave +200 and put the text's top
+    // edge on the alignment line. The rect is unchanged at dy = -150.
+    expect(commands).toEqual([
+      { type: "MOVE_NODE", id: "t", dx: 0, dy: 180 },
+      { type: "MOVE_NODE", id: "r", dx: 0, dy: -150 },
+    ]);
+  });
+
+  it("fits a text selection using its real height", () => {
+    const scene = createEmptySaraswatiScene({ width: 1000, height: 1000 });
+    const text = buildTextNode("t", {
+      x: 0,
+      y: 0,
+      width: 500,
+      fontSize: 40,
+      text: "Hello",
+    });
+    const rect = buildRectNode("r", { x: 0, y: 500, width: 500, height: 500 });
+    scene.nodes[text.id] = text;
+    scene.nodes[rect.id] = rect;
+    const root = scene.nodes.root;
+    if (root.type !== "group") throw new Error("Expected root group");
+    root.children.push("t", "r");
+
+    const { commands } = buildFitToArtboardCommands(scene, ["t", "r"], 0);
+    // Source 500x1000 → target 1000x1000 → s = 1, offsetX = 250.
+    expect(commands).toEqual([
+      { type: "RESIZE_NODE", id: "t", x: 250, y: 0, width: 500, height: 40 },
+      { type: "RESIZE_NODE", id: "r", x: 250, y: 500, width: 500, height: 500 },
+    ]);
+  });
+
+  it("measures a group's union instead of reading it as 0,0,0,0", () => {
+    const scene = createEmptySaraswatiScene({ width: 800, height: 600 });
+    const left = buildRectNode("r1", { x: 0, y: 0, width: 100, height: 100 });
+    const right = buildRectNode("r2", { x: 200, y: 0, width: 100, height: 100 });
+    const mid = buildRectNode("r3", { x: 250, y: 0, width: 100, height: 100 });
+    const far = buildRectNode("r4", { x: 500, y: 0, width: 100, height: 100 });
+    const group = {
+      id: "g1",
+      type: "group" as const,
+      parentId: "root",
+      name: "g1",
+      visible: true,
+      opacity: 1,
+      children: ["r1", "r2"],
+    };
+    for (const node of [left, right, mid, far]) scene.nodes[node.id] = node;
+    scene.nodes[group.id] = group;
+    const root = scene.nodes.root;
+    if (root.type !== "group") throw new Error("Expected root group");
+    root.children.push("g1", "r1", "r2", "r3", "r4");
+
+    const { commands } = buildDistributeCommands(scene, ["g1", "r3", "r4"], "horizontal");
+    // Group union is 0..300 → center 150 (a raw read gave 0 and reordered the
+    // spread). Centers: 150, 300, 550 → r3 steps to 350.
+    expect(commands).toEqual([{ type: "MOVE_NODE", id: "r3", dx: 50, dy: 0 }]);
+  });
+
+  it("reports text height in the summary tools", () => {
+    const scene = sceneWith(
+      buildTextNode("t", { x: 10, y: 20, width: 200, fontSize: 40 }),
+    );
+    expect(buildCanvasSummary(scene).nodes[0]).toMatchObject({
+      id: "t",
+      x: 10,
+      y: 20,
+      width: 200,
+      height: 40,
+    });
+    expect(buildObjectList(scene)[0]).toMatchObject({ id: "t", height: 40 });
+    expect(buildSelectionSummary(scene, ["t"]).objects[0]).toMatchObject({
+      id: "t",
+      height: 40,
+    });
   });
 });

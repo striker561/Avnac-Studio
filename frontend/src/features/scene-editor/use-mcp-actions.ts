@@ -33,7 +33,13 @@ import {
   buildFitToArtboardCommands,
   buildModifyElementsCommands,
   buildRenderElementsCommands,
+  type TextMeasureRequest,
 } from "@/lib/mcp/commands";
+import {
+  getSharedTextMeasure,
+  layoutTextLines,
+} from "@/lib/renderer/backends/canvas2d/text-layout";
+import { ensureGoogleFontsForFamilies } from "@/lib/load-google-font";
 import {
   buildCanvasSummary,
   buildObjectList,
@@ -372,6 +378,47 @@ async function renameWorkspace(
 
 // ─── element creation / modification ──────────────────────────────────────────
 
+/**
+ * How long render_elements waits for Google Fonts before measuring with
+ * whatever is loaded. Measuring against a fallback face is slightly off;
+ * blocking the tool on a slow or offline font CDN is worse.
+ */
+const MCP_FONT_WAIT_MS = 3000;
+
+function collectElementFontFamilies(elements: unknown[]): string[] {
+  const families = new Set<string>();
+  for (const raw of elements) {
+    const el = (raw ?? {}) as LooseRecord;
+    if (el.type === "text") families.add(String(el.fontFamily ?? "Inter"));
+  }
+  return [...families];
+}
+
+/**
+ * Real text measurement for render_elements, injected into the pure builder.
+ *
+ * The builder cannot measure for itself: layoutTextLines needs a Canvas, and
+ * lib/saraswati deliberately stays renderer-free. This layer may import
+ * renderer code and is already async, so it waits for fonts and measures here.
+ * Returns null when no canvas measurement is available (jsdom, headless), and
+ * the builder falls back to its estimate.
+ */
+function measureTextElement(
+  input: TextMeasureRequest,
+): { width: number; height: number } | null {
+  if (!getSharedTextMeasure()) return null;
+  // With no caller width, wrap at 1px so wrapping is skipped entirely and the
+  // resulting box is the text's natural width.
+  const natural = input.width == null;
+  const layout = layoutTextLines({ ...input, width: input.width ?? 1 });
+  // Round up so a stored width can never re-wrap the text a pixel tighter than
+  // it was measured, and so agents get integral numbers to lay out against.
+  return {
+    width: Math.ceil(natural ? layout.boxWidth : input.width!),
+    height: Math.ceil(layout.boxHeight),
+  };
+}
+
 async function renderElements(
   payload: MCPPayload,
   requestId: string | undefined,
@@ -385,7 +432,18 @@ async function renderElements(
     return;
   }
 
-  const { commands, created } = buildRenderElementsCommands(scene, elements);
+  // Measure against the real font where possible — text boxes depend on glyph
+  // widths, and a fallback face changes how many lines the text wraps into.
+  await Promise.race([
+    ensureGoogleFontsForFamilies(collectElementFontFamilies(elements)),
+    new Promise((resolve) => setTimeout(resolve, MCP_FONT_WAIT_MS)),
+  ]);
+
+  const { commands, created } = buildRenderElementsCommands(
+    scene,
+    elements,
+    measureTextElement,
+  );
   if (commands.length > 0) {
     useSceneEditorStore.getState().applyCommands(commands);
   }

@@ -24,11 +24,27 @@ export type MCPActionEnvelope = {
 
 // ─── paints ───────────────────────────────────────────────────────────────────
 
-export function parseColor(input?: string): SaraswatiColor {
-  if (!input || input === "transparent") {
+/**
+ * Accepts a color string or the {color: "#hex"} object form. Anything else
+ * yields "" so a malformed paint degrades to transparent rather than nesting
+ * an object inside the paint's `color` field — which is what used to happen
+ * for an object-typed stroke: `{type:"solid", color:{color:"#f0f"}}`.
+ */
+function colorString(input: unknown): string {
+  if (typeof input === "string") return input.trim();
+  if (input && typeof input === "object") {
+    const rec = input as Record<string, unknown>;
+    if (typeof rec.color === "string") return rec.color.trim();
+  }
+  return "";
+}
+
+export function parseColor(input?: unknown): SaraswatiColor {
+  const color = colorString(input);
+  if (!color || color === "transparent") {
     return { type: "solid", color: "transparent" };
   }
-  return { type: "solid", color: input };
+  return { type: "solid", color };
 }
 
 export type MCPPaintInput = {

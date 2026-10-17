@@ -12,12 +12,16 @@
 
 import {
   SARASWATI_ROOT_ID,
+  getNodeBounds,
+  isSaraswatiRenderableNode,
   type SaraswatiColor,
   type SaraswatiCommand,
   type SaraswatiNode,
+  type SaraswatiRenderableNode,
   type SaraswatiScene,
   type SaraswatiShadow,
 } from "@/lib/saraswati";
+import { getRenderableNodeBounds } from "@/lib/editor/overlays";
 import {
   normalizeFontStyle,
   normalizeFontWeight,
@@ -48,12 +52,58 @@ export interface RectBounds {
 // ─── render_elements ──────────────────────────────────────────────────────────
 
 /**
+ * Wrap width used for a text element when the caller supplies none and no
+ * measurer is available. Matches the interactive insert path (insert-store),
+ * which is a deliberate change from the 100px shared with rects: text at 100px
+ * wraps to roughly one word per line.
+ */
+const TEXT_FALLBACK_WIDTH = 360;
+
+/** What a text measurer is asked to lay out. */
+export type TextMeasureRequest = {
+  text: string;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: string;
+  fontStyle: "normal" | "italic";
+  lineHeight: number;
+  /** Wrap width. When omitted, measure the natural (unwrapped) width. */
+  width?: number;
+};
+
+/**
+ * Optional real text measurement, injected by the orchestration layer.
+ *
+ * This module is pure and cannot import renderer code (`layoutTextLines` lives
+ * under lib/renderer and needs a Canvas context), so the caller that can await
+ * fonts passes measurement in. Returning null falls back to the engine's
+ * deterministic estimate.
+ */
+export type TextMeasurer = (
+  input: TextMeasureRequest,
+) => { width: number; height: number } | null;
+
+function textMeasureRequest(el: LooseRecord): TextMeasureRequest {
+  return {
+    text: el.text || "Text",
+    fontSize: el.fontSize ?? 40,
+    fontFamily: el.fontFamily ?? "Inter",
+    fontWeight: normalizeFontWeight(el.fontWeight),
+    fontStyle: normalizeFontStyle(el.fontStyle),
+    lineHeight: el.lineHeight ?? 1.2,
+    width: typeof el.width === "number" ? el.width : undefined,
+  };
+}
+
+/**
  * Convert render_elements element specs into ADD_NODE commands.
- * Element defaults: 100×100 near the artboard center, full opacity.
+ * Element defaults: 100×100 near the artboard center, full opacity; text
+ * defaults to its measured natural width (see TextMeasurer) rather than 100.
  */
 export function buildRenderElementsCommands(
   scene: SaraswatiScene,
   elements: unknown[],
+  measure?: TextMeasurer,
 ): { commands: SaraswatiCommand[]; created: CreatedElementInfo[] } {
   const rootId = scene.root || SARASWATI_ROOT_ID;
   const commands: SaraswatiCommand[] = [];
@@ -65,7 +115,14 @@ export function buildRenderElementsCommands(
     const name = el.name || el.type;
     const x = el.x ?? el.left ?? scene.artboard.width / 2 - 50;
     const y = el.y ?? el.top ?? scene.artboard.height / 2 - 50;
-    const width = el.width ?? 100;
+    // Text wraps to its width, so an omitted width is measured rather than
+    // defaulted — otherwise long copy silently reflows into a tall column that
+    // the caller cannot lay out around.
+    const isText = el.type === "text";
+    const measured = isText ? measure?.(textMeasureRequest(el)) ?? null : null;
+    const width = isText
+      ? el.width ?? measured?.width ?? TEXT_FALLBACK_WIDTH
+      : el.width ?? 100;
     const height = el.height ?? 100;
     const rotation = el.rotation ?? el.angle ?? 0;
     const opacity = el.opacity ?? 1;
@@ -98,19 +155,16 @@ export function buildRenderElementsCommands(
       shadow,
     });
 
-    if (node) {
-      const anyNode = node as LooseRecord;
+    if (node && isSaraswatiRenderableNode(node)) {
       commands.push({ type: "ADD_NODE", node });
+      const b = nodeBounds(node);
       created.push({
         id: node.id,
         name: node.name,
         type: node.type,
-        bounds: {
-          left: anyNode.x,
-          top: anyNode.y,
-          width: anyNode.width ?? 0,
-          height: anyNode.height ?? 0,
-        },
+        bounds: measured
+          ? { left: b.x, top: b.y, width, height: measured.height }
+          : { left: b.x, top: b.y, width: b.width, height: b.height },
       });
     }
   }
@@ -459,54 +513,29 @@ export function buildModifyElementsCommands(
 
 // ─── bounds helpers ───────────────────────────────────────────────────────────
 
-function plainBounds(node: SaraswatiNode): RectBounds {
-  const anyNode = node as LooseRecord;
-  return {
-    x: "x" in node ? anyNode.x : 0,
-    y: "y" in node ? anyNode.y : 0,
-    width: "width" in node ? anyNode.width : 0,
-    height: "height" in node ? anyNode.height : 0,
-  };
+/**
+ * Bounds for a renderable node, via the engine's own implementation.
+ *
+ * Layout tools must go through this instead of reading node.width /
+ * node.height directly: a text node carries no height field at all (height is
+ * derived from the wrapped text), so the raw read reported height 0 and
+ * quietly corrupted align/distribute/fit arithmetic — centring on `y +
+ * height/2` put a text element's top edge on the alignment line, and
+ * fit_to_artboard reported success while changing nothing.
+ */
+function nodeBounds(node: SaraswatiRenderableNode): RectBounds {
+  const b = getNodeBounds(node);
+  return { x: b.x, y: b.y, width: b.width, height: b.height };
 }
 
 /**
- * Visual bounds for alignment: recurses into groups and measures top-level
- * lines by their endpoint extent. Children inside groups are measured by
- * their plain x/y/width/height fields, matching the original listener
- * behavior. Returns null when a group has no measurable descendants.
+ * Visual bounds for a node id, expanding groups to the union of their
+ * descendants. Delegates to the same helper the selection overlay uses, so
+ * alignment cannot drift from the box the user sees.
  */
-function alignBounds(scene: SaraswatiScene, id: string): RectBounds | null {
-  const node = scene.nodes[id];
-  if (!node) return null;
-  if (node.type === "group") {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const stack = [...(node as LooseRecord).children as string[]];
-    while (stack.length > 0) {
-      const child = scene.nodes[stack.pop()!];
-      if (!child) continue;
-      if (child.type === "group") {
-        stack.push(...((child as LooseRecord).children as string[]));
-        continue;
-      }
-      const b = plainBounds(child);
-      minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
-      maxX = Math.max(maxX, b.x + b.width); maxY = Math.max(maxY, b.y + b.height);
-    }
-    if (!Number.isFinite(minX)) return null;
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-  }
-  if (node.type === "line") return lineBounds(node);
-  return plainBounds(node);
-}
-
-function lineBounds(node: SaraswatiNode): RectBounds {
-  const anyNode = node as LooseRecord;
-  return {
-    x: Math.min(anyNode.x1, anyNode.x2),
-    y: Math.min(anyNode.y1, anyNode.y2),
-    width: Math.abs(anyNode.x2 - anyNode.x1),
-    height: Math.abs(anyNode.y2 - anyNode.y1),
-  };
+function visualBounds(scene: SaraswatiScene, id: string): RectBounds | null {
+  const b = getRenderableNodeBounds(scene, id);
+  return b ? { x: b.x, y: b.y, width: b.width, height: b.height } : null;
 }
 
 // ─── align_objects ────────────────────────────────────────────────────────────
@@ -522,7 +551,7 @@ export function buildAlignCommands(
   kind: string,
 ): { commands: SaraswatiCommand[]; alignedCount: number } {
   const entries = selectedIds
-    .map((id) => ({ id, bounds: alignBounds(scene, id) }))
+    .map((id) => ({ id, bounds: visualBounds(scene, id) }))
     .filter((e): e is { id: string; bounds: RectBounds } => e.bounds != null);
   if (entries.length === 0) {
     return { commands: [], alignedCount: 0 };
@@ -574,8 +603,8 @@ export function buildDistributeCommands(
   direction: "horizontal" | "vertical",
 ): { commands: SaraswatiCommand[] } {
   const entries = selectedIds
-    .map((id) => ({ id, bounds: plainBounds(scene.nodes[id]!) }))
-    .filter((e) => e.bounds != null);
+    .map((id) => ({ id, bounds: visualBounds(scene, id) }))
+    .filter((e): e is { id: string; bounds: RectBounds } => e.bounds != null);
   const sorted = [...entries].sort((a, b) => direction === "horizontal"
     ? a.bounds.x + a.bounds.width / 2 - (b.bounds.x + b.bounds.width / 2)
     : a.bounds.y + a.bounds.height / 2 - (b.bounds.y + b.bounds.height / 2));
@@ -626,7 +655,7 @@ export function buildFitToArtboardCommands(
   }
 
   const boxes = selectedIds.map((id) => {
-    const b = plainBounds(scene.nodes[id]!);
+    const b = visualBounds(scene, id) ?? { x: 0, y: 0, width: 1, height: 1 };
     return { id, box: { x: b.x, y: b.y, width: Math.max(1, b.width), height: Math.max(1, b.height) } };
   });
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

@@ -4,9 +4,35 @@
  * access — the orchestration layer submits these via SubmitResponse.
  */
 
-import type { SaraswatiScene } from "@/lib/saraswati";
+import {
+  getNodeBounds,
+  type SaraswatiNode,
+  type SaraswatiScene,
+} from "@/lib/saraswati";
+import { getRenderableNodeBounds } from "@/lib/editor/overlays";
 
 type LooseRecord = Record<string, any>;
+
+type BoundsReport = { x: number; y: number; width: number; height: number };
+
+const NO_BOUNDS: BoundsReport = { x: 0, y: 0, width: 0, height: 0 };
+
+/**
+ * Bounds for a read-only response, from the engine rather than raw fields.
+ *
+ * Text nodes have no height field at all — height is derived from the wrapped
+ * text — so reading node.width / node.height reported `height: 0` for every
+ * text element, which made the canvas unreadable to an agent trying to lay
+ * out around it. Groups report the union of their descendants (null for an
+ * invisible node, which still carries `visible` in the response).
+ */
+function boundsOf(scene: SaraswatiScene, node: SaraswatiNode): BoundsReport {
+  const bounds =
+    node.type === "group"
+      ? getRenderableNodeBounds(scene, node.id)
+      : getNodeBounds(node);
+  return bounds ?? NO_BOUNDS;
+}
 
 /** Summarized artboard + node list for get_canvas_summary. */
 export function buildCanvasSummary(scene: SaraswatiScene): {
@@ -17,15 +43,16 @@ export function buildCanvasSummary(scene: SaraswatiScene): {
     .filter((n) => n.id !== scene.root)
     .map((n) => {
       const anyNode = n as LooseRecord;
+      const bounds = boundsOf(scene, n);
       return {
         id: n.id,
         name: n.name,
         type: n.type,
         visible: n.visible,
-        x: "x" in n ? anyNode.x : 0,
-        y: "y" in n ? anyNode.y : 0,
-        width: "width" in n ? anyNode.width : 0,
-        height: "height" in n ? anyNode.height : 0,
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
         rotation: "rotation" in n ? anyNode.rotation : 0,
         opacity: n.opacity,
         fill: "fill" in n ? anyNode.fill : undefined,
@@ -42,16 +69,17 @@ export function buildObjectList(scene: SaraswatiScene): LooseRecord[] {
     .filter((n) => n.id !== scene.root)
     .map((n) => {
       const anyNode = n as LooseRecord;
+      const bounds = boundsOf(scene, n);
       return {
         id: n.id,
         name: anyNode.name,
         type: n.type,
         visible: n.visible,
         parentId: anyNode.parentId ?? null,
-        x: "x" in n ? anyNode.x : undefined,
-        y: "y" in n ? anyNode.y : undefined,
-        width: "width" in n ? anyNode.width : undefined,
-        height: "height" in n ? anyNode.height : undefined,
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
         rotation: "rotation" in n ? anyNode.rotation : undefined,
         opacity: anyNode.opacity,
         text: "text" in n ? anyNode.text : undefined,
@@ -68,16 +96,17 @@ export function buildSelectionSummary(
     .map((id) => scene.nodes[id])
     .filter(Boolean)
     .map((n) => {
-      const node = n as LooseRecord;
+      const node = n as SaraswatiNode;
+      const bounds = boundsOf(scene, node);
       return {
         id: node.id,
-        name: node.name,
+        name: (node as LooseRecord).name,
         type: node.type,
         visible: node.visible,
-        x: "x" in node ? node.x : undefined,
-        y: "y" in node ? node.y : undefined,
-        width: "width" in node ? node.width : undefined,
-        height: "height" in node ? node.height : undefined,
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
       };
     });
   return { selectedIds, objects };

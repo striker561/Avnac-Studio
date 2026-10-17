@@ -186,6 +186,82 @@ func TestDecodeModifyTextControls(t *testing.T) {
 	}
 }
 
+// The review found that fontWeight was documented numerically
+// (400|500|600|700|bold) but typed *string, so fontWeight: 700 came back as
+// "cannot unmarshal number into ... FontWeight of type string", and that an
+// object stroke failed the same way. Both were per-element fields bypassing
+// the flexible-input helpers, which only normalized top-level keys.
+func TestDecodeRenderElementsNestedScalarForms(t *testing.T) {
+	raw := map[string]any{
+		"elements": []any{
+			map[string]any{
+				"type":       "text",
+				"text":       "COASTAL",
+				"fontWeight": 700, // number, exactly as the description advertises
+				"fontSize":   "230",
+				"lineHeight": "1.4",
+				"underline":  "true",
+				"left":       "100",
+				"stroke":     map[string]any{"color": "#ff00ff"},
+			},
+		},
+	}
+	out, err := decodeRenderElementsInput(raw)
+	if err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+	el := out.Elements[0]
+	if el.FontWeight == nil || *el.FontWeight != "700" {
+		t.Errorf("numeric fontWeight not coerced to string: %v", el.FontWeight)
+	}
+	if el.FontSize == nil || *el.FontSize != 230 {
+		t.Errorf("string fontSize not coerced to int: %v", el.FontSize)
+	}
+	if el.LineHeight == nil || *el.LineHeight != 1.4 {
+		t.Errorf("string lineHeight not coerced to float: %v", el.LineHeight)
+	}
+	if el.Underline == nil || !*el.Underline {
+		t.Errorf("string underline not coerced to bool: %v", el.Underline)
+	}
+	if el.Left == nil || *el.Left != 100 {
+		t.Errorf("string left not coerced to float: %v", el.Left)
+	}
+	if el.Stroke == nil || *el.Stroke != "#ff00ff" {
+		t.Errorf("object stroke not reduced to its color: %v", el.Stroke)
+	}
+}
+
+func TestDecodeModifyElementsNestedScalarForms(t *testing.T) {
+	raw := map[string]any{
+		"modifications": []any{
+			map[string]any{
+				"objectId":   "abc",
+				"fontWeight": 600,
+				"fontSize":   "48",
+				"opacity":    "0.5",
+				"fill":       map[string]any{"color": "#123456"},
+			},
+		},
+	}
+	out, err := decodeModifyElementsInput(raw)
+	if err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+	mod := out.Modifications[0]
+	if mod.FontWeight == nil || *mod.FontWeight != "600" {
+		t.Errorf("numeric fontWeight not coerced to string: %v", mod.FontWeight)
+	}
+	if mod.FontSize == nil || *mod.FontSize != 48 {
+		t.Errorf("string fontSize not coerced to int: %v", mod.FontSize)
+	}
+	if mod.Opacity == nil || *mod.Opacity != 0.5 {
+		t.Errorf("string opacity not coerced to float: %v", mod.Opacity)
+	}
+	if mod.Fill == nil || *mod.Fill != "#123456" {
+		t.Errorf("object fill not reduced to its color: %v", mod.Fill)
+	}
+}
+
 func TestExplicitSchemasDocumented(t *testing.T) {
 	if emptyObjSchema().Type != "object" {
 		t.Fatalf("empty schema must be object")

@@ -234,6 +234,135 @@ func flexibleStringList(v any) ([]string, error) {
 	}
 }
 
+// scalarString renders a JSON scalar as the string form an encoding/json
+// string field expects.
+func scalarString(v any) (string, bool) {
+	switch t := v.(type) {
+	case string:
+		return t, true
+	case bool:
+		return strconv.FormatBool(t), true
+	case float64:
+		return strconv.FormatFloat(t, 'f', -1, 64), true
+	case float32:
+		return strconv.FormatFloat(float64(t), 'f', -1, 64), true
+	case int:
+		return strconv.Itoa(t), true
+	case int64:
+		return strconv.FormatInt(t, 10), true
+	case json.Number:
+		return t.String(), true
+	}
+	return "", false
+}
+
+// colorFromValue accepts a color string or the {color: "#hex"} object form.
+func colorFromValue(v any) (string, bool) {
+	if s, ok := v.(string); ok {
+		return s, true
+	}
+	if obj, ok := v.(map[string]any); ok {
+		return scalarString(obj["color"])
+	}
+	return "", false
+}
+
+// Fields inside render_elements' elements[] and modify_elements'
+// modifications[]. decodeViaJSON only normalizes the top-level keys it is told
+// about, so every value inside a batch entry would otherwise reach
+// encoding/json untouched — an agent following the tool description and
+// sending fontWeight: 700 got "cannot unmarshal number into Go struct field
+// ... FontWeight of type string" instead of a rendered element.
+var (
+	elementNumericFields = []string{
+		"left", "top", "x", "y", "width", "height", "fontSize", "lineHeight",
+		"blur", "radius", "cornerRadius", "sides", "x1", "y1", "x2", "y2",
+		"gradientAngle", "strokeWidth", "angle", "rotation", "opacity",
+		"scaleX", "scaleY",
+	}
+	elementStringFields = []string{
+		"id", "name", "type", "text", "fontFamily", "fontStyle", "textAlign",
+		"url", "stickerName", "action",
+	}
+	elementColorFields = []string{"fill", "color", "stroke"}
+	elementBoolFields  = []string{"underline", "locked"}
+)
+
+// normalizeElementFields applies the flexible-input rules to one batch entry.
+func normalizeElementFields(entry any) any {
+	obj, ok := entry.(map[string]any)
+	if !ok {
+		return entry
+	}
+	out := make(map[string]any, len(obj))
+	for k, v := range obj {
+		out[k] = v
+	}
+	for _, k := range elementNumericFields {
+		if v, ok := out[k]; ok {
+			if f, ok := flexibleFloat(v); ok {
+				out[k] = f
+			}
+		}
+	}
+	for _, k := range elementStringFields {
+		if v, ok := out[k]; ok {
+			if s, ok := scalarString(v); ok {
+				out[k] = s
+			}
+		}
+	}
+	for _, k := range elementColorFields {
+		if v, ok := out[k]; ok {
+			if s, ok := colorFromValue(v); ok {
+				out[k] = s
+			}
+		}
+	}
+	for _, k := range elementBoolFields {
+		if v, ok := out[k]; ok {
+			if b, ok := flexibleBool(v); ok {
+				out[k] = b
+			}
+		}
+	}
+	// fontWeight is documented numerically (400|500|600|700|bold) but typed as
+	// a string, and encoding/json will not coerce a number into one.
+	if v, ok := out["fontWeight"]; ok {
+		if s, ok := scalarString(v); ok {
+			out["fontWeight"] = s
+		}
+	}
+	return out
+}
+
+// normalizeElementList normalizes every entry of a batch field.
+func normalizeElementList(v any) any {
+	list, ok := v.([]any)
+	if !ok {
+		return v
+	}
+	out := make([]any, len(list))
+	for i, entry := range list {
+		out[i] = normalizeElementFields(entry)
+	}
+	return out
+}
+
+// withNormalizedElements copies raw with per-entry normalization applied to
+// the named batch field (materializing it first when a client sent it
+// stringified).
+func withNormalizedElements(raw map[string]any, key string) map[string]any {
+	out := make(map[string]any, len(raw))
+	for k, v := range raw {
+		out[k] = v
+	}
+	if v, ok := out[key]; ok {
+		out[key] = normalizeElementList(normalizeJSONValue(v))
+	}
+	return out
+}
+
 // decodeViaJSON normalizes stringified fields then round-trips through JSON
 // into the typed target. Handles top-level stringified arrays/objects and
 // stringified bools; inner scalar strings for numbers are handled by the
@@ -270,7 +399,7 @@ func decodeRenderElementsInput(raw map[string]any) (RenderElementsInput, error) 
 	if raw == nil {
 		return out, fmt.Errorf("missing input: expected {elements: [...]}")
 	}
-	if err := decodeViaJSON(raw, []string{"elements"}, []string{"includePreview"}, &out); err != nil {
+	if err := decodeViaJSON(withNormalizedElements(raw, "elements"), []string{"elements"}, []string{"includePreview"}, &out); err != nil {
 		return out, err
 	}
 	if out.Elements == nil {
@@ -284,7 +413,7 @@ func decodeModifyElementsInput(raw map[string]any) (ModifyElementsInput, error) 
 	if raw == nil {
 		return out, fmt.Errorf("missing input: expected {modifications: [...]}")
 	}
-	if err := decodeViaJSON(raw, []string{"modifications"}, []string{"includePreview"}, &out); err != nil {
+	if err := decodeViaJSON(withNormalizedElements(raw, "modifications"), []string{"modifications"}, []string{"includePreview"}, &out); err != nil {
 		return out, err
 	}
 	if out.Modifications == nil {
@@ -879,9 +1008,9 @@ func decodeRenameFileInput(raw map[string]any) (RenameFileInput, error) {
 func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 	mcp.AddTool(m.server, &mcp.Tool{
 		Name: "render_elements",
-		Description: "Declaratively create multiple elements (rect, ellipse, polygon, star, text, image, sticker, line) in a single batch. Supports layout (left/top or x/y, width, height), styling (fill, opacity, angle/rotation, blur, cornerRadius), text controls (textAlign, fontWeight, fontStyle, lineHeight, underline), effects (shadows, gradients), and specialized properties (fontFamily, stickerName, url, sides, x1/y1/x2/y2). Returns created element IDs and metadata, plus an optional visual preview if includePreview=true.",
+		Description: "Declaratively create multiple elements (rect, ellipse, polygon, star, text, image, sticker, line) in a single batch. Supports layout (left/top or x/y, width, height), styling (fill, opacity, angle/rotation, blur, cornerRadius), text controls (textAlign, fontWeight, fontStyle, lineHeight, underline), effects (shadows, gradients), and specialized properties (fontFamily, stickerName, url, sides, x1/y1/x2/y2). Text sent without a width is measured against its real font and auto-sized to its natural width, so use the returned bounds to lay out around it rather than assuming a line count. Returns created element IDs and metadata, plus an optional visual preview if includePreview=true.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
-			"elements":       desc("Array of element objects, or a JSON-encoded string of that array. Each needs type + position/size. Text supports textAlign (left|center|right), fontWeight (400|500|600|700|bold), fontStyle, lineHeight, underline."),
+			"elements":       desc("Array of element objects, or a JSON-encoded string of that array. Each needs type + position/size. Text supports textAlign (left|center|right), fontWeight (400|500|600|700|bold, as a number or a string), fontStyle, lineHeight, underline. Numeric fields also accept their string form, and fill/color/stroke accept either a color string or {color: \"#hex\"}."),
 			"includePreview": desc("If true (or \"true\"), return a PNG preview image alongside created IDs."),
 		}, "elements"),
 	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {

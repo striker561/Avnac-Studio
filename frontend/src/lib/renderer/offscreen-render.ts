@@ -1,6 +1,10 @@
 import { buildRenderCommands } from "../saraswati/render/commands";
 import type { SaraswatiScene } from "../saraswati/scene";
 import { canvas2DRendererBackend } from "./backends/canvas2d/renderer";
+import {
+  collectSceneFontFamilies,
+  ensureGoogleFontsForFamilies,
+} from "@/lib/load-google-font";
 
 export type OffscreenRenderOptions = {
   multiplier?: number;
@@ -10,6 +14,12 @@ export type OffscreenRenderOptions = {
   skipArtboardBackgroundCommand?: boolean;
   /** Paint artboard background on the canvas before running render commands. */
   prePaintArtboardBackground?: boolean;
+  /**
+   * Wait for the scene's Google fonts (and document.fonts.ready) before
+   * painting. On by default so offscreen screenshots never paint fallback
+   * glyphs; pass false for time-critical internal previews.
+   */
+  awaitFonts?: boolean;
 };
 
 export async function renderSceneToCanvas(
@@ -22,6 +32,17 @@ export async function renderSceneToCanvas(
   const ah = scene.artboard.height;
   if (!Number.isFinite(aw) || !Number.isFinite(ah) || aw < 1 || ah < 1) {
     return null;
+  }
+
+  if (options.awaitFonts !== false) {
+    try {
+      await ensureGoogleFontsForFamilies(collectSceneFontFamilies(scene));
+      // Font stylesheet load resolves before the @font-face glyphs register;
+      // document.fonts.ready settles once pending font loads finish.
+      await document.fonts.ready;
+    } catch {
+      /* never block a render on font loading */
+    }
   }
 
   let multiplier = Math.max(1, options.multiplier ?? 1);

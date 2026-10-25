@@ -20,6 +20,15 @@ type AppConfig struct {
 	// RotationSensitivity controls how fast the rotation handle responds to
 	// pointer movement (0.1–1.5). Defaults to 0.75.
 	RotationSensitivity float64 `json:"rotation_sensitivity"`
+	// MCPEnabled starts the MCP design server with the app. Off by default;
+	// the server is enabled from Settings.
+	MCPEnabled bool `json:"mcp_enabled"`
+	// MCPPort is the loopback port the MCP server binds. 0 (the default)
+	// means auto: the fixed default port (mcp.DefaultMCPPort) when free, else
+	// a free ephemeral port, so the connect URL is stable across launches in
+	// the common case. The resolved URL is surfaced in Settings. Non-zero
+	// values are strict pins, clamped to 1024–65535.
+	MCPPort int `json:"mcp_port"`
 }
 
 // Load reads the config file from <appDir>/config/config.json. If the file

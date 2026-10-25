@@ -15,6 +15,33 @@ const standardJsonEsm = fileURLToPath(
 const config = defineConfig(() => {
   return {
     base: "/",
+    server: {
+      host: "127.0.0.1",
+      port: 3300,
+      strictPort: true,
+      hmr: {
+        host: "127.0.0.1",
+        port: 3300,
+      },
+    },
+    optimizeDeps: {
+      include: [
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "@tanstack/react-router",
+        "zustand",
+        "zod",
+        "@hugeicons/react",
+        "@hugeicons/core-free-icons",
+        "motion/react",
+        "qrcode",
+        "react-markdown",
+        "remark-gfm",
+      ],
+    },
     resolve: {
       tsconfigPaths: true,
       alias: [
@@ -33,6 +60,19 @@ const config = defineConfig(() => {
       ],
     },
     plugins: [
+      {
+        name: "wails-dev-passthrough",
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            if (req.url?.startsWith("/wails/")) {
+              res.statusCode = 404;
+              res.end();
+              return;
+            }
+            next();
+          });
+        },
+      },
       tanstackRouter({ target: "react" }),
       tailwindcss(),
       viteReact(),

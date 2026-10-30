@@ -179,6 +179,20 @@ export namespace avnacserver {
 	}
 	
 	
+	export class UnsplashRateLimit {
+	    limit: number;
+	    remaining: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new UnsplashRateLimit(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.limit = source["limit"];
+	        this.remaining = source["remaining"];
+	    }
+	}
 	
 	
 

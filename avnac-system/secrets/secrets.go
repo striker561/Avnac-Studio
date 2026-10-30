@@ -38,6 +38,17 @@ func (s *SecretsManager) GetKey(name string) (string, error) {
 	return val, nil
 }
 
+// HasKey reports whether a secret is stored under name. The frontend uses
+// this to render "a key is saved" state without ever receiving the value, so
+// the saved key's length is not exposed to the UI.
+func (s *SecretsManager) HasKey(name string) (bool, error) {
+	val, err := s.GetKey(name)
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(val) != "", nil
+}
+
 // SetKey persists value under name in the OS credential store. Passing an
 // empty (or whitespace-only) value is equivalent to calling DeleteKey.
 func (s *SecretsManager) SetKey(name string, value string) error {

@@ -8,7 +8,6 @@ import {
   ArrowReloadHorizontalIcon,
   CheckmarkCircle01Icon,
   AlertDiamondIcon,
-  AiMagicIcon,
   BotIcon,
   Copy01Icon,
 } from "@hugeicons/core-free-icons";
@@ -33,6 +32,7 @@ import type { HugeiconsProps } from "@hugeicons/react";
 
 type SecretsBridge = {
   GetKey: (name: string) => Promise<string>;
+  HasKey: (name: string) => Promise<boolean>;
   SetKey: (name: string, value: string) => Promise<void>;
   DeleteKey: (name: string) => Promise<void>;
 };
@@ -123,6 +123,7 @@ function ApiKeyCard({
   onClear,
   loading,
   saving,
+  hasSavedKey,
   error,
   notice,
 }: {
@@ -140,9 +141,14 @@ function ApiKeyCard({
   onClear: () => void;
   loading: boolean;
   saving: boolean;
+  hasSavedKey: boolean;
   error: string | null;
   notice: string | null;
 }) {
+  const [focused, setFocused] = useState(false);
+  // Saved keys show as content, not a placeholder — the field looks filled,
+  // and focusing it swaps in an empty box to type a replacement.
+  const maskSaved = hasSavedKey && value === "";
   return (
     <div className="overflow-hidden rounded-[28px] border border-black/[0.08] bg-white/75 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur-md">
       <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:px-6">
@@ -175,22 +181,29 @@ function ApiKeyCard({
       <div className="border-t border-black/[0.06] px-5 py-5 sm:px-6">
         <label
           htmlFor={inputId}
-          className="mb-2 block text-sm font-medium text-[var(--text)]"
+          className="mb-2 flex items-center gap-2 text-sm font-medium text-[var(--text)]"
         >
           API key
+          {hasSavedKey ? (
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+              Saved
+            </span>
+          ) : null}
         </label>
         <input
           id={inputId}
-          type="password"
+          type={maskSaved && !focused ? "text" : "password"}
           name={inputId}
-          value={value}
+          value={maskSaved && !focused ? "••••••••" : value}
           onChange={(e) => {
             onChange(e.target.value);
           }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           placeholder={placeholder}
           autoComplete="off"
           spellCheck={false}
-          className="h-12 w-full rounded-2xl border border-black/[0.1] bg-white px-4 text-[15px] text-[var(--text)] outline-none transition focus:border-black/[0.2] focus:ring-2 focus:ring-black/[0.08]"
+          className="h-12 w-full rounded-2xl border border-black/[0.1] bg-white px-4 text-[15px] tracking-[0.12em] text-[var(--text)] outline-none transition focus:border-black/[0.2] focus:ring-2 focus:ring-black/[0.08]"
           disabled={loading || saving}
         />
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -229,17 +242,11 @@ export const Route = createFileRoute("/settings")({
   component: function SettingsPage() {
     // --- Unsplash key ---
     const [unsplashKey, setUnsplashKey] = useState("");
+    const [unsplashSaved, setUnsplashSaved] = useState(false);
     const [unsplashLoading, setUnsplashLoading] = useState(true);
     const [unsplashSaving, setUnsplashSaving] = useState(false);
     const [unsplashError, setUnsplashError] = useState<string | null>(null);
     const [unsplashNotice, setUnsplashNotice] = useState<string | null>(null);
-
-    // --- Tambo key ---
-    const [tamboKey, setTamboKey] = useState("");
-    const [tamboLoading, setTamboLoading] = useState(true);
-    const [tamboSaving, setTamboSaving] = useState(false);
-    const [tamboError, setTamboError] = useState<string | null>(null);
-    const [tamboNotice, setTamboNotice] = useState<string | null>(null);
 
     const [snapIntensity, setSnapIntensityState] = useState(() =>
       getSceneSnapIntensity(),
@@ -270,36 +277,19 @@ export const Route = createFileRoute("/settings")({
       checkNow,
     } = useUpdateCheck();
 
-    // Load both keys on mount
+    // The backend only reports whether a key is stored — it never hands the
+    // value back, so the saved key's length is not exposed in the UI.
     useEffect(() => {
       let cancelled = false;
       void (async () => {
         const bridge = getSecretsBridge();
         try {
-          const key = bridge ? await bridge.GetKey("unsplash") : "";
-          if (!cancelled) setUnsplashKey((key ?? "").trim());
+          const saved = bridge ? await bridge.HasKey("unsplash") : false;
+          if (!cancelled) setUnsplashSaved(saved);
         } catch (err) {
           if (!cancelled) setUnsplashError(formatSecretsError(err, "load"));
         } finally {
           if (!cancelled) setUnsplashLoading(false);
-        }
-      })();
-      return () => {
-        cancelled = true;
-      };
-    }, []);
-
-    useEffect(() => {
-      let cancelled = false;
-      void (async () => {
-        const bridge = getSecretsBridge();
-        try {
-          const key = bridge ? await bridge.GetKey("tambo") : "";
-          if (!cancelled) setTamboKey((key ?? "").trim());
-        } catch (err) {
-          if (!cancelled) setTamboError(formatSecretsError(err, "load"));
-        } finally {
-          if (!cancelled) setTamboLoading(false);
         }
       })();
       return () => {
@@ -317,7 +307,8 @@ export const Route = createFileRoute("/settings")({
           const bridge = getSecretsBridge();
           if (!bridge) throw new Error("Secrets bridge unavailable");
           await bridge.SetKey("unsplash", next);
-          setUnsplashKey(next);
+          setUnsplashKey("");
+          setUnsplashSaved(next.length > 0);
           setUnsplashNotice(
             next ? "Unsplash API key saved." : "Unsplash API key cleared.",
           );
@@ -328,28 +319,6 @@ export const Route = createFileRoute("/settings")({
         }
       })();
     }, [unsplashKey]);
-
-    const saveTamboKey = useCallback(() => {
-      const next = tamboKey.trim();
-      setTamboSaving(true);
-      setTamboError(null);
-      setTamboNotice(null);
-      void (async () => {
-        try {
-          const bridge = getSecretsBridge();
-          if (!bridge) throw new Error("Secrets bridge unavailable");
-          await bridge.SetKey("tambo", next);
-          setTamboKey(next);
-          setTamboNotice(
-            next ? "Tambo API key saved." : "Tambo API key cleared.",
-          );
-        } catch (err) {
-          setTamboError(formatSecretsError(err, "save"));
-        } finally {
-          setTamboSaving(false);
-        }
-      })();
-    }, [tamboKey]);
 
     useEffect(() => {
       return onSceneSnapIntensityChange((value) => {
@@ -516,34 +485,6 @@ export const Route = createFileRoute("/settings")({
               </p>
 
               <div className="flex flex-col gap-6">
-                {/* Tambo / Magic key */}
-                <ApiKeyCard
-                  icon={AiMagicIcon}
-                  badge="Magic AI"
-                  title="Tambo API key"
-                  description="Powers the Magic AI chat panel. Get a free key at"
-                  learnMoreHref="https://tambo.co"
-                  learnMoreLabel="tambo.co"
-                  inputId="avnac-tambo-key"
-                  placeholder="Paste your Tambo API key"
-                  value={tamboKey}
-                  onChange={(v) => {
-                    setTamboKey(v);
-                    setTamboNotice(null);
-                    setTamboError(null);
-                  }}
-                  onSave={saveTamboKey}
-                  onClear={() => {
-                    setTamboKey("");
-                    setTamboNotice(null);
-                    setTamboError(null);
-                  }}
-                  loading={tamboLoading}
-                  saving={tamboSaving}
-                  error={tamboError}
-                  notice={tamboNotice}
-                />
-
                 {/* Unsplash key */}
                 <ApiKeyCard
                   icon={Image01Icon}
@@ -568,6 +509,7 @@ export const Route = createFileRoute("/settings")({
                   }}
                   loading={unsplashLoading}
                   saving={unsplashSaving}
+                  hasSavedKey={unsplashSaved}
                   error={unsplashError}
                   notice={unsplashNotice}
                 />

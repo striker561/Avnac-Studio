@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	avnacserver "Avnac/avnac-system/server"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -347,6 +348,53 @@ func normalizeElementList(v any) any {
 		out[i] = normalizeElementFields(entry)
 	}
 	return out
+}
+
+// ---- Unsplash download tracking ----
+//
+// Unsplash's guidelines want the download_location call fired when a photo is
+// actually used, not when it is searched. Placement (render_elements) is the
+// moment a photo becomes part of a design, so the hook lives there: tracking at
+// search time would book every preview and spend quota on images nobody kept.
+
+// imageURLsFromElements returns the URLs of the image elements in a batch.
+func imageURLsFromElements(elements []ElementDefinition) []string {
+	urls := make([]string, 0, len(elements))
+	for _, el := range elements {
+		if el.Type != "image" || el.URL == nil {
+			continue
+		}
+		if u := strings.TrimSpace(*el.URL); u != "" {
+			urls = append(urls, u)
+		}
+	}
+	return urls
+}
+
+// trackUnsplashPlacements is a seam for tests: the real call performs Unsplash
+// API requests.
+var trackUnsplashPlacements = func(svc *avnacserver.UnsplashService, urls []string) int {
+	if svc == nil {
+		return 0
+	}
+	return svc.TrackPlacements(urls)
+}
+
+// trackRenderedImages reports the images a successful render placed. It runs
+// in the background: tracking is a network round-trip that must not delay the
+// tool response, and a failure there must never fail the render. A failed
+// render reports nothing, so a rejected batch cannot book a download.
+func trackRenderedImages(svc *avnacserver.UnsplashService, elements []ElementDefinition, resp any) {
+	if respMap, ok := resp.(map[string]any); ok {
+		if errStr, _ := respMap["error"].(string); errStr != "" {
+			return
+		}
+	}
+	urls := imageURLsFromElements(elements)
+	if len(urls) == 0 {
+		return
+	}
+	go trackUnsplashPlacements(svc, urls)
 }
 
 // withNormalizedElements copies raw with per-entry normalization applied to
@@ -1035,6 +1083,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		case data := <-ch:
 			respMap, ok := data.(map[string]any)
 			if ok && respMap != nil {
+				trackRenderedImages(m.Unsplash, input.Elements, respMap)
 				if base64Str, ok := respMap["imageData"].(string); ok && base64Str != "" {
 					imgBytes, err := base64.StdEncoding.DecodeString(base64Str)
 					if err == nil {
@@ -1120,7 +1169,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "search_unsplash",
-		Description: "Search for high-quality photos on Unsplash",
+		Description: "Search for high-quality photos on Unsplash. Returns compact records (id, alt text, size, photographer, small/regular URLs) plus the remaining hourly quota in rateLimit. Place a photo by passing its regular URL as an image element's url in render_elements — that is when Unsplash download tracking fires, so search results you never use cost nothing extra. Each call spends the app's hourly quota: reuse results you already have instead of re-running the same query.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
 			"query":   desc("Search keywords, e.g. 'mountain landscape'."),
 			"page":    desc("Page number (default 1). Accepts number or numeric string."),
@@ -1145,10 +1194,20 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 			return nil, nil, err
 		}
 
+		// Report the hourly quota alongside the results so a caller can reuse
+		// what it already has instead of discovering the limit by hitting it.
+		rateLimit := map[string]any{}
+		if quota, err := m.Unsplash.RateLimit(); err == nil {
+			rateLimit["limit"] = quota.Limit
+			rateLimit["remaining"] = quota.Remaining
+		}
+
 		// Project to the fields agents actually use: id, alt text, native
 		// size, photographer, and the two render-ready URLs. Dropping long
 		// descriptions, download/link blocks, and full-size URLs keeps each
-		// query's output small in the caller's context window.
+		// query's output small in the caller's context window. The download
+		// hook is server-side, so agents never need to carry
+		// download_location around.
 		photos := make([]map[string]any, 0, len(result.Photos))
 		for _, p := range result.Photos {
 			alt := ""
@@ -1167,10 +1226,14 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 				},
 			})
 		}
-		return nil, map[string]any{"photos": photos, "hasMore": result.HasMore}, nil
+		out := map[string]any{"photos": photos, "hasMore": result.HasMore}
+		if len(rateLimit) > 0 {
+			out["rateLimit"] = rateLimit
+		}
+		return nil, out, nil
 	})
 
-		mcp.AddTool(m.server, &mcp.Tool{
+	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "list_stickers",
 		Description: "Get the list of available built-in stickers",
 		InputSchema: emptyObjSchema(),

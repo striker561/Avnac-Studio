@@ -108,7 +108,7 @@ When connected, the MCP server also automatically transmits `Instructions` to th
 - `clear_canvas`: Remove all objects. Returns `clearedCount`.
 
 ### Assets & Photography
-- `search_unsplash`: Search royalty-free photos and retrieve image URLs. Returns compact records (`id`, `alt_description`, `width`, `height`, `photographer`, `urls.small`/`urls.regular`).
+- `search_unsplash`: Search royalty-free photos and retrieve image URLs. Returns compact records (`id`, `alt_description`, `width`, `height`, `photographer`, `urls.small`/`urls.regular`) and the remaining hourly quota in `rateLimit`. Identical queries are served from a two-minute cache. Unsplash's download call fires from `render_elements` when a searched photo's URL is actually placed — searching or previewing costs no download.
 - `list_stickers`: Get built-in sticker names (`donut`, `leaf`, `lollipop`, `pineapple`, `shooting-star-badge`, `sunflower-badge`).
 - `get_font_list`: List supported Google Fonts. Prefer `Poppins`, `Inter`, and `DM Serif Display` for reliable canvas rendering.
 

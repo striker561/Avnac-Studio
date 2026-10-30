@@ -86,6 +86,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
 
 3. ASSETS:
    - Call search_unsplash for photography when relevant, and get_font_list if unsure which fonts to use.
+   - Every search spends the app's Unsplash hourly quota, and each result carries the remaining budget in rateLimit: reuse photos you already have instead of re-running a query. Place a photo by passing its regular URL as an image element's url in render_elements — that is when Unsplash download tracking fires.
 
 4. DECLARATIVE COMPOSITION:
    - Call render_elements once with all elements, layered bottom (background) to top (foreground).

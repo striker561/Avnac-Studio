@@ -227,7 +227,6 @@ The original [Avnac web app](https://github.com/akinloluwami/avnac) is a browser
 - **Frontend:** React, Vite, TypeScript, Tailwind CSS, TanStack Router
 - **Desktop runtime:** Wails v2 + Go
 - **Canvas/runtime engine:** Saraswati (Canvas2D renderer) under `frontend/src/lib/saraswati/`
-- **AI UI/runtime:** `@tambo-ai/react`
 
 ---
 

@@ -18,7 +18,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import EditorRangeSlider from "@/components/editor/shared/editor-range-slider";
 import { floatingToolbarPopoverMenuClass } from "@/components/editor/shared/floating-toolbar-shell";
-import EditorAiPanel from "@/components/editor/sidebar/editor-ai-panel";
+
 import EditorAppsPanel from "@/components/editor/sidebar/editor-apps-panel";
 import EditorFloatingSidebar from "@/components/editor/sidebar/editor-floating-sidebar";
 import EditorImagesPanel from "@/components/editor/sidebar/editor-images-panel";
@@ -865,11 +865,6 @@ export default function SceneEditorPage({ documentId }: Props) {
             />
             <EditorAppsPanel
               open={sidebarPanel === "apps"}
-              onClose={() => setSidebarPanel(null)}
-              controller={aiController}
-            />
-            <EditorAiPanel
-              open={sidebarPanel === "ai"}
               onClose={() => setSidebarPanel(null)}
               controller={aiController}
             />

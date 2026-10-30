@@ -13,27 +13,18 @@ import {
   fetchUnsplashSearch,
   scaleUnsplashToPlaceBox,
   trackUnsplashDownload,
+  unsplashCreditForPhoto,
+  unsplashReferralLink,
   UNSPLASH_PLACE_MAX_EDGE_PX,
 } from "@/lib/unsplash-api";
 
-type Props = {
+ type Props = {
   open: boolean;
   onClose: () => void;
   controller: AiDesignController;
 };
 
 const DEBOUNCE_MS = 380;
-
-function unsplashReferralLink(absoluteUrl: string): string {
-  try {
-    const u = new URL(absoluteUrl);
-    u.searchParams.set("utm_source", "avnac");
-    u.searchParams.set("utm_medium", "referral");
-    return u.toString();
-  } catch {
-    return absoluteUrl;
-  }
-}
 
 export default function EditorImagesPanel({
   open,
@@ -122,6 +113,7 @@ export default function EditorImagesPanel({
           origin: "center",
           width,
           height,
+          credit: unsplashCreditForPhoto(photo),
         });
         if (!r) {
           setError("Could not add this image to the canvas.");

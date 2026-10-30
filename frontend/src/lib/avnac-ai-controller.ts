@@ -5,6 +5,8 @@
  * React context so they can defensively no-op when missing.
  */
 
+import type { SaraswatiImageCredit } from '@/lib/saraswati'
+
 export type AiObjectKind =
   | 'rect'
   | 'ellipse'
@@ -97,6 +99,8 @@ export type AiImageSpec = AiPlacement & {
   height?: number
   rotation?: number
   opacity?: number
+  /** Stock-photo attribution to store with the placed image. */
+  credit?: SaraswatiImageCredit | null
 }
 
 export type AiUpdateSpec = {

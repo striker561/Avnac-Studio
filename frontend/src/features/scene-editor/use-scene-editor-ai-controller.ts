@@ -272,6 +272,7 @@ export function useSceneEditorAiController(): AiDesignController {
           cropX: 0,
           cropY: 0,
           clipPath: null,
+          credit: spec.credit ?? null,
         };
         applyCommands([{ type: "ADD_NODE", node }]);
         setSelectedIds([id]);

@@ -89,10 +89,33 @@ type UnsplashRateLimit struct {
 
 // ---- Service ----
 
+// unsplashUTMSource is the utm_source the Unsplash API guidelines require on
+// every link back to Unsplash, so referrals are attributed to this app.
+const unsplashUTMSource = "avnac"
+
+// UnsplashCredit is the attribution Unsplash requires wherever a photo is
+// used: who shot it and where it lives. The links carry the utm parameters the
+// guidelines mandate, and Text is a ready-to-place credit line.
+type UnsplashCredit struct {
+	Source          string `json:"source"`
+	PhotoID         string `json:"photoId"`
+	Photographer    string `json:"photographer"`
+	PhotographerURL string `json:"photographerUrl"`
+	PhotoURL        string `json:"photoUrl"`
+	Text            string `json:"text"`
+}
+
 // keyProvider is the slice of SecretsManager this service needs. Keeping it an
 // interface leaves tests off the OS keychain.
 type keyProvider interface {
 	GetKey(name string) (string, error)
+}
+
+// unsplashPhotoRef is what the registry remembers about a photo the API has
+// already returned: where to report its download, and how to credit it.
+type unsplashPhotoRef struct {
+	downloadLocation string
+	credit           UnsplashCredit
 }
 
 // UnsplashService exposes Unsplash operations as Wails-bound methods.
@@ -114,9 +137,9 @@ type UnsplashService struct {
 	// cache keeps identical feeds from costing a second request.
 	cache map[string]unsplashCacheEntry
 	// known maps a photo's image URLs (and its stable "photo-..." token) to
-	// the download_location of the same photo, so a later placement can find
-	// it without the caller carrying it around.
-	known map[string]string
+	// the download_location and credit of the same photo, so a later placement
+	// can find them without the caller carrying them around.
+	known map[string]unsplashPhotoRef
 	// tracked records download_locations already reported to Unsplash.
 	tracked map[string]struct{}
 	// rate is the quota reading from the last response.
@@ -147,7 +170,7 @@ func newUnsplashService(keys keyProvider, baseURL string) *UnsplashService {
 		baseURL: strings.TrimRight(baseURL, "/"),
 		client:  &http.Client{Timeout: unsplashHTTPTimeout},
 		cache:   make(map[string]unsplashCacheEntry),
-		known:   make(map[string]string),
+		known:   make(map[string]unsplashPhotoRef),
 		tracked: make(map[string]struct{}),
 	}
 }
@@ -355,7 +378,7 @@ func (s *UnsplashService) cachedFeed(key string) (UnsplashFeedResult, bool) {
 }
 
 // rememberFeed caches a decoded feed and indexes its photos so placements can
-// resolve back to a download_location.
+// resolve back to a download_location and a credit.
 func (s *UnsplashService) rememberFeed(key string, photos []UnsplashPhoto, hasMore bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -374,23 +397,76 @@ func (s *UnsplashService) rememberFeed(key string, photos []UnsplashPhoto, hasMo
 }
 
 // rememberPhotoLocked indexes one photo's URLs (and its stable image token) to
-// its download_location. Callers must hold s.mu.
+// its download_location and credit. Callers must hold s.mu.
 func (s *UnsplashService) rememberPhotoLocked(p UnsplashPhoto) {
 	location := strings.TrimSpace(p.Links.DownloadLocation)
 	if location == "" {
 		return
 	}
+
+	ref := unsplashPhotoRef{
+		downloadLocation: location,
+		credit:           creditForPhoto(p),
+	}
 	for _, u := range []string{p.Urls.Small, p.Urls.Regular, p.Urls.Full, p.Links.Html} {
 		if u = strings.TrimSpace(u); u != "" {
-			s.known[u] = location
+			s.known[u] = ref
 		}
 	}
 	for _, u := range []string{p.Urls.Regular, p.Urls.Small, p.Urls.Full} {
 		if token := unsplashPhotoToken(u); token != "" {
-			s.known[token] = location
+			s.known[token] = ref
 			break
 		}
 	}
+}
+
+// creditForPhoto builds the attribution record for one API photo.
+func creditForPhoto(p UnsplashPhoto) UnsplashCredit {
+	photographer := strings.TrimSpace(p.User.Name)
+	if photographer == "" {
+		photographer = "a photographer"
+	}
+	return UnsplashCredit{
+		Source:          "unsplash",
+		PhotoID:         p.ID,
+		Photographer:    photographer,
+		PhotographerURL: referralURL(p.User.Links.Html),
+		PhotoURL:        referralURL(p.Links.Html),
+		Text:            fmt.Sprintf("Photo by %s on Unsplash", photographer),
+	}
+}
+
+// referralURL tags an Unsplash link with the utm parameters the API guidelines
+// require on links back to Unsplash. Non-URLs are returned untouched.
+func referralURL(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	parsed, err := url.Parse(trimmed)
+	if err != nil || parsed.Host == "" {
+		return trimmed
+	}
+	query := parsed.Query()
+	query.Set("utm_source", unsplashUTMSource)
+	query.Set("utm_medium", "referral")
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
+}
+
+// CreditFor resolves a placement URL to the attribution of the photo it came
+// from. The second result is false for URLs no search returned.
+//
+// A package function rather than a method because UnsplashService is bound to
+// the frontend, and Wails only binds methods returning nothing, an error, or a
+// value plus an error — not a (value, bool) pair.
+func CreditFor(svc *UnsplashService, raw string) (UnsplashCredit, bool) {
+	if svc == nil {
+		return UnsplashCredit{}, false
+	}
+	ref, ok := svc.photoRefFor(raw)
+	if !ok {
+		return UnsplashCredit{}, false
+	}
+	return ref.credit, true
 }
 
 // Download fires the Unsplash download-tracking endpoint as required by the
@@ -471,26 +547,36 @@ func (s *UnsplashService) TrackPlacements(urls []string) int {
 }
 
 // downloadLocationFor resolves a placement URL to its photo's
-// download_location, by exact URL first and then by the stable "photo-..."
-// token, because agents routinely re-append sizing parameters to image URLs.
+// download_location.
 func (s *UnsplashService) downloadLocationFor(raw string) string {
+	ref, ok := s.photoRefFor(raw)
+	if !ok {
+		return ""
+	}
+	return ref.downloadLocation
+}
+
+// photoRefFor resolves a placement URL to the registry entry of the photo it
+// came from: by exact URL first, then by the stable "photo-..." token, because
+// agents routinely re-append sizing parameters to image URLs.
+func (s *UnsplashService) photoRefFor(raw string) (unsplashPhotoRef, bool) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
-		return ""
+		return unsplashPhotoRef{}, false
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if location, ok := s.known[trimmed]; ok {
-		return location
+	if ref, ok := s.known[trimmed]; ok {
+		return ref, true
 	}
 	if token := unsplashPhotoToken(trimmed); token != "" {
-		if location, ok := s.known[token]; ok {
-			return location
+		if ref, ok := s.known[token]; ok {
+			return ref, true
 		}
 	}
-	return ""
+	return unsplashPhotoRef{}, false
 }
 
 // isDownloadLocation reports whether raw is an API URL on this service's own

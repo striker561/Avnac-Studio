@@ -324,6 +324,68 @@ func TestPhotosClampsPerPage(t *testing.T) {
 	}
 }
 
+func TestCreditForResolvesPlacedPhoto(t *testing.T) {
+	stub := &unsplashStub{totalPages: 1}
+	svc := newStubService(t, stub)
+	stub.searchPhotos = []map[string]any{stubPhoto("777", svc.baseURL+"/photos/777/download")}
+
+	if _, err := svc.Search("portraits", 1, 5); err != nil {
+		t.Fatalf("Search() error = %v", err)
+	}
+
+	credit, ok := CreditFor(svc, "https://images.unsplash.com/photo-777?w=1080&h=720")
+	if !ok {
+		t.Fatal("CreditFor() = false for a photo returned by search")
+	}
+	if credit.Photographer != "Ada" {
+		t.Fatalf("photographer = %q, want Ada", credit.Photographer)
+	}
+	if credit.Text != "Photo by Ada on Unsplash" {
+		t.Fatalf("text = %q", credit.Text)
+	}
+	if credit.Source != "unsplash" || credit.PhotoID != "777" {
+		t.Fatalf("credit = %+v, want source unsplash and photo id 777", credit)
+	}
+	// Unsplash's guidelines require the referral parameters on links back.
+	for name, link := range map[string]string{
+		"photographer": credit.PhotographerURL,
+		"photo":        credit.PhotoURL,
+	} {
+		if !strings.Contains(link, "utm_source=avnac") || !strings.Contains(link, "utm_medium=referral") {
+			t.Fatalf("%s url = %q, want utm_source=avnac and utm_medium=referral", name, link)
+		}
+	}
+	if !strings.Contains(credit.PhotoURL, "unsplash.com/photos/777") {
+		t.Fatalf("photo url = %q, want the photo page", credit.PhotoURL)
+	}
+}
+
+func TestCreditForIgnoresUnknownURL(t *testing.T) {
+	stub := &unsplashStub{totalPages: 1}
+	svc := newStubService(t, stub)
+
+	if _, ok := CreditFor(svc, "https://images.unsplash.com/photo-12345?w=1080"); ok {
+		t.Fatal("CreditFor() = true for a photo that was never searched")
+	}
+}
+
+func TestReferralURLTagsUTMParameters(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"https://unsplash.com/photos/abc", "https://unsplash.com/photos/abc?utm_medium=referral&utm_source=avnac"},
+		{"https://unsplash.com/@ada?ixid=xyz", "https://unsplash.com/@ada?ixid=xyz&utm_medium=referral&utm_source=avnac"},
+		{"not a url", "not a url"},
+		{"", ""},
+	}
+	for _, tc := range cases {
+		if got := referralURL(tc.in); got != tc.want {
+			t.Fatalf("referralURL(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
 func TestUnsplashPhotoToken(t *testing.T) {
 	cases := map[string]string{
 		"https://images.unsplash.com/photo-1500?ixid=x&w=1080": "photo-1500",

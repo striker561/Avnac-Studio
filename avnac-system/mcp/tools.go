@@ -10,6 +10,7 @@ import (
 	"time"
 
 	avnacserver "Avnac/avnac-system/server"
+
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -378,6 +379,35 @@ var trackUnsplashPlacements = func(svc *avnacserver.UnsplashService, urls []stri
 		return 0
 	}
 	return svc.TrackPlacements(urls)
+}
+
+// ---- Unsplash attribution ----
+//
+// Unsplash requires the photographer and Unsplash to be credited wherever a
+// photo is used. The credit is attached to the image element at placement time
+// so it travels with the design (node.credit) instead of dying with the search
+// results that produced it.
+
+// creditForPlacement is a seam for tests, so the attribution path can be
+// exercised without an UnsplashService.
+var creditForPlacement = func(svc *avnacserver.UnsplashService, url string) (avnacserver.UnsplashCredit, bool) {
+	return avnacserver.CreditFor(svc, url)
+}
+
+// withUnsplashCredits attaches the credit of the searched photo each image
+// element places. Elements that already carry a credit (or whose URL never came
+// from a search) are left alone.
+func withUnsplashCredits(svc *avnacserver.UnsplashService, elements []ElementDefinition) []ElementDefinition {
+	for i := range elements {
+		if elements[i].Type != "image" || elements[i].URL == nil || elements[i].Credit != nil {
+			continue
+		}
+		if credit, ok := creditForPlacement(svc, *elements[i].URL); ok {
+			attribution := credit
+			elements[i].Credit = &attribution
+		}
+	}
+	return elements
 }
 
 // trackRenderedImages reports the images a successful render placed. It runs
@@ -750,19 +780,6 @@ func decodeExportObjectInput(raw map[string]any) (ExportObjectInput, error) {
 	return out, nil
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 type ShadowDefinition struct {
 	Blur    float64 `json:"blur"`
 	OffsetX float64 `json:"offsetX"`
@@ -809,6 +826,9 @@ type ElementDefinition struct {
 	Angle         *float64          `json:"angle,omitempty"`
 	Rotation      *float64          `json:"rotation,omitempty"`
 	Opacity       *float64          `json:"opacity,omitempty"`
+	// Credit is filled in by the server for image URLs that came from
+	// search_unsplash, so the attribution is stored with the design.
+	Credit *avnacserver.UnsplashCredit `json:"credit,omitempty"`
 }
 
 type RenderElementsInput struct {
@@ -891,8 +911,6 @@ type AlignObjectsInput struct {
 	Type string `json:"type"`
 }
 
-
-
 type ExportPngInput struct {
 	// Scale multiplier (e.g. 1, 2)
 	Multiplier *float64 `json:"multiplier,omitempty"`
@@ -904,14 +922,6 @@ type SelectObjectsInput struct {
 	// List of object IDs to select
 	ObjectIDs []string `json:"objectIds"`
 }
-
-
-
-
-
-
-
-
 
 type GroupObjectsInput struct {
 	// List of object IDs to group
@@ -942,18 +952,12 @@ type SearchUnsplashInput struct {
 	PerPage int `json:"perPage,omitempty"`
 }
 
-
-
-
-
 type GradientStop struct {
 	// Offset from 0.0 to 1.0
 	Offset float64 `json:"offset"`
 	// Color (hex or name)
 	Color string `json:"color"`
 }
-
-
 
 type ApplyArtboardPresetInput struct {
 	// The preset ID (e.g. 'ig-square', 'a4-300')
@@ -1055,7 +1059,7 @@ func decodeRenameFileInput(raw map[string]any) (RenameFileInput, error) {
 
 func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 	mcp.AddTool(m.server, &mcp.Tool{
-		Name: "render_elements",
+		Name:        "render_elements",
 		Description: "Declaratively create multiple elements (rect, ellipse, polygon, star, text, image, sticker, line) in a single batch. Supports layout (left/top or x/y, width, height), styling (fill, opacity, angle/rotation, blur, cornerRadius), text controls (textAlign, fontWeight, fontStyle, lineHeight, underline), effects (shadows, gradients), and specialized properties (fontFamily, stickerName, url, sides, x1/y1/x2/y2). Text sent without a width is measured against its real font and auto-sized to its natural width, so use the returned bounds to lay out around it rather than assuming a line count. Returns created element IDs and metadata, plus an optional visual preview if includePreview=true.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
 			"elements":       desc("Array of element objects, or a JSON-encoded string of that array. Each needs type + position/size. Text supports textAlign (left|center|right), fontWeight (400|500|600|700|bold, as a number or a string), fontStyle, lineHeight, underline. Numeric fields also accept their string form, and fill/color/stroke accept either a color string or {color: \"#hex\"}."),
@@ -1066,6 +1070,9 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
+		// Attach attribution before the frontend builds the nodes, so each
+		// placed photo keeps its credit in the saved document.
+		input.Elements = withUnsplashCredits(m.Unsplash, input.Elements)
 		requestID := uuid.New().String()
 		ch := make(chan any, 1)
 
@@ -1112,7 +1119,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
-		Name: "modify_elements",
+		Name:        "modify_elements",
 		Description: "Batch update properties of existing elements by their ObjectID. Supports layout (left/top/x/y/width/height), styling (fill, opacity, rotation), text controls (text, fontSize, fontFamily, fontWeight, fontStyle, textAlign, lineHeight, underline, stroke), effects (shadows, blur, cornerRadius), locking, layer names. Returns modified counts and an optional visual preview if includePreview=true.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
 			"modifications":  desc("Array of {objectId, ...fields} updates, or a JSON-encoded string of that array."),
@@ -1169,7 +1176,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "search_unsplash",
-		Description: "Search for high-quality photos on Unsplash. Returns compact records (id, alt text, size, photographer, small/regular URLs) plus the remaining hourly quota in rateLimit. Place a photo by passing its regular URL as an image element's url in render_elements — that is when Unsplash download tracking fires, so search results you never use cost nothing extra. Each call spends the app's hourly quota: reuse results you already have instead of re-running the same query.",
+		Description: "Search for high-quality photos on Unsplash. Returns compact records (id, alt text, size, photographer, credit line, small/regular URLs) plus the remaining hourly quota in rateLimit. Place a photo by passing its regular URL as an image element's url in render_elements — that is when Unsplash download tracking fires and when the photo's credit is stored on the node, so search results you never use cost nothing extra. Each call spends the app's hourly quota: reuse results you already have instead of re-running the same query.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
 			"query":   desc("Search keywords, e.g. 'mountain landscape'."),
 			"page":    desc("Page number (default 1). Accepts number or numeric string."),
@@ -1203,10 +1210,10 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 
 		// Project to the fields agents actually use: id, alt text, native
-		// size, photographer, and the two render-ready URLs. Dropping long
-		// descriptions, download/link blocks, and full-size URLs keeps each
-		// query's output small in the caller's context window. The download
-		// hook is server-side, so agents never need to carry
+		// size, photographer, the two render-ready URLs, and the credit line.
+		// Dropping long descriptions, download/link blocks, and full-size URLs
+		// keeps each query's output small in the caller's context window. The
+		// download hook is server-side, so agents never need to carry
 		// download_location around.
 		photos := make([]map[string]any, 0, len(result.Photos))
 		for _, p := range result.Photos {
@@ -1214,12 +1221,18 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 			if p.AltDescription != nil {
 				alt = *p.AltDescription
 			}
+			photographer := strings.TrimSpace(p.User.Name)
+			credit := ""
+			if photographer != "" {
+				credit = fmt.Sprintf("Photo by %s on Unsplash", photographer)
+			}
 			photos = append(photos, map[string]any{
-				"id":             p.ID,
+				"id":              p.ID,
 				"alt_description": alt,
-				"width":          p.Width,
-				"height":         p.Height,
-				"photographer":   p.User.Name,
+				"width":           p.Width,
+				"height":          p.Height,
+				"photographer":    photographer,
+				"credit":          credit,
 				"urls": map[string]string{
 					"small":   p.Urls.Small,
 					"regular": p.Urls.Regular,
@@ -1242,7 +1255,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return nil, map[string]any{"stickers": stickers}, nil
 	})
 
-			mcp.AddTool(m.server, &mcp.Tool{
+	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "apply_artboard_preset",
 		Description: "Resize the canvas to a standard preset. Valid presetId: ig-square (1080x1080), ig-portrait (1080x1350), ig-story (1080x1920), hd (1920x1080), twitter-post, linkedin, youtube-thumb, a4-300, custom-4000. Alias 'preset' also accepted. Returns the applied dimensions or a no-scene/unknown-preset error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1392,8 +1405,8 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		Name:        "open_canvas",
 		Description: "Open a saved canvas file by workspace id (from list_files), navigate the editor to it, and make it the active scene. Returns the opened file's name and dimensions or an unknown-id error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
-			"fileId":     desc("Workspace id of the file to open, as returned by list_files."),
-			"id":         desc("Alias for fileId."),
+			"fileId":      desc("Workspace id of the file to open, as returned by list_files."),
+			"id":          desc("Alias for fileId."),
 			"workspaceId": desc("Alias for fileId."),
 		}),
 	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
@@ -1445,7 +1458,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return nil, data, nil
 	})
 
-							mcp.AddTool(m.server, &mcp.Tool{
+	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "select_objects",
 		Description: "Select one or more objects by their IDs. Returns the selected IDs or a no-scene error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1480,7 +1493,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return nil, data, nil
 	})
 
-					mcp.AddTool(m.server, &mcp.Tool{
+	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "group_objects",
 		Description: "Group multiple objects together. Requires at least 2 ids with the same parent. Returns the new groupId or an error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1630,7 +1643,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return nil, data, nil
 	})
 
-		mcp.AddTool(m.server, &mcp.Tool{
+	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "export_png",
 		Description: "Export the current canvas as PNG. Returns imageData (base64 PNG) or a no-scene error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{

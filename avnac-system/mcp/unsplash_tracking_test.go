@@ -90,3 +90,66 @@ func TestTrackRenderedImagesIgnoresBatchesWithoutImages(t *testing.T) {
 	case <-time.After(150 * time.Millisecond):
 	}
 }
+
+// stubCredits swaps the attribution seam for the duration of a test.
+func stubCredits(t *testing.T, byURL map[string]avnacserver.UnsplashCredit) {
+	t.Helper()
+	original := creditForPlacement
+	creditForPlacement = func(_ *avnacserver.UnsplashService, url string) (avnacserver.UnsplashCredit, bool) {
+		credit, ok := byURL[url]
+		return credit, ok
+	}
+	t.Cleanup(func() { creditForPlacement = original })
+}
+
+func TestWithUnsplashCreditsAttachesSearchCredit(t *testing.T) {
+	photoURL := "https://images.unsplash.com/photo-9?w=1080"
+	stubCredits(t, map[string]avnacserver.UnsplashCredit{
+		photoURL: {
+			Source:       "unsplash",
+			PhotoID:      "9",
+			Photographer: "Ada",
+			PhotoURL:     "https://unsplash.com/photos/9?utm_source=avnac",
+			Text:         "Photo by Ada on Unsplash",
+		},
+	})
+
+	elements := withUnsplashCredits(nil, []ElementDefinition{
+		{Type: "image", URL: strPtr(photoURL)},
+		{Type: "rect", Fill: strPtr("#fff")},
+	})
+
+	if elements[0].Credit == nil {
+		t.Fatal("expected the image element to carry the photo's credit")
+	}
+	if elements[0].Credit.Text != "Photo by Ada on Unsplash" {
+		t.Fatalf("credit text = %q", elements[0].Credit.Text)
+	}
+	if elements[1].Credit != nil {
+		t.Fatal("expected non-image elements to stay credit-free")
+	}
+}
+
+func TestWithUnsplashCreditsLeavesUnknownAndExplicitCreditsAlone(t *testing.T) {
+	stubCredits(t, map[string]avnacserver.UnsplashCredit{
+		"https://images.unsplash.com/photo-10?w=1080": {Text: "Photo by Ada on Unsplash"},
+	})
+	explicit := &avnacserver.UnsplashCredit{Photographer: "Bob", Text: "Photo by Bob on Unsplash"}
+	wrongHost := "https://example.com/not-unsplash.jpg"
+
+	elements := withUnsplashCredits(nil, []ElementDefinition{
+		{Type: "image", URL: strPtr("https://images.unsplash.com/photo-11?w=1080")},
+		{Type: "image", URL: strPtr(wrongHost)},
+		{Type: "image", URL: strPtr("https://images.unsplash.com/photo-10?w=1080"), Credit: explicit},
+	})
+
+	if elements[0].Credit != nil {
+		t.Fatalf("unknown photo got credit %+v", elements[0].Credit)
+	}
+	if elements[1].Credit != nil {
+		t.Fatalf("non-Unsplash url got credit %+v", elements[1].Credit)
+	}
+	if elements[2].Credit != explicit {
+		t.Fatal("expected an explicitly supplied credit to be preserved")
+	}
+}

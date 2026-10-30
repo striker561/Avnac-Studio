@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createEmptySaraswatiScene,
+  type SaraswatiImageNode,
   type SaraswatiRectNode,
   type SaraswatiScene,
   type SaraswatiTextNode,
@@ -79,7 +80,36 @@ function buildTextNode(id: string, patch?: Partial<SaraswatiTextNode>): Saraswat
   };
 }
 
-function sceneWith(...nodes: Array<SaraswatiRectNode | SaraswatiTextNode>): SaraswatiScene {
+function buildImageNode(
+  id: string,
+  credit?: SaraswatiImageNode["credit"],
+): SaraswatiImageNode {
+  return {
+    id,
+    type: "image",
+    parentId: "root",
+    visible: true,
+    x: 10,
+    y: 20,
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    opacity: 1,
+    originX: "left",
+    originY: "top",
+    width: 400,
+    height: 300,
+    src: "https://images.unsplash.com/photo-1?w=1080",
+    cropX: 0,
+    cropY: 0,
+    clipPath: null,
+    credit: credit ?? null,
+  };
+}
+
+function sceneWith(
+  ...nodes: Array<SaraswatiRectNode | SaraswatiTextNode | SaraswatiImageNode>
+): SaraswatiScene {
   const scene = createEmptySaraswatiScene({ width: 800, height: 600 });
   for (const node of nodes) {
     scene.nodes[node.id] = node;
@@ -214,6 +244,44 @@ describe("buildRenderElementsCommands", () => {
     // Default element size applies; the 160 fallback only fires for width 0.
     expect(node.width).toBe(100);
     expect(node.height).toBe(100);
+  });
+
+  it("stores the Unsplash credit the server attached to an image element", () => {
+    const scene = createEmptySaraswatiScene();
+    const { commands } = buildRenderElementsCommands(scene, [
+      {
+        type: "image",
+        url: "https://images.unsplash.com/photo-1?w=1080",
+        credit: {
+          source: "unsplash",
+          photoId: "1",
+          photographer: "Ada",
+          photographerUrl: "https://unsplash.com/@ada?utm_source=avnac",
+          photoUrl: "https://unsplash.com/photos/1?utm_source=avnac",
+          text: "Photo by Ada on Unsplash",
+        },
+      },
+    ]);
+    if (commands[0]!.type !== "ADD_NODE") throw new Error("unreachable");
+    const node = commands[0]!.node as SaraswatiImageNode;
+    expect(node.credit).toMatchObject({
+      photographer: "Ada",
+      text: "Photo by Ada on Unsplash",
+    });
+  });
+
+  it("drops a partial credit rather than storing an unusable one", () => {
+    const scene = createEmptySaraswatiScene();
+    const { commands } = buildRenderElementsCommands(scene, [
+      {
+        type: "image",
+        url: "https://images.unsplash.com/photo-1?w=1080",
+        credit: { photographer: "Ada" },
+      },
+    ]);
+    if (commands[0]!.type !== "ADD_NODE") throw new Error("unreachable");
+    const node = commands[0]!.node as SaraswatiImageNode;
+    expect(node.credit).toBeNull();
   });
 });
 
@@ -454,6 +522,35 @@ describe("summaries", () => {
     expect(selectedIds).toEqual(["a", "ghost"]);
     expect(objects).toHaveLength(1);
     expect(objects[0]!.id).toBe("a");
+  });
+
+  it("lists distinct photo credits with every node that uses them", () => {
+    const credit = {
+      source: "unsplash",
+      photoId: "1",
+      photographer: "Ada",
+      photographerUrl: "https://unsplash.com/@ada?utm_source=avnac",
+      photoUrl: "https://unsplash.com/photos/1?utm_source=avnac",
+      text: "Photo by Ada on Unsplash",
+    };
+    const scene = sceneWith(
+      buildImageNode("a", credit),
+      buildImageNode("b", credit),
+      buildRectNode("c"),
+    );
+
+    const { nodes, credits } = buildCanvasSummary(scene);
+
+    expect(credits).toHaveLength(1);
+    expect(credits[0]).toMatchObject({
+      photographer: "Ada",
+      text: "Photo by Ada on Unsplash",
+      nodeIds: ["a", "b"],
+    });
+    expect(nodes.find((n) => n.id === "a")!.credit).toBe(
+      "Photo by Ada on Unsplash",
+    );
+    expect(nodes.find((n) => n.id === "c")!.credit).toBeUndefined();
   });
 });
 

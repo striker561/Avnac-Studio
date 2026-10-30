@@ -42,6 +42,7 @@ import { DEFAULT_SHADOW_UI, type ShadowUi } from "@/lib/shadow-ui";
 import CornerRadiusToolbarControl from "@/components/editor/shape/corner-radius-toolbar-control";
 import ImageCropModal from "@/components/editor/dialogs/image-crop-modal";
 import { fitImageNodeSizeToCrop } from "@/lib/image-crop-utils";
+import { BrowserOpenURL } from "../../../../wailsjs/runtime/runtime";
 import type { SaraswatiCommand } from "@/lib/saraswati/commands/types";
 import TextFormatToolbar, {
   type TextFormatToolbarValues,
@@ -1314,6 +1315,33 @@ function ImageToolbar({
               onInteractionStart={beginStyleBatch}
               onInteractionEnd={endStyleBatch}
             />
+            {imageNode.credit ? (
+              <>
+                <FloatingToolbarDivider />
+                {/* Unsplash requires the photographer and Unsplash to be
+                    credited wherever a photo is used, so the credit stays
+                    attached to the placed image and links back here. */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    BrowserOpenURL(
+                      imageNode.credit!.photoUrl ||
+                        imageNode.credit!.photographerUrl,
+                    )
+                  }
+                  className={[
+                    floatingToolbarIconButton(false, { wide: true }),
+                    "gap-1 px-2",
+                  ].join(" ")}
+                  title={`${imageNode.credit.text} — open on Unsplash`}
+                  aria-label={`${imageNode.credit.text}. Open on Unsplash`}
+                >
+                  <span className="max-w-32 truncate text-[11px] font-medium">
+                    {imageNode.credit.text}
+                  </span>
+                </button>
+              </>
+            ) : null}
             <FloatingToolbarDivider />
             <DeleteBtn onClick={onDelete} />
           </div>

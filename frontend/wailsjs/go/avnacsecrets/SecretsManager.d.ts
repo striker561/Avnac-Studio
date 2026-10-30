@@ -5,4 +5,6 @@ export function DeleteKey(arg1:string):Promise<void>;
 
 export function GetKey(arg1:string):Promise<string>;
 
+export function HasKey(arg1:string):Promise<boolean>;
+
 export function SetKey(arg1:string,arg2:string):Promise<void>;

@@ -6,4 +6,8 @@ export function Download(arg1:string):Promise<void>;
 
 export function Photos(arg1:number,arg2:number):Promise<avnacserver.UnsplashFeedResult>;
 
+export function RateLimit():Promise<avnacserver.UnsplashRateLimit>;
+
 export function Search(arg1:string,arg2:number,arg3:number):Promise<avnacserver.UnsplashFeedResult>;
+
+export function TrackPlacements(arg1:Array<string>):Promise<number>;

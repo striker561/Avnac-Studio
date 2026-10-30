@@ -50,7 +50,7 @@ The MCP server provides 27 tools for canvas automation. Tool names equal their e
 
 ### 6. Utilities & Assets
 - `clear_canvas`: Removes all objects.
-- `search_unsplash`: Searches Unsplash; returns compact records (id, alt, size, photographer, small/regular URLs).
+- `search_unsplash`: Searches Unsplash; returns compact records (id, alt, size, photographer, credit line, small/regular URLs) plus the remaining hourly quota in `rateLimit`. Responses are cached for two minutes so a repeated query does not spend quota twice. Placing a returned URL in `render_elements` files the required download report and stores the photo's credit on the node.
 - `export_png` / `export_object`: Export the canvas or a single object as an image.
 
 ## Development

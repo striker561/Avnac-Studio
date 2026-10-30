@@ -10,6 +10,14 @@ export function Photos(arg1, arg2) {
   return window['go']['avnacserver']['UnsplashService']['Photos'](arg1, arg2);
 }
 
+export function RateLimit() {
+  return window['go']['avnacserver']['UnsplashService']['RateLimit']();
+}
+
 export function Search(arg1, arg2, arg3) {
   return window['go']['avnacserver']['UnsplashService']['Search'](arg1, arg2, arg3);
+}
+
+export function TrackPlacements(arg1) {
+  return window['go']['avnacserver']['UnsplashService']['TrackPlacements'](arg1);
 }

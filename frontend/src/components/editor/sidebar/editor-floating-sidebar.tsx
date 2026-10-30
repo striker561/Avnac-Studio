@@ -1,6 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  AiMagicIcon,
   Album02Icon,
   CloudUploadIcon,
   DashboardCircleIcon,
@@ -22,14 +21,12 @@ export type EditorSidebarPanelId =
   | "uploads"
   | "images"
   | "vector-board"
-  | "apps"
-  | "ai";
+  | "apps";
 
 type Item = {
   id: EditorSidebarPanelId;
   label: string;
   icon: typeof Layers02Icon;
-  fancy?: boolean;
 };
 
 const ITEMS: Item[] = [
@@ -38,7 +35,6 @@ const ITEMS: Item[] = [
   { id: "images", label: "Images", icon: Album02Icon },
   { id: "vector-board", label: "Vectors", icon: PenTool01Icon },
   { id: "apps", label: "Apps", icon: DashboardCircleIcon },
-  { id: "ai", label: "Magic", icon: AiMagicIcon, fancy: true },
 ];
 
 type Props = {
@@ -241,31 +237,6 @@ export default function EditorFloatingSidebar({
       </button>
       {ITEMS.map((item) => {
         const active = activePanel === item.id;
-        if (item.fancy) {
-          return (
-            <button
-              key={item.id}
-              type="button"
-              disabled={disabled}
-              aria-pressed={active}
-              title={item.label}
-              aria-label={item.label}
-              onClick={() => onSelectPanel(item.id)}
-              className={[
-                "avnac-ai-tile flex size-10 shrink-0 items-center justify-center rounded-2xl transition-[background,box-shadow,transform]",
-                active ? "shadow-[0_6px_18px_rgba(0,0,0,0.12)]" : "",
-                disabled ? "cursor-not-allowed" : "",
-              ].join(" ")}
-            >
-              <HugeiconsIcon
-                icon={item.icon}
-                size={20}
-                strokeWidth={1.75}
-                className="avnac-ai-accent shrink-0"
-              />
-            </button>
-          );
-        }
         return (
           <button
             key={item.id}

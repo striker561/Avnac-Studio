@@ -58,6 +58,8 @@ Use these whenever the user references an existing file that is not currently op
 | `list_stickers` | Get list of built-in decorative stickers | Returns `donut`, `leaf`, `lollipop`, `pineapple`, `shooting-star-badge`, `sunflower-badge` |
 | `get_font_list` | List supported Google Fonts | None |
 
+`search_unsplash` results include `rateLimit.remaining` — the app's Unsplash quota resets hourly, so reuse photos you already searched for instead of re-running a query. Placing a searched photo's `urls.regular` as an image element in `render_elements` files the required Unsplash download; searching alone does not. The placed image also stores the photographer's credit (shown in the image toolbar and listed under `credits` in `get_canvas_summary`): name the photographers in your final message, and add a small credit line to the layout when the design is for publication.
+
 ### Creation & Batch Rendering
 | Tool | Purpose | Key Arguments |
 |---|---|---|

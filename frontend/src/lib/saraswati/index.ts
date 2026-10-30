@@ -1,4 +1,5 @@
 export * from "./scene";
+export * from "./credit";
 export * from "./commands/types";
 export * from "./commands/reducer";
 export * from "./render/commands";

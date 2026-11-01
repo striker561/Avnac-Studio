@@ -21,6 +21,7 @@ Security model:
 - **No wildcard CORS** — web pages you visit cannot read or write MCP responses cross-origin.
 - **DNS-rebinding protection** stays enabled (SDK defaults are restored).
 - The server shuts down cleanly with the app (`OnShutdown`), so relaunching never hits a stale listener holding the port.
+- **Request body cap** — every POST passes through `http.MaxBytesReader` after auth; requests over the **32 MiB** cap are rejected with HTTP `413` before any tool runs, and chunked bodies without a declared length are read only up to the cap.
 
 ### Client Configuration Examples
 
@@ -115,6 +116,7 @@ When connected, the MCP server also automatically transmits `Instructions` to th
 ### Creation & Editing
 - `render_elements`: Create elements in one call (`rect`, `ellipse`, `polygon`, `star`, `line`, `text`, `image`, `sticker`). Text supports `textAlign`, `fontWeight`, `fontStyle`, `lineHeight`, `underline`. Lines use `stroke`/`strokeWidth` (not `width`).
 - `modify_elements`: Update properties by `objectId`, including text controls (`fontWeight`, `textAlign`, `lineHeight`, etc.).
+- **Flexible inputs**: top-level keys and nested `elements[]` / `modifications[]` fields accept flexible forms — numeric font weights (`fontWeight: 700`), numeric strings for pixel values (`fontSize: "230"`), and object strokes (`stroke: {color: "#ff00ff"}`) alongside the string forms above.
 - `delete_object`: Delete object by ID (omit to delete current selection).
 - `align_objects`: Align selection via `type` (`left`, `center`, `right`, `top`, `middle`, `bottom`). Single selection aligns to artboard; multiple aligns to each other.
 - `distribute_objects`: Distribute 3+ selected elements via `direction` (`horizontal`, `vertical`; `type` alias accepted).

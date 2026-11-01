@@ -10,6 +10,10 @@ export function GetKey(arg1) {
   return window['go']['avnacsecrets']['SecretsManager']['GetKey'](arg1);
 }
 
+export function HasKey(arg1) {
+  return window['go']['avnacsecrets']['SecretsManager']['HasKey'](arg1);
+}
+
 export function SetKey(arg1, arg2) {
   return window['go']['avnacsecrets']['SecretsManager']['SetKey'](arg1, arg2);
 }

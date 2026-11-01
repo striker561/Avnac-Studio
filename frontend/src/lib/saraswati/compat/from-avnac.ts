@@ -7,6 +7,7 @@ import {
   type SaraswatiClipPath,
   type SaraswatiEllipseNode,
   type SaraswatiGroupNode,
+  type SaraswatiImageCredit,
   type SaraswatiImageNode,
   type SaraswatiLineNode,
   type SaraswatiLinePathType,
@@ -19,6 +20,7 @@ import {
   type SaraswatiTextNode,
 } from "../scene";
 import { anchorToCenter } from "../transform/anchor";
+import { normalizeImageCredit } from "../credit";
 
 export type AvnacAdapterPipeline = "direct-avnac";
 
@@ -75,6 +77,7 @@ type RawObject = Record<string, unknown> & {
   cropY?: number;
   cropWidth?: number;
   cropHeight?: number;
+  avnacCredit?: unknown;
   points?: RawPoint[];
   objects?: unknown[];
 };
@@ -541,6 +544,7 @@ function adaptRawObject(
         cropHeight: isPositiveNumber(raw.cropHeight)
           ? raw.cropHeight
           : undefined,
+        credit: readCredit(raw.avnacCredit),
         clipPath: readClipPath(raw.clipPath),
       };
       return { node, issue: supportedIssue(sourceId, "image") };
@@ -752,6 +756,15 @@ function readArrowCurveT(raw: unknown): number {
   if (!raw || typeof raw !== "object") return 0.5;
   const v = (raw as { arrowCurveT?: unknown }).arrowCurveT;
   return typeof v === "number" && Number.isFinite(v) ? v : 0.5;
+}
+
+/**
+ * Reads the stock-photo credit a saved image carries. Unknown shapes are
+ * dropped rather than half-restored: a credit without its photographer or its
+ * text cannot satisfy the attribution requirement.
+ */
+function readCredit(raw: unknown): SaraswatiImageCredit | null {
+  return normalizeImageCredit(raw);
 }
 
 function readClipPath(raw: unknown): SaraswatiClipPath | null {

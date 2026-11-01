@@ -69,6 +69,71 @@ describe("toAvnacDocument", () => {
     expect(second.scene).toEqual(first.scene);
   });
 
+  it("keeps a placed photo's Unsplash credit across save and load", () => {
+    const doc = makeBaseDocument();
+    doc.fabric = {
+      objects: [
+        {
+          type: "image",
+          avnacLayerId: "img-credit",
+          left: 40,
+          top: 60,
+          width: 300,
+          height: 200,
+          src: "https://images.unsplash.com/photo-1?w=1080",
+          avnacCredit: {
+            source: "unsplash",
+            photoId: "1",
+            photographer: "Ada",
+            photographerUrl: "https://unsplash.com/@ada?utm_source=avnac",
+            photoUrl: "https://unsplash.com/photos/1?utm_source=avnac",
+            text: "Photo by Ada on Unsplash",
+          },
+        },
+      ],
+    };
+
+    const first = fromAvnacDocument(doc);
+    expect(first.issues).toHaveLength(0);
+    const imageNode = first.scene.nodes["img-credit"];
+    if (!imageNode || imageNode.type !== "image") {
+      throw new Error("Expected an image node");
+    }
+    expect(imageNode.credit).toMatchObject({
+      photographer: "Ada",
+      text: "Photo by Ada on Unsplash",
+    });
+
+    const serialized = toAvnacDocument(first.scene);
+    const second = fromAvnacDocument(serialized);
+    expect(second.scene).toEqual(first.scene);
+  });
+
+  it("drops a credit that is missing its photographer or text", () => {
+    const doc = makeBaseDocument();
+    doc.fabric = {
+      objects: [
+        {
+          type: "image",
+          avnacLayerId: "img-partial",
+          left: 0,
+          top: 0,
+          width: 100,
+          height: 100,
+          src: "https://images.unsplash.com/photo-2?w=1080",
+          avnacCredit: { photographer: "Ada" },
+        },
+      ],
+    };
+
+    const result = fromAvnacDocument(doc);
+    const imageNode = result.scene.nodes["img-partial"];
+    if (!imageNode || imageNode.type !== "image") {
+      throw new Error("Expected an image node");
+    }
+    expect(imageNode.credit).toBeNull();
+  });
+
   it("round-trips nested groups and arrow/line shape metadata", () => {
     const doc = makeBaseDocument();
     doc.fabric = {

@@ -165,6 +165,7 @@ function serializeNode(
         cropY: node.cropY,
         cropWidth: node.cropWidth,
         cropHeight: node.cropHeight,
+        avnacCredit: node.credit ?? undefined,
         clipPath: serializeClipPath(node.clipPath ?? null),
       };
     }

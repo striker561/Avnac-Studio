@@ -14,6 +14,7 @@ import {
   SARASWATI_ROOT_ID,
   getNodeBounds,
   isSaraswatiRenderableNode,
+  normalizeImageCredit,
   type SaraswatiColor,
   type SaraswatiCommand,
   type SaraswatiNode,
@@ -324,6 +325,9 @@ function buildElementNode(
       cropY: 0,
       clipPath: null,
       borderRadius: el.cornerRadius ?? el.radius ?? 0,
+      // The Go side stamps credit onto image elements whose URL came from
+      // search_unsplash, so the placed photo keeps its attribution.
+      credit: normalizeImageCredit(el.credit),
     };
   }
   if (el.type === "sticker" && el.stickerName) {

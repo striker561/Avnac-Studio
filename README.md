@@ -1,418 +1,154 @@
 <p align="center">
-  <img src="build/appicon.png" width="120" alt="Avnac Studio" />
+  <img src="build/appicon.png" width="116" alt="Avnac Studio" />
 </p>
 
 <h1 align="center">Avnac Studio</h1>
 
+<h3 align="center">
+  A native desktop design canvas for layouts, posters, social graphics,<br />
+  and visual documents. Built on Wails and Go.
+</h3>
+
 <p align="center">
-  The native desktop version of <a href="https://github.com/akinloluwami/avnac">Avnac</a>, a design canvas for layouts, posters, social graphics, and visual documents.
+  <a href="https://github.com/striker561/Avnac-Studio/actions/workflows/ci.yml"><img src="https://github.com/striker561/Avnac-Studio/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/striker561/Avnac-Studio/releases/latest"><img src="https://img.shields.io/github/v/release/striker561/Avnac-Studio?style=flat-square&label=release&color=brightgreen" alt="Latest release" /></a>
+  <img src="https://img.shields.io/github/license/striker561/avnac-studio?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platforms" />
+  <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go 1.25" />
+  <img src="https://img.shields.io/badge/Wails-v2-DF0000?style=flat-square" alt="Wails v2" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/striker561">
-    <img src="https://github.com/striker561.png" width="56" height="56" style="border-radius:100%;" alt="striker561" />
-  </a>
-  <a href="https://github.com/d3uceY">
-    <img src="https://github.com/d3uceY.png" width="56" height="56" style="border-radius:100%;" alt="d3uceY" />
-  </a>
-  <br />
-  <sub><b>Desktop port maintained by <a href="https://github.com/striker561">striker561</a> &amp; <a href="https://github.com/d3uceY">d3uceY</a></b></sub>
+  <a href="#download">Download</a> ·
+  <a href="#ai-agents-can-design-here">MCP server</a> ·
+  <a href="docs/MCP_GUIDE.md">Docs</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+<div align="center">
+  <figure>
+    <img src="https://github.com/user-attachments/assets/519ffe1c-9de9-4238-8303-8e89916ff640" width="78%" alt="Avnac Studio with a poster open in the canvas editor" />
+    <figcaption>
+      <sub>A poster placed entirely through MCP calls, open in the editor.</sub>
+    </figcaption>
+  </figure>
+</div>
+
+<h2 align="center" id="download">Download</h2>
+
+<p align="center">
+  <a href="https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-windows-amd64-installer.exe"><img src="https://img.shields.io/badge/Windows_Installer-.exe_amd64-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" /></a>
+  <a href="https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-macos-arm64.dmg"><img src="https://img.shields.io/badge/macOS_Apple_Silicon-arm64-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS Apple Silicon" /></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/license/striker561/avnac-studio" alt="GitHub License">
+  <a href="https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-macos-amd64.dmg"><img src="https://img.shields.io/badge/macOS_Intel-x86__64-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS Intel" /></a>
+  <a href="https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-linux-amd64"><img src="https://img.shields.io/badge/Linux_Binary-amd64-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download for Linux" /></a>
 </p>
 
-Designed on the browser, openly now built for desktop.
-
-<img width="1593" height="910" alt="Image" src="https://github.com/user-attachments/assets/7a14bc5f-cfd7-48b7-af99-8c0625fac8ed" />
-
-## ⬇️ Download
-
-<a href="https://github.com/striker561/Avnac-Studio/releases/latest"><img src="https://img.shields.io/github/v/release/striker561/Avnac-Studio?style=flat-square&label=latest%20release&color=brightgreen" alt="Latest Release" /></a>
-
-### 🪟 Windows
-
-[![Download for Windows](https://img.shields.io/badge/Windows_Installer-.exe_%E2%80%94_amd64-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-windows-amd64-installer.exe)
-
-### 🍎 macOS
-
-[![Download for macOS - Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-arm64-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-macos-arm64.dmg)
-
-[![Download for macOS - Intel](https://img.shields.io/badge/macOS_Intel-x86__64-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-macos-amd64.dmg)
-
-### 🐧 Linux
-
-[![Download for Linux](https://img.shields.io/badge/Linux_Binary-amd64-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-linux-amd64)
+<p align="center">
+  <sub>Maintained by <a href="https://github.com/striker561">striker561</a> &amp; <a href="https://github.com/d3uceY">d3uceY</a></sub>
+</p>
 
 ---
 
-> **Upstream Notice:** The `main` branch of this repository is a mirror of the original web app by [@akinloluwami](https://github.com/akinloluwami) at [akinloluwami/avnac](https://github.com/akinloluwami/avnac). All desktop-specific work lives on the **`studio`** branch, which is the default branch of this fork.
+## A desktop app, not a browser tab
+
+The web app needs an Elysia backend for media, Unsplash and documents, and keeps your work in IndexedDB. Studio puts that backend inside the binary and writes your files to the operating system.
+
+|         | Avnac Studio                  | Avnac (web)                       |
+| ------- | ----------------------------- | --------------------------------- |
+| Runtime | Wails + Go, system webview    | Browser + Node backend            |
+| Backend | None, it is inside the binary | Elysia service to run and restart |
+| Storage | Native app data directory     | IndexedDB                         |
+| Export  | Native OS save dialogs        | Browser download                  |
+| Offline | Fully, after install          | Partial                           |
+
+Existing browser documents are migrated on first run, so nothing is lost in the move.
 
 ---
 
-## Why the Desktop Version?
+## What it does
 
-Avnac Studio is a native desktop app built with [Wails](https://wails.io/) + Go. It is not a browser tab, and it is not Electron.
+**Files.** Create from presets or custom dimensions, then open, duplicate, rename, delete, import and export from the Files screen. Autosave on every change, no manual saving.
 
-|                     | Avnac Studio (desktop)                  | Avnac (web)                              |
-| ------------------- | --------------------------------------- | ---------------------------------------- |
-| **Runtime**         | Native Wails + Go binary                | Browser / Node backend                   |
-| **Memory usage**    | Very low - no Chromium process overhead | Browser-dependent                        |
-| **Executable size** | Lightweight single binary               | N/A (web app)                            |
-| **File storage**    | Native OS app data directory            | IndexedDB (browser storage)              |
-| **Media proxy**     | Built directly into the app binary      | Separate backend service                 |
-| **HTTP backend**    | None required                           | Elysia backend for media, Unsplash, auth |
-| **Startup time**    | Fast - no cold boot of a server         | Depends on backend startup               |
-| **Offline use**     | Fully offline after install             | Partial                                  |
-| **Export**          | Native file save dialogs                | Browser download                         |
+**Canvas.** Text, rectangles, ellipses, polygons, stars, lines and arrows. Images from local uploads or Unsplash, with one-click background removal. Multi-select, group, reorder layers, align, distribute, resize and rotate.
 
-In short: Avnac Studio starts fast, uses very little memory, ships as a light executable, needs no running HTTP backend, and persists your files to the OS natively - not to your browser.
+**Styling.** Solid, gradient or image fills. Blur, opacity, corner radius, shadows, stroke and paint controls. Google Fonts, with size, weight and alignment.
+
+**Documents.** Multi-page workspaces with per-page state, and nested vector boards for reusable components or isolated drawing areas.
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/58e26032-1362-4c14-88f5-ca0c0893411e" height="228" alt="The Files screen" />
+  &nbsp;
+  <img src="https://github.com/user-attachments/assets/c340c44b-4703-49e1-8c5e-35a53e71d89d" height="228" alt="The canvas editor with a poster open" />
+</p>
 
 ---
 
-## What the App Can Do
+## AI agents can design here
 
-### Create and manage files
+Studio ships a built-in [Model Context Protocol](https://modelcontextprotocol.io) server, so an agent in Cursor, Claude Code or VS Code can create and edit a design that is already open on your screen.
 
-- Create canvases from presets or custom dimensions
-- Manage files from the Files screen - open, duplicate, rename, delete, import, and download workspace data
-- Autosave to native app storage on every change - no manual saving required
+It is opt-in. Turn it on in **Settings → MCP server**, which binds it to `127.0.0.1`, shows the connect URL, and stores the bearer token in your OS keyring. Only loopback connections are accepted, there is no wildcard CORS, and request bodies are capped at 32 MiB.
 
-<!-- screenshot: files screen showing file grid and management actions -->
-<img width="1575" height="981" alt="image" src="https://github.com/user-attachments/assets/58e26032-1362-4c14-88f5-ca0c0893411e" />
+The server exposes 27 tools covering files, canvas setup, element creation, layout, assets, and screenshot-based self-verification, plus three prompt workflows: `design-graphic`, `edit-canvas` and `design-audit`.
 
----
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a9ae66f9-c7bc-4faf-983e-7767a8fac0f5" height="300" alt="A dark poster designed by an agent through MCP" />
+</p>
 
-### Full canvas editor
-
-- Edit text, shapes (rectangles, ellipses, polygons, stars), lines, and arrows directly on the canvas
-- Add and crop images from local uploads or Unsplash
-- Remove image backgrounds with one click
-- Multi-select, group/ungroup, reorder layers, and align objects
-- Resize, rotate, and position elements with precision controls
-
-<!-- screenshot: canvas editor with a poster layout open -->
-<img width="1918" height="1126" alt="image" src="https://github.com/user-attachments/assets/c340c44b-4703-49e1-8c5e-35a53e71d89d" />
+Client setup for Cursor, Claude Code and VS Code, the full tool reference, and test prompts live in **[docs/MCP_GUIDE.md](docs/MCP_GUIDE.md)**.
 
 ---
 
-### Layers, styling, and effects
+## Saraswati engine
 
-- Full layer panel with visibility and ordering controls
-- Background fill - solid, gradient, or image
-- Blur, opacity, corner radius, and shadow controls per element
-- Stroke and paint popover controls
-- Text formatting: font family (including Google Fonts), size, weight, alignment
+Saraswati is the renderer-agnostic 2D scene engine the editor runs on. It owns document structure, interaction math and bounds, and emits a render-command pipeline. The Canvas2D backend consumes those commands without owning scene state, and every mutation goes through a pure command reducer. That is what lets undo, redo and the MCP layer sit on the same path as the UI instead of beside it. Fabric has been removed.
 
-<!-- screenshot: layer panel and element styling controls -->
-<img width="1912" height="1117" alt="image" src="https://github.com/user-attachments/assets/d92a2277-7fe5-439a-bc72-e03a8bdafe18" />
+Design rationale and the rules that keep that boundary intact are in **[docs/saraswati-engine.md](docs/saraswati-engine.md)** and **[docs/saraswati-architecture-decisions.md](docs/saraswati-architecture-decisions.md)**.
 
 ---
 
-### Multi-page workspaces
+## Documentation
 
-- Build documents across multiple pages in a single workspace
-- Per-page state is stored independently in native storage
-- Import and export individual pages or entire workspaces as portable files
-
-<!-- screenshot: multi-page workspace with page tabs -->
-<img width="1907" height="1120" alt="image" src="https://github.com/user-attachments/assets/b0a5c42a-7a47-4beb-87e6-001bb1c273e5" />
-
----
-
-### Vector boards
-
-- Embed nested vector-board drawing areas inside your canvas
-- Vector boards are independently editable and stored separately from the main document
-- Useful for components, reusable elements, or isolated drawing zones
-
-<!-- screenshot: vector board panel and embedded vector board on canvas -->
-<img width="1913" height="1055" alt="image" src="https://github.com/user-attachments/assets/7ab9b13e-e514-4f5a-a522-07764e0cc602" />
+| Document                                             | What it covers                                                                                                                                                   |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [docs/MCP_GUIDE.md](docs/MCP_GUIDE.md)               | Connecting an MCP client, all 27 tools, prompt workflows                                                                                                         |
+| [docs/saraswati-engine.md](docs/saraswati-engine.md) | Scene graph, command pipeline, renderer boundary. The decisions behind it are in [saraswati-architecture-decisions.md](docs/saraswati-architecture-decisions.md) |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                   | Setup, dependency policy, storage layout, project structure, PR guidelines                                                                                       |
 
 ---
 
-### Export
-
-- Export canvases as PNG with scale and transparency options
-- Native file save dialog - exports go directly to your filesystem
-- Export workspace or page data as portable JSON files
-
-<img width="1914" height="1115" alt="image" src="https://github.com/user-attachments/assets/18015d4a-0586-4dab-b49e-e7b3704ca6d4" />
-
----
-
-## 🤖 Let AI Agents Design — Built-in MCP Server
-
-Avnac Studio ships with a built-in [Model Context Protocol](https://modelcontextprotocol.io) server. While the app is running, any MCP client — Cursor, Claude Desktop, Windsurf, MCPJam Inspector, and more — can create, inspect, and edit designs on your canvas in real time.
-
-Every design below was created end-to-end by an AI agent driving Avnac Studio through MCP.
-
-| Event flyer | Packaging study | App splash |
-| --- | --- | --- |
-| <img src="docs/images/mcp-ramen-flyer.png" width="300" alt="Grand Opening Ramen Flyer designed via MCP" /> | <img src="docs/images/mcp-nocturne-packaging.png" width="300" alt="Nocturne packaging study designed via MCP" /> | <img src="docs/images/mcp-sweet-route-collage.png" width="300" alt="Sweet Route sticker collage designed via MCP" /> |
-
-The flyer pulls photos from Unsplash; the packaging study and splash use shapes, text, and built-in stickers — all rendered by the same Saraswati engine you drive by hand.
-
-### Connecting an agent
-
-The server is **opt-in**: enable it in **Avnac Studio → Settings → MCP server**, which binds it to `127.0.0.1` on a fixed default port (with a free-port fallback when taken) and shows the exact connect URL and bearer token (stored in your OS keyring). Copy both into your MCP client — every request must send the token as an `Authorization: Bearer` header.
-
-| Transport | Endpoint | Best for |
-| --- | --- | --- |
-| **Streamable HTTP** (recommended) | the URL shown in Settings | Cursor, Claude Code, VS Code, MCPJam |
-| SSE (legacy) | the URL shown in Settings + `/sse` | SSE-only clients |
-
-**Cursor** — add to `.cursor/mcp.json` (or project `.cursor/mcp.json`):
-
-```json
-{
-  "mcpServers": {
-    "avnac-studio": {
-      "url": "http://127.0.0.1:<port-from-settings>/",
-      "headers": {
-        "Authorization": "Bearer <token-from-settings>"
-      }
-    }
-  }
-}
-```
-
-**Claude Code** — run:
-
-```bash
-claude mcp add --transport http avnac-studio http://127.0.0.1:<port-from-settings>/ --header "Authorization: Bearer <token-from-settings>"
-```
-
-> Tip: open the connect URL in any browser (no token needed) to confirm the server is up before connecting a client.
-
-### What agents can do — 27 tools
-
-- **Files** — `list_files`, `open_canvas`, `rename_file` (work even with no canvas open)
-- **Canvas setup** — `create_canvas` (size, background, name), `apply_artboard_preset` (IG, HD, A4…), `set_background`, `clear_canvas`, `get_canvas_summary`
-- **Create & edit** — `render_elements` creates rects, ellipses, polygons, stars, lines, text, images, and stickers in one call (solid or gradient paints); `modify_elements`, `delete_object`, `group_objects` / `ungroup_objects`
-- **Layout** — `align_objects`, `distribute_objects`, `fit_to_artboard`
-- **Assets** — `search_unsplash`, `list_stickers`, `get_font_list` (Google Fonts)
-- **Verify & export** — `get_canvas_image` (screenshot so the agent can visually check its own work), `get_object_properties`, `export_png`, `export_object`
-
-Three ready-made workflows ship as MCP prompts: **`design-graphic`** (write a brief → render → screenshot audit → verify against the request), **`edit-canvas`** (diff-oriented edits on the open design), and **`design-audit`** (critique + fix the most impactful issues).
-
-### Try it
-
-With the app open, tell your agent:
-
-> Design a grand-opening flyer for a ramen shop — 1080×1350, bold Japanese comfort-food energy, appetizing photography.
-
-The agent creates the canvas, pulls photography from Unsplash, renders typography and shapes, screenshots the artboard to review itself, and exports the final PNG — all through the protocol.
-
-Full tool reference, prompt details, and client-by-client setup: [`docs/MCP_GUIDE.md`](docs/MCP_GUIDE.md) · [`docs/MCP_TEST_PROMPTS.md`](docs/MCP_TEST_PROMPTS.md).
-
----
-
-## What's Different from the Web App
-
-The original [Avnac web app](https://github.com/akinloluwami/avnac) is a browser-first editor. Avnac Studio is a ground-up desktop port of that product. Here is what changed:
-
-- **No separate backend.** The web app uses an Elysia/TypeScript backend for media proxying, Unsplash, and documents. In Avnac Studio, all of that is handled inside the Go runtime - the media proxy, Unsplash integration, and file IO are part of the app binary itself.
-- **Native file storage.** The web app stores documents in IndexedDB. Avnac Studio writes to the OS app data directory using a structured per-workspace folder layout. Files survive browser resets and profile wipes.
-- **One-time browser storage migration.** On first run after switching to native storage, the app migrates any existing browser-local documents so nothing is lost.
-- **Native export dialogs.** Exporting in the web app triggers a browser download. Avnac Studio opens a native OS save dialog.
-- **No Node or Deno process.** The entire backend surface is a Go binary. There is no npm service to run, no port to remember, no server to restart.
-- **Lightweight.** The compiled binary is small. There is no bundled Chromium (unlike Electron). The app uses the system webview.
-
----
-
-## Tech Stack
+## Tech stack
 
 - **Frontend:** React, Vite, TypeScript, Tailwind CSS, TanStack Router
-- **Desktop runtime:** Wails v2 + Go
-- **Canvas/runtime engine:** Saraswati (Canvas2D renderer) under `frontend/src/lib/saraswati/`
-- **AI UI/runtime:** `@tambo-ai/react`
-
----
-
-## Saraswati Engine
-
-Avnac Studio runs on Saraswati, a renderer-agnostic 2D scene engine.
-
-Fabric has been sunset and removed from the active editor runtime. Saraswati now owns document structure, commands, interaction translation, and rendering intent.
-
-Current Saraswati slice:
-
-- strict scene graph and scene validation
-- pure command reducer
-- render-command pipeline
-- Canvas2D renderer in the active editor path
-- deterministic interaction math and bounds system
-- workspace integration across files, pages, and vector boards
-
-Important boundary:
-
-- Saraswati state remains renderer-independent
-- render backends consume commands but do not own scene truth
-- UI surfaces dispatch commands instead of mutating scene objects directly
-
-Expected impact so far:
-
-- predictable undo/redo and state transitions through command reduction
-- lower runtime coupling between editor logic and rendering implementation
-- safer long-term renderer replacement because scene and command logic are separated from backend details
-
-Formal benchmarks are not published yet, but the architecture is now in place as the primary runtime path.
-
-Detailed design and rules live in [docs/saraswati-engine.md](./docs/saraswati-engine.md).
-
-If you are interested in the architecture rationale and migration details, read [docs/saraswati-architecture-decisions.md](./docs/saraswati-architecture-decisions.md).
-
----
-
-## Project Structure
-
-```text
-frontend/       React UI, editor, routes, native client wrappers
-avnac-system/   Go services for config, IO, workspace storage, and media proxy
-app.go          Wails app bootstrap and service wiring
-main.go         Wails runtime setup and bindings
-```
-
----
-
-## Native Workspace Storage
-
-Each file gets a dedicated folder in the OS app config directory:
-
-```text
-<UserConfigDir>/avnac-studio/documents/<workspace-id>/
-  meta.json
-  document.json
-  pages.json
-  vector-boards.json
-  vector-board-docs.json
-```
-
-- `meta.json` powers the Files list quickly without loading full canvas data
-- `document.json` stores the main Saraswati document payload
-- `pages.json` stores page-level workspace state
-- `vector-boards.json` and `vector-board-docs.json` store vector board state
+- **Desktop runtime:** Wails v2 and Go
+- **Canvas engine:** Saraswati, Canvas2D renderer
+- **AI UI:** `@tambo-ai/react`
 
 ---
 
 ## Development
 
-### Prerequisites
-
-- Go (compatible with this repo's `go.mod`)
-- Node.js 22 + npm 10
-- Wails CLI v2
-
-If you use `nvm`, this repo includes `.nvmrc`, so run `nvm use` before installing frontend dependencies.
-
 ```bash
-go install github.com/wailsapp/wails/v2/cmd/wails@latest
-wails doctor
-```
-
-### Desktop App (Recommended)
-
-```bash
-cd frontend
-npm ci
-cd ..
+cd frontend && npm ci && cd ..
 wails dev
 ```
 
-### Frontend Only (UI work)
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-Vite runs at `http://localhost:3300`. Native features (file storage, export dialogs, Unsplash config) require the full Wails runtime.
-
-### Contributor Note: Dependency Installs
-
-- Day-to-day setup and CI/CD use `npm ci`, not `npm install`.
-- `npm ci` installs exactly what is in `frontend/package-lock.json` and fails if the lockfile and `frontend/package.json` are out of sync.
-- Use `npm install` only when you are intentionally adding, removing, or updating dependencies.
-- If dependency metadata changes, commit `frontend/package.json` and `frontend/package-lock.json` together in the same commit.
-- If `frontend/package-lock.json` changed accidentally, revert it before pushing. CI and release builds rely on it being clean and deterministic.
-
-### Production Build
-
-```bash
-wails build
-```
-
-Build output goes to `build/bin/`.
+Go version, Node version, the dependency workflow, the full command list and the PR guidelines are all in **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ---
 
-## Useful Commands
+## Upstream
 
-**Frontend:**
-
-```bash
-cd frontend
-npm run dev
-npm run build
-npm run test          # all unit + feature tests
-npm run test:unit
-npm run test:features
-npm exec tsc -- --noEmit --pretty false
-```
-
-**Go:**
-
-```bash
-go test ./...
-go build ./...
-```
-
----
-
-## Where To Work
-
-| Area                                      | Path                          |
-| ----------------------------------------- | ----------------------------- |
-| Editor UI and behavior                    | `frontend/src/components/`    |
-| Routes and navigation                     | `frontend/src/routes/`        |
-| Frontend storage and document logic       | `frontend/src/lib/`           |
-| Saraswati engine and renderer migration   | `frontend/src/lib/saraswati/` |
-| Native IO, config, and workspace services | `avnac-system/`               |
-
----
-
-## Port Maintainers
-
-This desktop port is maintained by:
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/striker561">
-        <img src="https://github.com/striker561.png" width="80" alt="striker561" /><br />
-        <b>striker561</b>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/d3uceY">
-        <img src="https://github.com/d3uceY.png" width="80" alt="d3uceY" /><br />
-        <b>d3uceY</b>
-      </a>
-    </td>
-  </tr>
-</table>
+The `main` branch is a mirror of the original web app by [@akinloluwami](https://github.com/akinloluwami) at [akinloluwami/avnac](https://github.com/akinloluwami/avnac). All desktop work lives on **`studio`**, which is the default branch. Open issues and pull requests against `studio`, never `main`.
 
 ---
 
 ## Credits
 
 Original Avnac web app created by [@akinloluwami](https://github.com/akinloluwami).
-Source: [github.com/akinloluwami/avnac](https://github.com/akinloluwami/avnac)
-
----
 
 ## License
 

@@ -50,13 +50,12 @@ Vite starts at `http://localhost:3300`. Native features (file storage, export di
 
 ## Dependency Workflow (Important)
 
-This project treats `frontend/package-lock.json` as a source-controlled build input. CI, release builds, and Wails frontend installs use `npm ci` so builds stay deterministic.
+`frontend/package-lock.json` is source-controlled and has to stay in sync with `frontend/package.json`. Note that the CI workflow, the four release jobs and `wails.json`'s `frontend:install` all currently run `npm install`, so the lockfile is not enforced as a build input today. Locally, `npm ci` is still the right command when you want an install that matches the lockfile exactly.
 
-- Use `npm ci` for normal setup, local verification, CI, and release builds.
+- Use `npm ci` for a clean local install, or to verify the lockfile is consistent.
 - Use `npm install` only when you intentionally change dependencies.
 - If `frontend/package.json` changes, commit the matching `frontend/package-lock.json` update in the same commit.
 - If `frontend/package-lock.json` changed but you did not mean to change dependencies, revert it before pushing.
-- Do not rely on `npm install` to "fix" a broken lockfile for CI. CI is supposed to fail when the repo state is inconsistent.
 
 In practice:
 
@@ -68,13 +67,40 @@ In practice:
 
 ## Where Things Live
 
-| Area | Path |
-|---|---|
-| Editor UI and behavior | `frontend/src/components/` |
-| Routes and navigation | `frontend/src/routes/` |
-| Frontend storage and document logic | `frontend/src/lib/` |
-| Native IO, config, and workspace services | `avnac-system/` |
-| Wails app bootstrap | `app.go`, `main.go` |
+```text
+frontend/       React UI, editor, routes, native client wrappers
+avnac-system/   Go services: config, IO, workspace storage, media proxy, MCP server
+app.go          Wails app bootstrap and service wiring
+main.go         Wails runtime setup and bindings
+```
+
+| Area                                      | Path                       |
+| ----------------------------------------- | -------------------------- |
+| Editor UI and behavior                    | `frontend/src/components/` |
+| Routes and navigation                     | `frontend/src/routes/`     |
+| Frontend storage and document logic       | `frontend/src/lib/`        |
+| Native IO, config, and workspace services | `avnac-system/`            |
+| Wails app bootstrap                       | `app.go`, `main.go`        |
+
+---
+
+## Native Workspace Storage
+
+Each document gets its own folder in the OS app config directory:
+
+```text
+<UserConfigDir>/avnac-studio/documents/<workspace-id>/
+  meta.json
+  document.json
+  pages.json
+  vector-boards.json
+  vector-board-docs.json
+```
+
+- `meta.json` powers the Files list without loading full canvas data
+- `document.json` holds the main Saraswati document payload
+- `pages.json` holds page-level workspace state
+- `vector-boards.json` and `vector-board-docs.json` hold vector board state
 
 ---
 

@@ -139,6 +139,7 @@ export default function TextFormatToolbar({
       ref={rootRef}
       role="toolbar"
       aria-label="Text formatting"
+      className="flex-wrap"
     >
       {leadingSlot ? (
         <>

@@ -1,7 +1,7 @@
 import { forwardRef, type ReactNode } from 'react'
 
 const shellClass =
-  'pointer-events-auto z-10 inline-flex max-w-[min(100vw-2rem,760px)] items-stretch overflow-visible rounded-[999px] border border-black/10 bg-white/90 shadow-[0_8px_28px_rgba(0,0,0,0.12)] backdrop-blur-xl'
+  'pointer-events-auto z-10 inline-flex max-w-full items-stretch overflow-visible rounded-[999px] border border-black/10 bg-white/90 shadow-[0_8px_28px_rgba(0,0,0,0.12)] backdrop-blur-xl'
 
 type ShellProps = {
   children: ReactNode

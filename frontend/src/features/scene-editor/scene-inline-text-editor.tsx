@@ -1,5 +1,5 @@
 import { getNodeBounds, type SaraswatiScene } from "@/lib/saraswati";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { NEW_TEXT_PLACEHOLDER } from "./store/insert-store";
 
 type Props = {
@@ -49,6 +49,15 @@ export default function SceneInlineTextEditor({
     else element.setSelectionRange(end, end);
   }, [edit.nodeId]);
 
+  const minHeight = box?.minHeight ?? 0;
+  const boxWidth = box?.width ?? 0;
+  useLayoutEffect(() => {
+    const element = textareaRef.current;
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${Math.max(minHeight, element.scrollHeight)}px`;
+  }, [edit.value, minHeight, boxWidth]);
+
   if (!box) return null;
 
   return (
@@ -81,7 +90,7 @@ export default function SceneInlineTextEditor({
           }
         }}
         autoFocus
-        className="h-full w-full resize-none whitespace-pre-wrap break-words border-0 bg-transparent p-0 text-neutral-900 outline-none ring-0"
+        className="w-full resize-none overflow-hidden whitespace-pre-wrap break-words border-0 bg-transparent p-0 text-neutral-900 outline-none ring-0"
         style={{
           minHeight: box.minHeight,
           fontFamily: box.node.fontFamily,

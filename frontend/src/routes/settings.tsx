@@ -274,6 +274,7 @@ export const Route = createFileRoute("/settings")({
       updateAvailable,
       isChecking,
       lastChecked,
+      checkError,
       checkNow,
     } = useUpdateCheck();
 
@@ -872,6 +873,21 @@ export const Route = createFileRoute("/settings")({
                             Download {updateAvailable.latestVersion}
                           </button>
                         </div>
+                      </div>
+                    ) : checkError ? (
+                      <div className="flex items-start gap-2 text-sm text-[var(--text-muted)]">
+                        <HugeiconsIcon
+                          icon={AlertDiamondIcon}
+                          size={16}
+                          strokeWidth={1.75}
+                          className="mt-0.5 shrink-0 text-amber-500"
+                        />
+                        <span>
+                          Could not check for updates.
+                          <span className="block text-xs text-[var(--text-muted)]">
+                            {checkError} — try again in a few minutes.
+                          </span>
+                        </span>
                       </div>
                     ) : lastChecked ? (
                       <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">

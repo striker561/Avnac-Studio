@@ -1,5 +1,6 @@
 import { getNodeBounds, type SaraswatiScene } from "@/lib/saraswati";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { NEW_TEXT_PLACEHOLDER } from "./store/insert-store";
 
 type Props = {
   scene: SaraswatiScene;
@@ -37,6 +38,17 @@ export default function SceneInlineTextEditor({
     };
   }, [edit.nodeId, scale, scene]);
 
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const element = textareaRef.current;
+    if (!element) return;
+    element.focus();
+    const end = element.value.length;
+    if (element.value === NEW_TEXT_PLACEHOLDER) element.select();
+    else element.setSelectionRange(end, end);
+  }, [edit.nodeId]);
+
   if (!box) return null;
 
   return (
@@ -54,6 +66,7 @@ export default function SceneInlineTextEditor({
       }}
     >
       <textarea
+        ref={textareaRef}
         value={edit.value}
         onChange={(event) => onChange(event.currentTarget.value)}
         onBlur={onCommit}

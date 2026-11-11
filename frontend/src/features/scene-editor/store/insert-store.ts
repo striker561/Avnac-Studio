@@ -12,6 +12,10 @@ import type {
   SaraswatiRectNode,
   SaraswatiTextNode,
 } from "@/lib/saraswati/types";
+import { requestInlineTextEdit } from "@/features/scene-editor/inline-text-edit-bridge";
+
+/** Text a new text node is created with; the editor selects it so typing replaces it. */
+export const NEW_TEXT_PLACEHOLDER = "Edit this text";
 
 export type SceneEditorInsertContext = {
   scene: SaraswatiScene | null;
@@ -285,8 +289,9 @@ export function insertText(context: SceneEditorInsertContext) {
   const parentId = resolveInsertParent(context.scene, context.selectedIds);
   const seed = resolveInsertSeed(context.scene, parentId);
   const pos = makeInsertPosition(context.scene, seed + 2);
+  const id = crypto.randomUUID();
   addSceneNode(context, {
-    id: crypto.randomUUID(),
+    id,
     type: "text",
     parentId,
     name: "Text",
@@ -299,7 +304,7 @@ export function insertText(context: SceneEditorInsertContext) {
     opacity: 1,
     originX: "left",
     originY: "top",
-    text: "Edit this text",
+    text: NEW_TEXT_PLACEHOLDER,
     width: 360,
     fontSize: 54,
     fontFamily: "Inter",
@@ -312,6 +317,7 @@ export function insertText(context: SceneEditorInsertContext) {
     stroke: null,
     strokeWidth: 0,
   });
+  requestInlineTextEdit(id);
 }
 
 export function insertImage(context: SceneEditorInsertContext) {

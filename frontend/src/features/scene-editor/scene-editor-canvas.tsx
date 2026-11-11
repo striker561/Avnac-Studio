@@ -12,6 +12,10 @@ import { readSceneDropIntent } from "./scene-drop-intent";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SceneInlineTextEditor from "./scene-inline-text-editor";
 import {
+  consumeInlineTextEdit,
+  subscribeInlineTextEdit,
+} from "./inline-text-edit-bridge";
+import {
   isChromeTarget,
   isTextEntryTarget,
   readNavigatorClipboardImageFiles,
@@ -102,9 +106,22 @@ export default function SceneEditorCanvas({
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const [inlineTextEdit, setInlineTextEdit] =
     useState<InlineTextEditState | null>(null);
+  const [pendingTextEditId, setPendingTextEditId] = useState<string | null>(null);
   const [viewportPanCursor, setViewportPanCursor] = useState<
     "grab" | "grabbing" | null
   >(null);
+
+  useEffect(() => subscribeInlineTextEdit(setPendingTextEditId), []);
+
+  useEffect(() => {
+    if (!pendingTextEditId || !scene) return;
+    const node = scene.nodes[pendingTextEditId];
+    if (!node || node.type !== "text") return;
+    consumeInlineTextEdit(pendingTextEditId);
+    setPendingTextEditId(null);
+    setSelectedIds([pendingTextEditId]);
+    setInlineTextEdit({ nodeId: pendingTextEditId, value: node.text });
+  }, [pendingTextEditId, scene, setSelectedIds]);
 
   useEffect(() => {
     const element = scrollContainerRef.current;

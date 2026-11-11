@@ -823,7 +823,7 @@ export default function SceneEditorPage({ documentId }: Props) {
           <div className="relative flex min-h-0 flex-1">
             <SceneEditorCanvas
               shortcutsOpen={shortcutsOpen}
-              onOpenShortcuts={() => setShortcutsOpen(true)}
+              onToggleShortcuts={() => setShortcutsOpen((open) => !open)}
               onCloseShortcuts={() => setShortcutsOpen(false)}
               developerMode={developerMode}
             />

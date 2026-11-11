@@ -45,14 +45,14 @@ type InlineTextEditState = {
 type Props = {
   shortcutsOpen: boolean;
   onCloseShortcuts: () => void;
-  onOpenShortcuts: () => void;
+  onToggleShortcuts: () => void;
   developerMode?: boolean;
 };
 
 export default function SceneEditorCanvas({
   shortcutsOpen,
   onCloseShortcuts,
-  onOpenShortcuts,
+  onToggleShortcuts,
   developerMode = false,
 }: Props) {
   const scene = useSceneEditorStore((s) => s.scene);
@@ -485,7 +485,7 @@ export default function SceneEditorCanvas({
         lastScenePointRef.current,
       );
     },
-    onShowShortcuts: onOpenShortcuts,
+    onShowShortcuts: onToggleShortcuts,
   });
 
   const { contextMenu, setContextMenu, onCanvasContextMenu } =

@@ -242,7 +242,7 @@ export default function NewCanvasDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         className={[
-          "relative z-[1] w-full overflow-hidden rounded-[2rem] border border-[var(--line)] bg-[var(--surface)]/95 p-6 backdrop-blur-md sm:p-8",
+          "relative z-[1] max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain rounded-[2rem] border border-[var(--line)] bg-[var(--surface)]/95 p-6 backdrop-blur-md sm:p-8",
           editorUnsupported
             ? "max-w-lg"
             : mode === "presets"

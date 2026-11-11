@@ -149,6 +149,24 @@ export type SaraswatiTextNode = SaraswatiNodeBase & {
   clipPathStack?: SaraswatiClipPath[];
 };
 
+/**
+ * Attribution for a stock photo placed on the canvas.
+ *
+ * Unsplash requires the photographer and Unsplash to be credited wherever a
+ * photo is used, so the credit is stored on the node and survives save/load
+ * instead of disappearing with the search results that produced it. Links
+ * carry utm parameters, as their API guidelines require.
+ */
+export type SaraswatiImageCredit = {
+  source: string;
+  photoId: string;
+  photographer: string;
+  photographerUrl: string;
+  photoUrl: string;
+  /** Ready-to-place credit line, e.g. "Photo by Ada on Unsplash". */
+  text: string;
+};
+
 export type SaraswatiImageNode = SaraswatiNodeBase & {
   type: "image";
   width: number;
@@ -161,6 +179,8 @@ export type SaraswatiImageNode = SaraswatiNodeBase & {
   cropHeight?: number;
   clipPath: SaraswatiClipPath | null;
   clipPathStack?: SaraswatiClipPath[];
+  /** Stock-photo attribution, present when the image came from Unsplash. */
+  credit?: SaraswatiImageCredit | null;
 };
 
 export type SaraswatiGroupNode = {

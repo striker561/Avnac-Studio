@@ -1,4 +1,11 @@
 import { Photos, Search, Download } from '../../wailsjs/go/avnacserver/UnsplashService'
+import {
+  normalizeImageCredit,
+  unsplashReferralLink,
+  type SaraswatiImageCredit,
+} from './saraswati'
+
+export { unsplashReferralLink }
 
 /** Max width or height when placing a photo on the canvas (keeps inserts view-sized). */
 export const UNSPLASH_PLACE_MAX_EDGE_PX = 800
@@ -65,4 +72,25 @@ export async function fetchUnsplashSearch(
 
 export async function trackUnsplashDownload(downloadLocation: string): Promise<void> {
   await Download(downloadLocation)
+}
+
+/**
+ * Builds the attribution record for a photo the user is about to place.
+ *
+ * Unsplash requires the photographer and Unsplash to be credited wherever a
+ * photo is used, so the credit is stored on the image node (and shown in the
+ * editor) instead of vanishing with the search results. Both links carry the
+ * utm parameters their guidelines require.
+ */
+export function unsplashCreditForPhoto(photo: UnsplashPhoto): SaraswatiImageCredit | null {
+  const photographer = photo.user?.name?.trim() ?? ''
+  if (!photographer) return null
+  return normalizeImageCredit({
+    source: 'unsplash',
+    photoId: photo.id,
+    photographer,
+    photographerUrl: unsplashReferralLink(photo.user.links.html),
+    photoUrl: unsplashReferralLink(photo.links.html),
+    text: `Photo by ${photographer} on Unsplash`,
+  })
 }

@@ -1,9 +1,11 @@
 /**
- * Stable runtime surface that the Tambo agent uses to manipulate the main
- * Fabric canvas. Built inside `FabricEditor` where it can close over the
- * canvas refs; consumers receive it as a React ref (null until editor is
- * mounted) so they can defensively no-op when missing.
+ * Stable runtime surface that the editor's AI panels (Images, Apps) and the
+ * MCP server use to manipulate the Saraswati scene. Built inside the scene
+ * editor where it can close over the document refs; consumers receive it via
+ * React context so they can defensively no-op when missing.
  */
+
+import type { SaraswatiImageCredit } from '@/lib/saraswati'
 
 export type AiObjectKind =
   | 'rect'
@@ -97,6 +99,8 @@ export type AiImageSpec = AiPlacement & {
   height?: number
   rotation?: number
   opacity?: number
+  /** Stock-photo attribution to store with the placed image. */
+  credit?: SaraswatiImageCredit | null
 }
 
 export type AiUpdateSpec = {

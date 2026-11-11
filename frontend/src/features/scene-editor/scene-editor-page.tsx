@@ -895,7 +895,7 @@ export default function SceneEditorPage({ documentId }: Props) {
       {/* ── Status bar (developer mode only) ────────────────────────────── */}
       {scene && developerMode && (
         <footer className="flex shrink-0 items-center gap-3 border-t border-black/6 bg-white/90 px-4 py-1.5 text-[11px] text-neutral-500 backdrop-blur">
-          <div className="flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap">
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto whitespace-nowrap">
             <span>
               {scene.artboard.width} × {scene.artboard.height}px
             </span>
@@ -958,15 +958,15 @@ export default function SceneEditorPage({ documentId }: Props) {
                 </span>
               </>
             )}
-            <button
-              type="button"
-              onClick={() => setShortcutsOpen(true)}
-              className="ml-auto rounded-md border border-neutral-300 px-2 py-0.5 text-[11px] font-medium text-neutral-700 transition hover:border-neutral-400 hover:bg-neutral-100"
-              title="Show keyboard shortcuts"
-            >
-              Shortcuts ?
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={() => setShortcutsOpen(true)}
+            className="shrink-0 rounded-md border border-neutral-300 px-2 py-0.5 text-[11px] font-medium text-neutral-700 transition hover:border-neutral-400 hover:bg-neutral-100"
+            title="Show keyboard shortcuts"
+          >
+            Shortcuts ?
+          </button>
         </footer>
       )}
     </div>

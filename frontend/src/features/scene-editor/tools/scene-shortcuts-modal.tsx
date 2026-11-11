@@ -26,6 +26,7 @@ const ROWS: Row[] = [
   { keys: "Middle-mouse drag", action: "Pan viewport" },
   { keys: "Arrow keys", action: "Nudge selection 1px" },
   { keys: "Shift + Arrow keys", action: "Nudge selection 10px" },
+  { keys: "Esc while editing text", action: "Finish editing (keeps the typing)" },
   { keys: "?", action: "Toggle this shortcuts panel" },
 ];
 

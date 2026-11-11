@@ -11,7 +11,6 @@ type Props = {
   scale: number;
   onChange: (value: string) => void;
   onCommit: () => void;
-  onCancel: () => void;
 };
 
 export default function SceneInlineTextEditor({
@@ -20,7 +19,6 @@ export default function SceneInlineTextEditor({
   scale,
   onChange,
   onCommit,
-  onCancel,
 }: Props) {
   const box = useMemo(() => {
     const node = scene.nodes[edit.nodeId];
@@ -81,7 +79,9 @@ export default function SceneInlineTextEditor({
         onBlur={onCommit}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
-            onCancel();
+            event.preventDefault();
+            event.stopPropagation();
+            onCommit();
             return;
           }
           if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {

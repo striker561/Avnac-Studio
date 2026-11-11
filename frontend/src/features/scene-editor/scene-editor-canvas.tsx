@@ -636,7 +636,6 @@ export default function SceneEditorCanvas({
                 )
               }
               onCommit={commitInlineText}
-              onCancel={() => setInlineTextEdit(null)}
             />
           ) : null}
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 const SHOW_DELAY_MS = 450
@@ -33,6 +33,8 @@ function positionTip(el: Element, text: string): TipState {
  */
 export default function NativeTitleTooltip() {
   const [tip, setTip] = useState<TipState | null>(null)
+  const [shift, setShift] = useState({ x: 0, y: 0 })
+  const bubbleRef = useRef<HTMLDivElement | null>(null)
   const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scheduledElRef = useRef<Element | null>(null)
   const activeTargetRef = useRef<Element | null>(null)
@@ -76,6 +78,7 @@ export default function NativeTitleTooltip() {
       const text = stashRef.current.get(el)
       if (!text) return
       activeTargetRef.current = el
+      setShift({ x: 0, y: 0 })
       setTip(positionTip(el, text))
     }
 
@@ -172,14 +175,33 @@ export default function NativeTitleTooltip() {
     }
   }, [])
 
+  useLayoutEffect(() => {
+    const el = bubbleRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    let dx = 0
+    let dy = 0
+    if (r.left < VIEWPORT_PAD) dx = VIEWPORT_PAD - r.left
+    else if (r.right > window.innerWidth - VIEWPORT_PAD)
+      dx = window.innerWidth - VIEWPORT_PAD - r.right
+    if (r.top < VIEWPORT_PAD) dy = VIEWPORT_PAD - r.top
+    else if (r.bottom > window.innerHeight - VIEWPORT_PAD)
+      dy = window.innerHeight - VIEWPORT_PAD - r.bottom
+    if (dx === 0 && dy === 0) return
+    setShift((prev) =>
+      prev.x === dx && prev.y === dy ? prev : { x: dx, y: dy },
+    )
+  }, [tip])
+
   if (!tip) return null
 
   return createPortal(
     <div
-      className="pointer-events-none fixed z-[2147483647] max-w-[min(20rem,calc(100vw-1rem))] rounded-lg bg-neutral-900 px-2.5 py-1.5 text-center text-xs font-medium leading-snug text-white shadow-lg"
+      ref={bubbleRef}
+      className="pointer-events-none fixed z-[2147483647] w-max max-w-[min(20rem,calc(100vw-1rem))] rounded-lg bg-neutral-900 px-2.5 py-1.5 text-center text-xs font-medium leading-snug text-white shadow-lg"
       style={{
-        left: tip.left,
-        top: tip.top,
+        left: tip.left + shift.x,
+        top: tip.top + shift.y,
         transform: tip.placeAbove
           ? 'translate(-50%, -100%)'
           : 'translate(-50%, 0)',

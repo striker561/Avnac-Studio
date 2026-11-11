@@ -18,6 +18,7 @@ export type UseUpdateCheckResult = {
   updateAvailable: UpdateInfo | null;
   isChecking: boolean;
   lastChecked: Date | null;
+  checkError: string | null;
   checkNow: () => void;
   dismiss: () => void;
 };
@@ -59,18 +60,17 @@ export function useUpdateCheck(): UseUpdateCheckResult {
   );
   const [isChecking, setIsChecking] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [checkError, setCheckError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const hasCheckedRef = useRef(false);
 
   const check = useCallback(async () => {
     setIsChecking(true);
     try {
-      const [version, release] = await Promise.all([
-        fetchCurrentVersion(),
-        fetchLatestRelease(),
-      ]);
-
+      const version = await fetchCurrentVersion();
       setCurrentVersion(version);
+
+      const release = await fetchLatestRelease();
 
       if (
         release &&
@@ -87,8 +87,10 @@ export function useUpdateCheck(): UseUpdateCheckResult {
         setUpdateAvailable(null);
       }
       setLastChecked(new Date());
+      setCheckError(null);
     } catch (err) {
       console.error("[avnac] update check failed", err);
+      setCheckError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsChecking(false);
     }
@@ -115,6 +117,7 @@ export function useUpdateCheck(): UseUpdateCheckResult {
     updateAvailable: dismissed ? null : updateAvailable,
     isChecking,
     lastChecked,
+    checkError,
     checkNow,
     dismiss,
   };

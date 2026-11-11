@@ -219,7 +219,7 @@ function ApiKeyCard({
             type="button"
             className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-black/[0.12] bg-white px-6 py-2.5 text-sm font-medium text-[var(--text)] transition hover:border-black/[0.2] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
             onClick={onClear}
-            disabled={loading || saving}
+            disabled={loading || saving || (!hasSavedKey && value === "")}
           >
             Clear
           </button>
@@ -274,6 +274,7 @@ export const Route = createFileRoute("/settings")({
       updateAvailable,
       isChecking,
       lastChecked,
+      checkError,
       checkNow,
     } = useUpdateCheck();
 
@@ -319,6 +320,26 @@ export const Route = createFileRoute("/settings")({
         }
       })();
     }, [unsplashKey]);
+
+    const clearUnsplashKey = useCallback(() => {
+      setUnsplashSaving(true);
+      setUnsplashError(null);
+      setUnsplashNotice(null);
+      void (async () => {
+        try {
+          const bridge = getSecretsBridge();
+          if (!bridge) throw new Error("Secrets bridge unavailable");
+          await bridge.DeleteKey("unsplash");
+          setUnsplashKey("");
+          setUnsplashSaved(false);
+          setUnsplashNotice("Unsplash API key cleared.");
+        } catch (err) {
+          setUnsplashError(formatSecretsError(err, "save"));
+        } finally {
+          setUnsplashSaving(false);
+        }
+      })();
+    }, []);
 
     useEffect(() => {
       return onSceneSnapIntensityChange((value) => {
@@ -502,11 +523,7 @@ export const Route = createFileRoute("/settings")({
                     setUnsplashError(null);
                   }}
                   onSave={saveUnsplashKey}
-                  onClear={() => {
-                    setUnsplashKey("");
-                    setUnsplashNotice(null);
-                    setUnsplashError(null);
-                  }}
+                  onClear={clearUnsplashKey}
                   loading={unsplashLoading}
                   saving={unsplashSaving}
                   hasSavedKey={unsplashSaved}
@@ -564,7 +581,7 @@ export const Route = createFileRoute("/settings")({
                             Connect URL
                           </p>
                           <div className="flex items-center gap-2">
-                            <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
+                            <code className="min-w-0 flex-1 break-all rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
                               {mcpInfo.url}
                             </code>
                             <button
@@ -588,7 +605,7 @@ export const Route = createFileRoute("/settings")({
                             Bearer token
                           </p>
                           <div className="flex items-center gap-2">
-                            <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
+                            <code className="min-w-0 flex-1 break-all rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
                               {mcpToken || "…"}
                             </code>
                             <button
@@ -856,6 +873,21 @@ export const Route = createFileRoute("/settings")({
                             Download {updateAvailable.latestVersion}
                           </button>
                         </div>
+                      </div>
+                    ) : checkError ? (
+                      <div className="flex items-start gap-2 text-sm text-[var(--text-muted)]">
+                        <HugeiconsIcon
+                          icon={AlertDiamondIcon}
+                          size={16}
+                          strokeWidth={1.75}
+                          className="mt-0.5 shrink-0 text-amber-500"
+                        />
+                        <span>
+                          Could not check for updates.
+                          <span className="block text-xs text-[var(--text-muted)]">
+                            {checkError} — try again in a few minutes.
+                          </span>
+                        </span>
                       </div>
                     ) : lastChecked ? (
                       <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">

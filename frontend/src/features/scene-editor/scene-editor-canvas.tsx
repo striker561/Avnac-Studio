@@ -12,6 +12,10 @@ import { readSceneDropIntent } from "./scene-drop-intent";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SceneInlineTextEditor from "./scene-inline-text-editor";
 import {
+  consumeInlineTextEdit,
+  subscribeInlineTextEdit,
+} from "./inline-text-edit-bridge";
+import {
   isChromeTarget,
   isTextEntryTarget,
   readNavigatorClipboardImageFiles,
@@ -41,14 +45,14 @@ type InlineTextEditState = {
 type Props = {
   shortcutsOpen: boolean;
   onCloseShortcuts: () => void;
-  onOpenShortcuts: () => void;
+  onToggleShortcuts: () => void;
   developerMode?: boolean;
 };
 
 export default function SceneEditorCanvas({
   shortcutsOpen,
   onCloseShortcuts,
-  onOpenShortcuts,
+  onToggleShortcuts,
   developerMode = false,
 }: Props) {
   const scene = useSceneEditorStore((s) => s.scene);
@@ -102,9 +106,22 @@ export default function SceneEditorCanvas({
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const [inlineTextEdit, setInlineTextEdit] =
     useState<InlineTextEditState | null>(null);
+  const [pendingTextEditId, setPendingTextEditId] = useState<string | null>(null);
   const [viewportPanCursor, setViewportPanCursor] = useState<
     "grab" | "grabbing" | null
   >(null);
+
+  useEffect(() => subscribeInlineTextEdit(setPendingTextEditId), []);
+
+  useEffect(() => {
+    if (!pendingTextEditId || !scene) return;
+    const node = scene.nodes[pendingTextEditId];
+    if (!node || node.type !== "text") return;
+    consumeInlineTextEdit(pendingTextEditId);
+    setPendingTextEditId(null);
+    setSelectedIds([pendingTextEditId]);
+    setInlineTextEdit({ nodeId: pendingTextEditId, value: node.text });
+  }, [pendingTextEditId, scene, setSelectedIds]);
 
   useEffect(() => {
     const element = scrollContainerRef.current;
@@ -266,18 +283,24 @@ export default function SceneEditorCanvas({
 
   const artboardWidth = scene?.artboard.width ?? 1;
   const artboardHeight = scene?.artboard.height ?? 1;
-  const pad = 64;
-  const fitScale =
-    containerSize.w > 0 && containerSize.h > 0
-      ? Math.min(
-          1,
-          (containerSize.w - pad) / artboardWidth,
-          (containerSize.h - pad) / artboardHeight,
-        )
-      : 1;
-  const scale = fitScale * (zoomPercent / 100);
+  const scale = zoomPercent / 100;
   const scaledWidth = Math.round(artboardWidth * scale);
   const scaledHeight = Math.round(artboardHeight * scale);
+
+  const autoFitDoneRef = useRef(false);
+  useEffect(() => {
+    if (autoFitDoneRef.current) return;
+    if (!scene || containerSize.w <= 0 || containerSize.h <= 0) return;
+    autoFitDoneRef.current = true;
+    setZoomPercent(
+      computeFitZoomPercent({
+        artboardWidth: scene.artboard.width,
+        artboardHeight: scene.artboard.height,
+        viewportWidth: containerSize.w,
+        viewportHeight: containerSize.h,
+      }),
+    );
+  }, [containerSize, scene, setZoomPercent]);
 
   // Convert screen-space clientX/clientY to scene coordinates.
   // Used by the global window pointermove handler in useSceneEditorInteractions
@@ -468,7 +491,7 @@ export default function SceneEditorCanvas({
         lastScenePointRef.current,
       );
     },
-    onShowShortcuts: onOpenShortcuts,
+    onShowShortcuts: onToggleShortcuts,
   });
 
   const { contextMenu, setContextMenu, onCanvasContextMenu } =
@@ -486,7 +509,7 @@ export default function SceneEditorCanvas({
   return (
     <div
       ref={scrollContainerRef}
-      className={`flex flex-1 bg-neutral-100/80 p-8 ${interactions.activeCursor ? "overflow-hidden" : "overflow-auto"}`}
+      className={`flex flex-1 [scrollbar-width:none] bg-neutral-100/80 p-8 [&::-webkit-scrollbar]:hidden ${interactions.activeCursor ? "overflow-hidden" : "overflow-auto"}`}
       style={viewportPanCursor ? { cursor: viewportPanCursor } : undefined}
       onPointerMove={(event) => {
         if (viewportPanDragRef.current) return;
@@ -613,7 +636,6 @@ export default function SceneEditorCanvas({
                 )
               }
               onCommit={commitInlineText}
-              onCancel={() => setInlineTextEdit(null)}
             />
           ) : null}
 

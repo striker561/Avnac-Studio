@@ -1,5 +1,6 @@
 import { getNodeBounds, type SaraswatiScene } from "@/lib/saraswati";
-import { useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { NEW_TEXT_PLACEHOLDER } from "./store/insert-store";
 
 type Props = {
   scene: SaraswatiScene;
@@ -10,7 +11,6 @@ type Props = {
   scale: number;
   onChange: (value: string) => void;
   onCommit: () => void;
-  onCancel: () => void;
 };
 
 export default function SceneInlineTextEditor({
@@ -19,7 +19,6 @@ export default function SceneInlineTextEditor({
   scale,
   onChange,
   onCommit,
-  onCancel,
 }: Props) {
   const box = useMemo(() => {
     const node = scene.nodes[edit.nodeId];
@@ -36,6 +35,26 @@ export default function SceneInlineTextEditor({
       ),
     };
   }, [edit.nodeId, scale, scene]);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const element = textareaRef.current;
+    if (!element) return;
+    element.focus();
+    const end = element.value.length;
+    if (element.value === NEW_TEXT_PLACEHOLDER) element.select();
+    else element.setSelectionRange(end, end);
+  }, [edit.nodeId]);
+
+  const minHeight = box?.minHeight ?? 0;
+  const boxWidth = box?.width ?? 0;
+  useLayoutEffect(() => {
+    const element = textareaRef.current;
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${Math.max(minHeight, element.scrollHeight)}px`;
+  }, [edit.value, minHeight, boxWidth]);
 
   if (!box) return null;
 
@@ -54,12 +73,15 @@ export default function SceneInlineTextEditor({
       }}
     >
       <textarea
+        ref={textareaRef}
         value={edit.value}
         onChange={(event) => onChange(event.currentTarget.value)}
         onBlur={onCommit}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
-            onCancel();
+            event.preventDefault();
+            event.stopPropagation();
+            onCommit();
             return;
           }
           if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -68,7 +90,7 @@ export default function SceneInlineTextEditor({
           }
         }}
         autoFocus
-        className="h-full w-full resize-none whitespace-pre-wrap break-words border-0 bg-transparent p-0 text-neutral-900 outline-none ring-0"
+        className="w-full resize-none overflow-hidden whitespace-pre-wrap break-words border-0 bg-transparent p-0 text-neutral-900 outline-none ring-0"
         style={{
           minHeight: box.minHeight,
           fontFamily: box.node.fontFamily,

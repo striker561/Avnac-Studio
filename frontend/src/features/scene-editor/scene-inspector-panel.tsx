@@ -460,6 +460,7 @@ export default function SceneInspectorPanel() {
             : "cursor-default",
           open ? "border-blue-400/60 ring-1 ring-blue-400/20" : "",
         ].join(" ")}
+        aria-expanded={canEdit ? open : undefined}
         title={canEdit ? "Click to edit — or drag values to scrub" : undefined}
       >
         {pill}

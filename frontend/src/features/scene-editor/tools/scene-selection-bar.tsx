@@ -301,7 +301,7 @@ export default function SceneSelectionBar() {
         <BarShell barRef={barRef} focusMode={focusMode}>
           {(handle) => (
           <FloatingToolbarShell role="toolbar" aria-label="Rectangle options">
-            <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-y-1 py-1.5 pl-2.5 pr-1.5">
               {handle}
               <FloatingToolbarDivider />
               <PaintPopoverControl
@@ -395,9 +395,13 @@ export default function SceneSelectionBar() {
           {(handle) => (
           <FloatingToolbarShell
             role="toolbar"
-            aria-label={`${NODE_TYPE_LABEL[node.type] ?? node.type} options`}
+            aria-label={
+              polygonIsStar
+                ? "Star options"
+                : `${NODE_TYPE_LABEL[node.type] ?? node.type} options`
+            }
           >
-            <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-y-1 py-1.5 pl-2.5 pr-1.5">
               {handle}
               <FloatingToolbarDivider />
               <PaintPopoverControl
@@ -525,7 +529,7 @@ export default function SceneSelectionBar() {
         <BarShell barRef={barRef} focusMode={focusMode}>
           {(handle) => (
           <FloatingToolbarShell role="toolbar" aria-label="Line options">
-            <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-y-1 py-1.5 pl-2.5 pr-1.5">
               {handle}
               <FloatingToolbarDivider />
               {/* Stroke color */}
@@ -858,7 +862,7 @@ export default function SceneSelectionBar() {
         <BarShell barRef={barRef} focusMode={focusMode}>
           {(handle) => (
           <FloatingToolbarShell role="toolbar" aria-label="Selection">
-            <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-y-1 py-1.5 pl-2.5 pr-1.5">
               {handle}
               <FloatingToolbarDivider />
               <span className="px-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
@@ -942,7 +946,7 @@ export default function SceneSelectionBar() {
       <BarShell barRef={barRef} focusMode={focusMode}>
         {(handle) => (
         <FloatingToolbarShell role="toolbar" aria-label="Selection">
-          <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-y-1 py-1.5 pl-2.5 pr-1.5">
             {handle}
             <FloatingToolbarDivider />
             <span className="px-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
@@ -988,7 +992,7 @@ export default function SceneSelectionBar() {
       <BarShell barRef={barRef} focusMode={focusMode}>
         {(handle) => (
         <FloatingToolbarShell role="toolbar" aria-label="Selection">
-          <div className="flex items-center py-1.5 pl-3 pr-1.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-y-1 py-1.5 pl-3 pr-1.5">
             {handle}
             <FloatingToolbarDivider />
             <span className="text-[13px] font-medium text-neutral-600">
@@ -1008,7 +1012,7 @@ export default function SceneSelectionBar() {
     <BarShell barRef={barRef} focusMode={focusMode}>
       {(handle) => (
       <FloatingToolbarShell role="toolbar" aria-label="Artboard">
-        <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-y-1 py-1.5 pl-2.5 pr-1.5">
           {handle}
           <FloatingToolbarDivider />
           <ArtboardResizeToolbarControl
@@ -1127,7 +1131,7 @@ function BarShell({
       data-avnac-chrome
       ref={barRef}
       className={[
-        "pointer-events-none absolute inset-x-0 top-3 z-80 flex h-14 items-center justify-center px-2 transition-opacity duration-150",
+        "pointer-events-none absolute inset-x-0 top-3 z-80 flex h-14 items-center justify-center px-[4.5rem] transition-opacity duration-150",
         focusMode ? "pointer-events-none opacity-0" : "",
       ]
         .filter(Boolean)
@@ -1215,7 +1219,7 @@ function ImageToolbar({
       <BarShell barRef={barRef} focusMode={focusMode}>
         {(handle) => (
         <FloatingToolbarShell role="toolbar" aria-label="Image options">
-          <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-y-1 py-1.5 pl-2.5 pr-1.5">
             {handle}
             <FloatingToolbarDivider />
             {/* Remove background */}
@@ -1336,7 +1340,7 @@ function ImageToolbar({
                   title={`${imageNode.credit.text} — open on Unsplash`}
                   aria-label={`${imageNode.credit.text}. Open on Unsplash`}
                 >
-                  <span className="max-w-32 truncate text-[11px] font-medium">
+                  <span className="max-w-[13rem] truncate text-[11px] font-medium">
                     {imageNode.credit.text}
                   </span>
                 </button>

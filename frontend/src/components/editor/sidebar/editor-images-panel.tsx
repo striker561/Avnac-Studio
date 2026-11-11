@@ -1,5 +1,6 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons";
+import { Link } from "@tanstack/react-router";
 import { BrowserOpenURL } from "../../../../wailsjs/runtime/runtime";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -186,7 +187,17 @@ export default function EditorImagesPanel({
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {error ? (
-            <p className="px-1 py-2 text-[12px] text-red-600">{error}</p>
+            <div className="px-1 py-2">
+              <p className="text-[12px] text-red-600">{error}</p>
+              {/api key/i.test(error) ? (
+                <Link
+                  to="/settings"
+                  className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-medium text-neutral-800 underline underline-offset-2 hover:text-black"
+                >
+                  Open Settings
+                </Link>
+              ) : null}
+            </div>
           ) : null}
 
           {photos.length === 0 && !loading && !error ? (

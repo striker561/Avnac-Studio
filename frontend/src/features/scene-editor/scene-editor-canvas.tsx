@@ -509,7 +509,7 @@ export default function SceneEditorCanvas({
   return (
     <div
       ref={scrollContainerRef}
-      className={`flex flex-1 bg-neutral-100/80 p-8 ${interactions.activeCursor ? "overflow-hidden" : "overflow-auto"}`}
+      className={`flex flex-1 [scrollbar-width:none] bg-neutral-100/80 p-8 [&::-webkit-scrollbar]:hidden ${interactions.activeCursor ? "overflow-hidden" : "overflow-auto"}`}
       style={viewportPanCursor ? { cursor: viewportPanCursor } : undefined}
       onPointerMove={(event) => {
         if (viewportPanDragRef.current) return;

@@ -581,7 +581,7 @@ export const Route = createFileRoute("/settings")({
                             Connect URL
                           </p>
                           <div className="flex items-center gap-2">
-                            <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
+                            <code className="min-w-0 flex-1 break-all rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
                               {mcpInfo.url}
                             </code>
                             <button
@@ -605,7 +605,7 @@ export const Route = createFileRoute("/settings")({
                             Bearer token
                           </p>
                           <div className="flex items-center gap-2">
-                            <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
+                            <code className="min-w-0 flex-1 break-all rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
                               {mcpToken || "…"}
                             </code>
                             <button

@@ -283,18 +283,24 @@ export default function SceneEditorCanvas({
 
   const artboardWidth = scene?.artboard.width ?? 1;
   const artboardHeight = scene?.artboard.height ?? 1;
-  const pad = 64;
-  const fitScale =
-    containerSize.w > 0 && containerSize.h > 0
-      ? Math.min(
-          1,
-          (containerSize.w - pad) / artboardWidth,
-          (containerSize.h - pad) / artboardHeight,
-        )
-      : 1;
-  const scale = fitScale * (zoomPercent / 100);
+  const scale = zoomPercent / 100;
   const scaledWidth = Math.round(artboardWidth * scale);
   const scaledHeight = Math.round(artboardHeight * scale);
+
+  const autoFitDoneRef = useRef(false);
+  useEffect(() => {
+    if (autoFitDoneRef.current) return;
+    if (!scene || containerSize.w <= 0 || containerSize.h <= 0) return;
+    autoFitDoneRef.current = true;
+    setZoomPercent(
+      computeFitZoomPercent({
+        artboardWidth: scene.artboard.width,
+        artboardHeight: scene.artboard.height,
+        viewportWidth: containerSize.w,
+        viewportHeight: containerSize.h,
+      }),
+    );
+  }, [containerSize, scene, setZoomPercent]);
 
   // Convert screen-space clientX/clientY to scene coordinates.
   // Used by the global window pointermove handler in useSceneEditorInteractions

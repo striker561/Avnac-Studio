@@ -219,7 +219,7 @@ function ApiKeyCard({
             type="button"
             className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-black/[0.12] bg-white px-6 py-2.5 text-sm font-medium text-[var(--text)] transition hover:border-black/[0.2] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
             onClick={onClear}
-            disabled={loading || saving}
+            disabled={loading || saving || (!hasSavedKey && value === "")}
           >
             Clear
           </button>
@@ -319,6 +319,26 @@ export const Route = createFileRoute("/settings")({
         }
       })();
     }, [unsplashKey]);
+
+    const clearUnsplashKey = useCallback(() => {
+      setUnsplashSaving(true);
+      setUnsplashError(null);
+      setUnsplashNotice(null);
+      void (async () => {
+        try {
+          const bridge = getSecretsBridge();
+          if (!bridge) throw new Error("Secrets bridge unavailable");
+          await bridge.DeleteKey("unsplash");
+          setUnsplashKey("");
+          setUnsplashSaved(false);
+          setUnsplashNotice("Unsplash API key cleared.");
+        } catch (err) {
+          setUnsplashError(formatSecretsError(err, "save"));
+        } finally {
+          setUnsplashSaving(false);
+        }
+      })();
+    }, []);
 
     useEffect(() => {
       return onSceneSnapIntensityChange((value) => {
@@ -502,11 +522,7 @@ export const Route = createFileRoute("/settings")({
                     setUnsplashError(null);
                   }}
                   onSave={saveUnsplashKey}
-                  onClear={() => {
-                    setUnsplashKey("");
-                    setUnsplashNotice(null);
-                    setUnsplashError(null);
-                  }}
+                  onClear={clearUnsplashKey}
                   loading={unsplashLoading}
                   saving={unsplashSaving}
                   hasSavedKey={unsplashSaved}

@@ -44,6 +44,12 @@ jobs:
         run: npm install
         working-directory: frontend
 
+      # Test the version that is about to ship, not the one left in the repo.
+      - name: Stamp version from tag
+        run: |
+          node scripts/set-version.mjs "${GITHUB_REF_NAME}"
+          node scripts/set-version.mjs "${GITHUB_REF_NAME}" --check
+
       - name: Go tests
         run: go test ./...
 
@@ -97,6 +103,11 @@ jobs:
         run: npm install
         working-directory: frontend
 
+      - name: Stamp version from tag
+        run: |
+          node scripts/set-version.mjs "${GITHUB_REF_NAME}"
+          node scripts/set-version.mjs "${GITHUB_REF_NAME}" --check
+
       - name: Build
         run: wails build -clean -tags webkit2gtk_4_1 -o avnac-studio-linux-amd64
 
@@ -140,6 +151,11 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
         working-directory: frontend
+
+      - name: Stamp version from tag
+        run: |
+          node scripts/set-version.mjs "${GITHUB_REF_NAME}"
+          node scripts/set-version.mjs "${GITHUB_REF_NAME}" --check
 
       - name: Build macOS ARM64
         run: wails build -clean -platform darwin/arm64 -o avnac-studio-macos-arm64
@@ -229,6 +245,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
         working-directory: frontend
+
+      - name: Stamp version from tag
+        shell: pwsh
+        run: |
+          node scripts/set-version.mjs "$env:GITHUB_REF_NAME"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/set-version.mjs "$env:GITHUB_REF_NAME" --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build
         run: wails build -clean -nsis -o avnac-studio-windows-amd64

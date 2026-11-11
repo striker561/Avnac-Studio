@@ -395,7 +395,11 @@ export default function SceneSelectionBar() {
           {(handle) => (
           <FloatingToolbarShell
             role="toolbar"
-            aria-label={`${NODE_TYPE_LABEL[node.type] ?? node.type} options`}
+            aria-label={
+              polygonIsStar
+                ? "Star options"
+                : `${NODE_TYPE_LABEL[node.type] ?? node.type} options`
+            }
           >
             <div className="flex min-w-0 flex-wrap items-center gap-y-1 py-1.5 pl-2.5 pr-1.5">
               {handle}

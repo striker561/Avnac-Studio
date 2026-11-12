@@ -20,6 +20,7 @@ import (
 	avnacio "Avnac/avnac-system/io"
 	avnacsecrets "Avnac/avnac-system/secrets"
 	avnacserver "Avnac/avnac-system/server"
+	"Avnac/internal/skill"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -59,6 +60,12 @@ type AvnacMCP struct {
 
 	pendingRequests map[string]chan any
 	mu              sync.Mutex
+
+	// instructions is the connect text handed to every client: the design
+	// doctrine in DesignerInstructions plus the compact resource index. It is
+	// built once because the embedded library cannot change at runtime, and the
+	// server/discover probe echoes the same text.
+	instructions string
 
 	// startMu serializes StartHTTP/StopHTTP/UpdateConfig.
 	startMu sync.Mutex
@@ -103,14 +110,22 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
 `
 
 func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, secrets *avnacsecrets.SecretsManager) *AvnacMCP {
+	// The design library's index rides on the connect instructions so an agent
+	// knows the resources exist before its first tool call. The embedded data is
+	// static, so this costs one parse at construction.
+	instructions := DesignerInstructions
+	if lib, err := skill.Default(); err == nil {
+		instructions += designResourceIndex(lib)
+	}
 	return &AvnacMCP{
 		server: mcp.NewServer(&mcp.Implementation{
 			Name:    "Avnac Studio",
 			Version: "1.0.0",
 		}, &mcp.ServerOptions{
-			Instructions: DesignerInstructions,
+			Instructions: instructions,
 		}),
 		pendingRequests: make(map[string]chan any),
+		instructions:    instructions,
 		Unsplash:        unsplash,
 		Secrets:         secrets,
 		IO:              io,
@@ -123,6 +138,11 @@ func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, s
 func (m *AvnacMCP) Start(wailsCtx context.Context) {
 	m.RegisterTools(wailsCtx)
 	m.RegisterPrompts()
+	// Resources are the design library. A failure degrades the guidance, not
+	// the canvas tools, so it is logged rather than fatal.
+	if err := m.RegisterResources(); err != nil {
+		log.Printf("mcp: design resources unavailable: %v", err)
+	}
 }
 
 // HTTPOptions controls StartHTTP. Token is the required bearer token; when
@@ -280,12 +300,16 @@ func (m *AvnacMCP) buildHandler(streamable, sse http.Handler) http.Handler {
 								"prompts": map[string]any{
 									"listChanged": true,
 								},
+								"resources": map[string]any{
+									"subscribe":   false,
+									"listChanged": true,
+								},
 							},
 							"serverInfo": map[string]string{
 								"name":    "Avnac Studio",
 								"version": "1.0.0",
 							},
-							"instructions": DesignerInstructions,
+							"instructions": m.instructions,
 						},
 					}
 					_ = json.NewEncoder(w).Encode(resp)

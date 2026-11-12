@@ -10,6 +10,8 @@ export function RegenerateToken():Promise<void>;
 
 export function RegisterPrompts():Promise<void>;
 
+export function RegisterResources():Promise<void>;
+
 export function RegisterTools(arg1:context.Context):Promise<void>;
 
 export function Start(arg1:context.Context):Promise<void>;

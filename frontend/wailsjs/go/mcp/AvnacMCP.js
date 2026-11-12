@@ -14,6 +14,10 @@ export function RegisterPrompts() {
   return window['go']['mcp']['AvnacMCP']['RegisterPrompts']();
 }
 
+export function RegisterResources() {
+  return window['go']['mcp']['AvnacMCP']['RegisterResources']();
+}
+
 export function RegisterTools(arg1) {
   return window['go']['mcp']['AvnacMCP']['RegisterTools'](arg1);
 }

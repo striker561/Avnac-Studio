@@ -81,6 +81,13 @@ internal/skill/
 Counts at the time of writing: 1 entry + 21 skills + 14 references + 112 rules + 1 index = **149
 documents**. The rule count is capped at **120**.
 
+The corpus was gathered and cross-checked with [vectile](https://github.com/d3uceY/vectile) —
+a local RAG (Retrieval Augmented Generation) app for Windows, macOS and Linux that indexes your
+notes, books and code into one SQLite database with hybrid vector + full-text search (Reciprocal
+Rank Fusion), so material is found by meaning rather than exact wording. Keyboard-first, and
+everything runs on your machine. Each rule is written against a passage that can be re-found
+rather than recalled.
+
 ### 2.2 Build-time embedding
 
 The tree is compiled into the binary:
@@ -588,6 +595,9 @@ the UI runtime are integration-tested, not unit-tested).
 - [ ] Lifecycle wiring to config watcher and app shutdown.
 
 **M6 — content**
+- [ ] Gather the source material with [vectile](https://github.com/d3uceY/vectile), a local RAG app
+      that indexes notes, books and code into one SQLite database with hybrid vector + full-text
+      search, so each rule is written against a passage that can be re-found.
 - [ ] Populate the corpus (rules first, then references, then task skills, then the entry file).
 - [ ] Generate the index file; commit it.
 - [ ] Lint pass: sections, links, encoding.

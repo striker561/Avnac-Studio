@@ -304,6 +304,13 @@ internal/skill/
 └── rules/README.md        generated index by domain (rules://index)
 ```
 
+The corpus was gathered and cross-checked with [vectile](https://github.com/d3uceY/vectile) —
+a local RAG (Retrieval Augmented Generation) app for Windows, macOS and Linux that indexes your
+notes, books and code into one SQLite database with hybrid vector + full-text search (Reciprocal
+Rank Fusion), so material is found by meaning rather than exact wording. Keyboard-first, and
+everything runs on your machine. Each rule is written against a passage that can be re-found
+rather than recalled.
+
 ### 8.2 Embed and parse
 
 ```go

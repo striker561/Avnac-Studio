@@ -3,16 +3,162 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"Avnac/internal/skill"
 )
 
-// RegisterPrompts registers built-in MCP prompts for AI design agents.
+// Prompts are the only MCP primitive a human triggers: a client surfaces them
+// as slash commands, so the text lands in the conversation even when the model
+// would never have looked for it. That guarantee is why they exist.
+//
+// They deliberately do NOT hand-write a workflow. The design library already
+// carries the method (skill://create, skill://edit, skill://critique and the
+// rules behind them), and a second copy here would drift — the library's
+// Validate() cannot see prompt text, so the copy rot would ship silently.
+//
+// Each prompt therefore contributes only what the library cannot know:
+//
+//  1. the user's brief (the prompt arguments),
+//  2. the tool mapping for this app (the library is deliberately tool-agnostic),
+//  3. the routed workflow body, read from the library at request time,
+//  4. the rule URIs that workflow links, so the agent reads rather than guesses,
+//  5. the verification gate that closes the loop with a render.
+//
+// Routing uses the same skill.Plan the rest of the server uses, so a prompt for
+// a gig poster routes to the poster workflow and a logo prompt routes to logo.
+
+// defaultCanvasSize is the prompt-level fallback when the caller supplies no
+// size. It is deliberately a description, not a number: a poster brief routed to
+// the poster workflow must not be told it is 1080 square.
+const defaultCanvasSize = "derive from the brief and state the size you choose"
+
+// designTools is the app-specific half of a design prompt: which tools exist.
+// It names capabilities only — no ordering, no duplicated workflow steps.
+const designTools = "Tools: `get_canvas_summary` to read the canvas, `create_canvas` to set size and background, " +
+	"`render_elements` to compose in one batch, `modify_elements` / `align_objects` / `group_objects` to fix, " +
+	"`get_canvas_image` to look at the result, `search_unsplash` for photography (credit the photographer), " +
+	"`get_font_list` and `list_stickers` when you need the available set."
+
+// auditTools names the two reads an audit starts from.
+const auditTools = "Tools: `get_canvas_summary` for structure and text, `get_canvas_image` with annotated=true " +
+	"for the visual read, `modify_elements` for the one corrective pass."
+
+// verifyGate closes every prompt. It is the part the library cannot state,
+// because it is about looking at this app's render before reporting.
+const verifyGate = "## Before you report\n\n" +
+	"Call `get_canvas_image` and compare the render to the brief item by item: required copy present and spelled " +
+	"correctly, dimensions, hierarchy, palette, style, and no unintended placeholder text. Fix what mismatches with " +
+	"`modify_elements`, look again, then report an honest pass/fail per requirement. Flag any content you invented."
+
+// fallbackWorkflow is used only if the embedded library fails to load. It keeps
+// the prompt useful instead of empty; the server logs the load failure.
+const fallbackWorkflow = "No workflow library is available in this build. Work from the server instructions: " +
+	"write the brief, set up the canvas, compose in one batch, then inspect the render and fix what fails."
+
+// promptWorkflow renders the routed workflow and the rule reading list into b.
+func promptWorkflow(b *strings.Builder, task string) {
+	lib, err := skill.Default()
+	if err != nil {
+		b.WriteString(fallbackWorkflow)
+		return
+	}
+	plan, err := lib.Plan(task, 0)
+	if err != nil || plan.Skill == nil {
+		b.WriteString(fallbackWorkflow)
+		return
+	}
+
+	b.WriteString("## Workflow: " + plan.Skill.Name + "\n\n")
+	b.WriteString(linkToResource(plan.Skill.Markdown()))
+
+	if len(plan.Rules) > 0 {
+		b.WriteString("\n\n## Before composing\n\n")
+		b.WriteString("Read the rule resources linked under \"Rules to apply\" above. The workflow tells you what to do; " +
+			"the rules carry the thresholds and the reasoning — a design decision you cannot cite is a guess.\n")
+	}
+}
+
+// designGraphicPrompt is the general creation prompt. dimensions and style are
+// optional; the topic drives routing so a poster brief gets the poster workflow.
+func designGraphicPrompt(topic, dimensions, style string) string {
+	if strings.TrimSpace(topic) == "" {
+		topic = "a graphic for the user's request"
+	}
+	if strings.TrimSpace(dimensions) == "" {
+		dimensions = defaultCanvasSize
+	}
+	style = strings.TrimSpace(style)
+	if style == "" {
+		style = "choose one and state it"
+	}
+
+	// Route on the brief alone. Style adjectives ("dark", "clean", "modern") are
+	// common in skill bodies and would outvote the deliverable in a rare-token
+	// scorer; the style still reaches the model in the header below.
+	task := topic
+
+	var b strings.Builder
+	b.WriteString("You are the Avnac Studio AI Design Director.\n\n")
+	b.WriteString("Design: " + topic + "\n")
+	b.WriteString("Canvas: " + dimensions + " | Style: " + style + "\n\n")
+	b.WriteString(designTools + "\n\n")
+	promptWorkflow(&b, task)
+	b.WriteString("\n\n" + verifyGate)
+	return b.String()
+}
+
+// editCanvasPrompt is the revision prompt. The instruction is folded into the
+// routing task so "change the colors" and "move the headline" both land on the
+// edit workflow.
+func editCanvasPrompt(instruction string) string {
+	instruction = strings.TrimSpace(instruction)
+	if instruction == "" {
+		instruction = "improve the current canvas without changing its message"
+	}
+
+	task := "edit the current canvas: " + instruction
+
+	var b strings.Builder
+	b.WriteString("You are the Avnac Studio AI Design Director.\n\n")
+	b.WriteString("Apply this change to the canvas that is already open: " + instruction + "\n\n")
+	b.WriteString("Start from the live canvas — inspect it, then change only what the instruction requires. " +
+		"Never recreate an existing design in a new file.\n\n")
+	b.WriteString(designTools + "\n\n")
+	promptWorkflow(&b, task)
+	b.WriteString("\n\n" + verifyGate)
+	return b.String()
+}
+
+// designAuditPrompt is the critique prompt; it routes to the critique workflow
+// and keeps the audit's own read-first requirement.
+func designAuditPrompt() string {
+	task := "critique the current canvas design"
+
+	var b strings.Builder
+	b.WriteString("You are the Avnac Studio AI Design Director.\n\n")
+	b.WriteString("Audit the canvas that is currently open. Judge it against the brief it was made for, " +
+		"not against personal taste; separate failures from preferences.\n\n")
+	b.WriteString(auditTools + "\n\n")
+	promptWorkflow(&b, task)
+
+	b.WriteString("\n\n## Report format\n\n")
+	b.WriteString("1. `Brief:` one sentence.\n")
+	b.WriteString("2. `First read:` what lands first, second, third.\n")
+	b.WriteString("3. `Works:` two or three specifics.\n")
+	b.WriteString("4. `Defects:` table of problem, principle, fix, impact.\n")
+	b.WriteString("5. `Verdict:` ship / ship with fixes / rebuild, and the one change that matters most.\n")
+	return b.String()
+}
+
+// RegisterPrompts registers the three user-triggered prompts. Handlers are thin
+// wrappers so the prompt builders stay testable without an MCP client.
 func (m *AvnacMCP) RegisterPrompts() {
-	// Prompt 1: design-graphic
 	m.server.AddPrompt(&mcp.Prompt{
 		Name:        "design-graphic",
-		Description: "Comprehensive workflow guide to create a professional graphic, banner, or poster in Avnac Studio",
+		Description: "Start a design task with the routed workflow from the design library and the rules it links",
 		Arguments: []*mcp.PromptArgument{
 			{
 				Name:        "topic",
@@ -30,134 +176,45 @@ func (m *AvnacMCP) RegisterPrompts() {
 				Required:    false,
 			},
 		},
-	}, func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+	}, func(_ context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		topic := req.Params.Arguments["topic"]
-		dimensions := req.Params.Arguments["dimensions"]
-		if dimensions == "" {
-			dimensions = "1080x1080 (Square)"
-		}
-		style := req.Params.Arguments["style"]
-		if style == "" {
-			style = "modern bold"
-		}
-
-		promptText := fmt.Sprintf(`You are the Avnac Studio AI Design Director.
-Your task is to design a high-quality visual for: "%s".
-Target Canvas: %s | Style Aesthetic: %s.
-
-Follow this systematic 6-step design workflow:
-1. DESIGN BRIEF (before any tool call):
-   - Extract known constraints from the request: dimensions, exact copy, brand names, dates, palette, imagery.
-   - If critical info is missing (real text content, names, dates, size intent), ask up to 3 targeted questions and STOP. Otherwise state your assumptions explicitly.
-   - Write a compact design plan: layout zones with approximate coordinates, type hierarchy, palette, fonts, asset needs. Step 6 verifies the render against this brief.
-
-2. CANVAS SETUP:
-   - Check existing state with get_canvas_summary.
-   - If empty or sizing differs, call create_canvas with appropriate width & height (e.g. 1080x1080), a cohesive background color, and a descriptive name.
-   - create_canvas already applies backgroundColor — do not call set_background again with the same value.
-
-3. ASSETS & IMAGERY:
-   - If photographic assets enhance the concept, call search_unsplash with keywords related to "%s".
-   - Pick the most relevant image URL from the results.
-
-4. COMPOSITION & LAYERING (render_elements):
-   - Background Elements: Background overlay panels, geometric cards, or accent shapes with subtle opacity (0.1 - 0.9) and cornerRadius.
-   - Photography: If using an Unsplash image, position it prominently with appropriate width/height.
-   - Typography Hierarchy:
-     * Headline: Big and bold (fontSize 48-72px, bold weight/contrast color, top area).
-     * Subheadline / Tagline: Medium (fontSize 24-32px, complementary color).
-     * Details / Body / Call to Action: Smaller (fontSize 16-20px, high legibility).
-     * Prefer 'Poppins', 'Inter', and 'DM Serif Display' (call get_font_list if needed); other Google Fonts may fall back if not yet loaded.
-   - Accents & Badges: Pill badges for dates/categories, decorative lines, or stickers (call list_stickers to see options).
-   - Keep comfortable padding/margins (at least 40-80px from canvas edges); use align_objects or group_objects to unify components.
-
-5. RENDER & VISUAL AUDIT:
-   - Call get_canvas_image to render and inspect the completed design.
-   - Check readability, contrast between text and background, and balanced whitespace.
-
-6. VERIFY AGAINST THE BRIEF:
-   - Compare the screenshot to the design brief AND the user's original request, item by item: required content present and spelled correctly, dimensions, hierarchy, palette, style, no unintended placeholder text.
-   - If something mismatches, fix it with modify_elements, take one more screenshot, then report an honest pass/fail per requirement. Explicitly flag any content you invented.
-
-Begin with the design brief, then inspect the canvas with get_canvas_summary or create the canvas!`, topic, dimensions, style, topic)
-
-		return &mcp.GetPromptResult{
-			Description: fmt.Sprintf("Design instructions for %s", topic),
-			Messages: []*mcp.PromptMessage{
-				{
-					Role:    "user",
-					Content: &mcp.TextContent{Text: promptText},
-				},
-			},
-		}, nil
+		text := designGraphicPrompt(topic, req.Params.Arguments["dimensions"], req.Params.Arguments["style"])
+		return singleMessage(fmt.Sprintf("Design instructions for %s", topic), text), nil
 	})
 
-	// Prompt 2: edit-canvas
 	m.server.AddPrompt(&mcp.Prompt{
 		Name:        "edit-canvas",
-		Description: "Inspect current canvas elements and apply targeted edits, restyling, or layout adjustments",
+		Description: "Revise the open canvas with the routed edit workflow, without recreating the design",
 		Arguments: []*mcp.PromptArgument{
 			{
 				Name:        "instruction",
-				Description: "What modifications to make (e.g. 'Switch to dark mode with neon accents', 'Center-align the title group')",
+				Description: "The change to make (e.g., 'Change the color scheme to dark mode and center the title')",
 				Required:    true,
 			},
 		},
-	}, func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+	}, func(_ context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		instruction := req.Params.Arguments["instruction"]
-
-		promptText := fmt.Sprintf(`You are tasked with editing the active Avnac Studio design canvas.
-Requested Changes: "%s".
-
-Workflow:
-0. BRIEF: Write a diff-oriented plan first — what changes, what stays. If the target file is not the currently open canvas, call list_files and then open_canvas(fileId) to load it. NEVER recreate an existing design in a new file.
-1. Call get_canvas_summary to see all existing elements, their objectIds, types, positions, colors, and text contents.
-2. Formulate your update plan:
-   - Identify which element IDs need modifications (text, fill, size, position, z-index).
-   - Identify if any elements need to be added (render_elements) or removed (delete_object).
-3. Apply updates using modify_elements:
-   - Pass an array of modifications with each target objectId.
-   - To reorder layers: use action: "bringToFront", "sendToBack", "bringForward", or "sendBackwards".
-   - To update styling: provide new fill, color, fontSize, opacity, shadows, or gradients.
-4. If background needs changing, call set_background.
-5. Verify your changes with get_canvas_image, comparing the result to the requested changes item by item. Fix mismatches once with modify_elements, re-screenshot, then report an honest pass/fail per requested change.`, instruction)
-
-		return &mcp.GetPromptResult{
-			Description: "Edit existing canvas elements",
-			Messages: []*mcp.PromptMessage{
-				{
-					Role:    "user",
-					Content: &mcp.TextContent{Text: promptText},
-				},
-			},
-		}, nil
+		return singleMessage("Canvas edit instructions", editCanvasPrompt(instruction)), nil
 	})
 
-	// Prompt 3: design-audit
 	m.server.AddPrompt(&mcp.Prompt{
 		Name:        "design-audit",
-		Description: "Perform an automated visual & semantic design critique of the current canvas",
+		Description: "Critique the open canvas using the routed critique workflow and report pass/fail per requirement",
 		Arguments:   []*mcp.PromptArgument{},
-	}, func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
-		promptText := `Perform a design review of the current canvas in Avnac Studio:
-1. Call get_canvas_summary to read the layout hierarchy and element structure.
-2. Call get_canvas_image with annotated=true to inspect object bounding boxes and spatial distribution.
-3. Evaluate:
-   - Intent Match: Does the design actually represent what was requested? List each requirement and mark it met or unmet.
-   - Visual Balance: Is the weight distributed evenly across the artboard?
-   - Typography: Is there clear contrast between headline, subhead, and body? Are font choices cohesive and actually rendered (no fallback glyphs)?
-   - Contrast & Accessibility: Is text clearly readable over background colors or photographic textures?
-   - Alignment & Spacing: Are elements properly aligned? Are margins sufficient (not crammed against borders)?
-4. Fix the most impactful mismatches once using modify_elements and align_objects, take one more screenshot, then report an honest pass/fail per requirement — flagging any placeholder content you had to invent.`
-
-		return &mcp.GetPromptResult{
-			Description: "Audit canvas design quality and layout balance",
-			Messages: []*mcp.PromptMessage{
-				{
-					Role:    "user",
-					Content: &mcp.TextContent{Text: promptText},
-				},
-			},
-		}, nil
+	}, func(_ context.Context, _ *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return singleMessage("Canvas design audit", designAuditPrompt()), nil
 	})
+}
+
+// singleMessage wraps prompt text as the one user message every prompt returns.
+func singleMessage(description, text string) *mcp.GetPromptResult {
+	return &mcp.GetPromptResult{
+		Description: description,
+		Messages: []*mcp.PromptMessage{
+			{
+				Role:    "user",
+				Content: &mcp.TextContent{Text: text},
+			},
+		},
+	}
 }

@@ -2,6 +2,9 @@
 
 Avnac Studio includes a built-in Model Context Protocol (MCP) server that allows external AI agents (in Cursor, Claude Desktop, MCPJam Inspector, Windsurf, Antigravity, etc.) to automate, design, and manipulate graphics inside the desktop application in real-time.
 
+> Building or changing the server? Read [MCP_ARCHITECTURE.md](MCP_ARCHITECTURE.md) — the
+> developer map of the listener, the tool bridge, and the design-library resources.
+
 ---
 
 ## 1. Connection Details
@@ -72,16 +75,31 @@ claude mcp add --transport http avnac-studio http://127.0.0.1:12345/ --header "A
 
 ## 2. Built-in MCP Prompts
 
-Avnac Studio advertises ready-to-use design workflows through the MCP Prompts protocol:
+Avnac Studio advertises three user-triggered prompts through the MCP Prompts protocol. They exist
+because prompts are the only primitive a client turns into a slash command: the text lands in the
+conversation even when the model would not have gone looking for it.
+
+Each prompt is **generated from the design library at request time**, not hand-written. The
+server routes the brief with the same router the resources use, then embeds the matching workflow
+(`poster`, `logo`, `create`, `edit`, `critique`, ...) plus its rule links and this app's tool
+mapping. A poster brief therefore gets the poster workflow; a logo brief gets the logo workflow.
 
 1. **`design-graphic`**:
    - **Arguments**: `topic` (required), `dimensions` (optional), `style` (optional).
-   - **Description**: Guides the agent through a 6-step design workflow — writing a design brief (asking the user when critical info is missing), inspecting/creating the canvas, gathering assets, declarative element rendering, visual screenshot audit, and a final verification pass that compares the render against the original request.
+   - **Description**: Starts a design task. Routes on the brief, embeds the matched workflow and
+     the rules it links, and closes with the render-verification gate. When `dimensions` is
+     omitted the prompt asks the agent to derive the size from the brief and state it.
 2. **`edit-canvas`**:
    - **Arguments**: `instruction` (required, e.g. *"Change the color scheme to dark mode and center the title"*).
-   - **Description**: Writes a diff-oriented brief, inspects current canvas elements with `get_canvas_summary`, maps object IDs, and applies targeted updates with `modify_elements`, then verifies the result against the requested changes. If the target file is not open, the agent is directed to `list_files` + `open_canvas` instead of recreating the design.
+   - **Description**: Routes to the edit workflow, inspects the live canvas with `get_canvas_summary`,
+     maps object IDs, applies targeted `modify_elements` updates, and forbids recreating the design.
 3. **`design-audit`**:
-   - **Description**: Reads the canvas summary and annotated visual screenshot to critique intent match, layout balance, contrast, margins, and typography hierarchy, then fixes the most impactful mismatches and reports pass/fail per requirement.
+   - **Description**: Routes to the critique workflow; reads the canvas summary and an annotated
+     screenshot, critiques intent match, balance, contrast, margins and hierarchy, makes one
+     corrective pass, and reports pass/fail per requirement with a verdict.
+
+Because the workflow text comes from the library, editing a `SKILL.md` or a rule changes the
+prompts too — there is no second copy to keep in sync.
 
 ---
 
@@ -89,6 +107,42 @@ Avnac Studio advertises ready-to-use design workflows through the MCP Prompts pr
 
 The repository includes a standardized skill specification for agents:
 - [`skills/avnac-designer/SKILL.md`](../skills/avnac-designer/SKILL.md)
+
+It also ships a **graphic design knowledge and production library**, embedded in the Go binary
+and routed programmatically:
+
+- [`internal/skill/SKILL.md`](../internal/skill/SKILL.md) — entry point, routing table and always-on gates.
+- `internal/skill/<task>/SKILL.md` — 21 task workflows (poster, logo, brand, color, typography, layout, print, export, ui, ...).
+- [`internal/skill/references/`](../internal/skill/references/) — 14 compact lookup notes: thresholds, tables, format specs.
+- [`internal/skill/rules/`](../internal/skill/rules/) — 112 authoritative, applied design principles, grouped by domain.
+
+[`internal/skill/skill.go`](../internal/skill/skill.go) embeds the markdown, parses it once, and
+routes work: `skill.Default()` then `lib.Plan(task, 0)` returns the matching task workflow plus
+the rules it links, ready to inject into a model context. `lib.Validate()` asserts the structural
+contract (names, section order, cross-links, the 120-rule ceiling) and is exercised by
+[`skill_test.go`](../internal/skill/skill_test.go).
+
+### Design knowledge resources
+
+The server also publishes the whole library as MCP **resources**, so a client that installs
+nothing still reads it on demand:
+
+| URI | Contents |
+|---|---|
+| `skill://avnac-design` | Entry point: routing table, always-on gates, how to read a rule |
+| `skill://<task>` | 21 task workflows — `skill://poster`, `skill://ui`, `skill://print`, ... |
+| `references://<subject>` | 14 lookup notes — `references://typography`, `references://color`, ... |
+| `rules://<id>` | 112 authoritative principles — `rules://24-typographic-hierarchy`, ... |
+| `rules://index` | Every rule by domain, with counts |
+
+All are `text/markdown`. Relative links in the served markdown are rewritten into these URIs, so
+an agent reading `skill://poster` can follow `rules://34-composition-techniques` directly. The
+connect instructions carry a compact index (one line per tier) instead of all 112 rules;
+`rules://index` names the rest without spending context up front.
+
+Registration lives in [`avnac-system/mcp/resources.go`](../avnac-system/mcp/resources.go) and is
+covered end to end (list + read over an in-memory transport) by
+[`resources_test.go`](../avnac-system/mcp/resources_test.go).
 
 When connected, the MCP server also automatically transmits `Instructions` to the LLM upon initialization, ensuring any connected agent understands the coordinate system, element schemas, and recommended design practices without manual prompt engineering.
 
@@ -114,7 +168,7 @@ When connected, the MCP server also automatically transmits `Instructions` to th
 - `get_font_list`: List supported Google Fonts. Prefer `Poppins`, `Inter`, and `DM Serif Display` for reliable canvas rendering.
 
 ### Creation & Editing
-- `render_elements`: Create elements in one call (`rect`, `ellipse`, `polygon`, `star`, `line`, `text`, `image`, `sticker`). Text supports `textAlign`, `fontWeight`, `fontStyle`, `lineHeight`, `underline`. Lines use `stroke`/`strokeWidth` (not `width`).
+- `render_elements`: Create elements in one call (`rect`, `ellipse`, `polygon`, `star`, `line`, `text`, `image`, `sticker`). Text supports `textAlign`, `fontWeight`, `fontStyle`, `lineHeight`, `underline`. Lines use `stroke`/`strokeWidth` (not `width`). Elements that cannot be built are reported in `skipped` with their index and type; if nothing could be created the call fails (`isError: true`) instead of returning an empty success.
 - `modify_elements`: Update properties by `objectId`, including text controls (`fontWeight`, `textAlign`, `lineHeight`, etc.).
 - **Flexible inputs**: top-level keys and nested `elements[]` / `modifications[]` fields accept flexible forms — numeric font weights (`fontWeight: 700`), numeric strings for pixel values (`fontSize: "230"`), and object strokes (`stroke: {color: "#ff00ff"}`) alongside the string forms above.
 - `delete_object`: Delete object by ID (omit to delete current selection).

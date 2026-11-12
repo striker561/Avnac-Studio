@@ -18,6 +18,22 @@ The server is opt-in and authenticated:
 - Every request must send header `Authorization: Bearer <token>`.
 - **Status check**: open the connect URL in a browser (no token needed) to verify the server is live.
 
+### Design knowledge resources
+
+The server also publishes its design library as MCP resources (`text/markdown`). Read the one the
+task needs rather than guessing:
+
+| URI | Contents |
+|---|---|
+| `skill://avnac-design` | Entry point: routing table, always-on gates, how to read a rule |
+| `skill://<task>` | 21 task workflows — `poster`, `logo`, `brand`, `color`, `typography`, `layout`, `print`, `export`, `ui`, `packaging`, ... |
+| `references://<subject>` | 14 lookup notes — thresholds, tables, format specs |
+| `rules://<id>` | 112 authoritative principles, e.g. `rules://24-typographic-hierarchy`, `rules://82-bleed-trim-and-safe-areas` |
+| `rules://index` | Every rule by domain, with counts |
+
+Start at `skill://avnac-design`, then the task workflow, then the 4–8 rules it links. Cite the
+rule you followed when you report a design decision.
+
 ---
 
 ## 2. Canvas & Coordinate System

@@ -195,7 +195,7 @@ claude mcp add --transport http avnac-studio http://127.0.0.1:<port-from-setting
 - **Assets** — `search_unsplash`, `list_stickers`, `get_font_list` (Google Fonts)
 - **Verify & export** — `get_canvas_image` (screenshot so the agent can visually check its own work), `get_object_properties`, `export_png`, `export_object`
 
-Three ready-made workflows ship as MCP prompts: **`design-graphic`** (write a brief → render → screenshot audit → verify against the request), **`edit-canvas`** (diff-oriented edits on the open design), and **`design-audit`** (critique + fix the most impactful issues).
+Three ready-made workflows ship as MCP prompts: **`design-graphic`** (routes the brief to the matching design-library workflow — poster, logo, create — then verifies the render), **`edit-canvas`** (diff-oriented edits on the open design), and **`design-audit`** (critique workflow + verdict). The prompt text is generated from the same embedded library the resources serve, so the two cannot drift.
 
 ### Try it
 

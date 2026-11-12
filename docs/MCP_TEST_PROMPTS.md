@@ -164,37 +164,44 @@ Exercises: `render_elements` (add), `delete_object`, `select_objects`, `get_canv
 
 ## Category D — Registered MCP prompts ✅
 
-These test the server's built-in prompts themselves (`design-graphic`, `edit-canvas`, `design-audit` — defined in `avnac-system/mcp/prompts.go`). Invoke them from your MCP client's prompt UI, fill the arguments, and run the resulting prompt. What's under test is the server-side prompt text and whether an agent can follow it with the real tools.
+These test the server's built-in prompts themselves (`design-graphic`, `edit-canvas`, `design-audit` — defined in `avnac-system/mcp/prompts.go`). Invoke them from your MCP client's prompt UI, fill the arguments, and run the resulting prompt.
 
-### D1. design-graphic — full argument set
+What's under test: the server routes the brief through the design library and embeds the matched workflow (`## Workflow: create`, `poster`, `edit`, `critique`, ...), the workflow's rule links, the app's tool mapping, and the render-verification gate. The prompt must **not** contain a hand-written step list that could drift from `internal/skill/`.
+
+### D1. design-graphic — album cover
 > Invoke the `design-graphic` prompt with topic: "Album cover for 'Neon Corridor', a synthwave band", dimensions: "1080x1080", style: "dark cyberpunk with neon pink and cyan".
 
-Expected: the returned prompt text walks the agent through the 6-step workflow (summary → canvas → background → assets → composition → audit), and the agent produces a coherent synthwave cover.
+Expected: text contains `## Workflow: create`, the brief echoed, `rules://` links for the create workflow's rules, and the "Before you report" gate. The agent produces a coherent synthwave cover. Style words must not have hijacked routing — `create` is correct here.
 
 ### D2. design-graphic — minimal arguments
 > Invoke the `design-graphic` prompt with only topic: "Grand opening flyer for a ramen shop".
 
-Expected: the prompt fills defaults ("1080x1080 (Square)", "modern bold") and the design still lands — tests the default handling in the prompt template.
+Expected: no invented size. The prompt says the size is to be derived from the brief and stated, routes to `create`, and the design still lands.
 
 ### D3. design-graphic — non-square dimensions string
 > Invoke the `design-graphic` prompt with topic: "Webinar banner for an AI in healthcare talk", dimensions: "1920x1080", style: "clean corporate".
 
-Expected: the agent translates the "1920x1080" dimension string into `create_canvas` or the `hd` preset correctly.
+Expected: routes to `create`; the agent translates "1920x1080" into `create_canvas` (or the `hd` preset) correctly. The dimensions string appears in the header but does not appear in the routed workflow name.
 
-### D4. edit-canvas — restyling instruction
+### D4. design-graphic — print brief routes to poster
+> Invoke the `design-graphic` prompt with topic: "A2 gig poster for a jazz trio", style: "risograph".
+
+Expected: `## Workflow: poster` — this is the routing regression test. The prompt should carry the poster workflow (bleed, viewing distance, safe area) and link `rules://82-bleed-trim-and-safe-areas`.
+
+### D5. edit-canvas — restyling instruction
 > (With any populated canvas) Invoke the `edit-canvas` prompt with instruction: "Change the color scheme to dark mode and center the title".
 
-Expected: the prompt tells the agent to inspect with `get_canvas_summary`, map object IDs, and apply `modify_elements` — not to re-render everything from scratch.
+Expected: `## Workflow: edit`; the prompt tells the agent to inspect with `get_canvas_summary`, map object IDs, and apply `modify_elements` — and explicitly forbids recreating the design.
 
-### D5. edit-canvas — layout instruction
+### D6. edit-canvas — layout instruction
 > Invoke the `edit-canvas` prompt with instruction: "Make the headline twice as large and move it to the upper third of the canvas".
 
-Expected: targeted geometry edits to the existing headline node only.
+Expected: `## Workflow: edit`; targeted geometry edits to the existing headline node only.
 
-### D6. design-audit
+### D7. design-audit
 > Invoke the `design-audit` prompt on the current canvas.
 
-Expected: the agent reads the summary, takes an annotated screenshot, and critiques balance, typography hierarchy, contrast, and margins — then offers (or applies) concrete fixes.
+Expected: `## Workflow: critique`; the prompt requires `get_canvas_summary`, `get_canvas_image` with `annotated=true`, one corrective pass, and the five-part verdict report. The agent critiques against the brief, not personal taste.
 
 ---
 

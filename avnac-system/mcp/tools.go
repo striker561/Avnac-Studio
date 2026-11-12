@@ -83,6 +83,30 @@ func (m *AvnacMCP) emitSync(wailsCtx context.Context, action string, payload any
 	}
 }
 
+// toolErrorResult converts a frontend {"error": "..."} response into an MCP tool
+// error.
+//
+// Handlers that run their own event round trip (render_elements,
+// modify_elements, the export tools) used to return the response map as a
+// successful result: the failure text was in the content, but isError was unset,
+// so a client — and the agent reading it — treated a rejected batch as success.
+// Routing every soft response through this helper keeps failures visible at the
+// protocol level.
+func toolErrorResult(data any) (*mcp.CallToolResult, any, error) {
+	respMap, ok := data.(map[string]any)
+	if !ok || respMap == nil {
+		return nil, data, nil
+	}
+	msg, _ := respMap["error"].(string)
+	if msg == "" {
+		return nil, data, nil
+	}
+	return &mcp.CallToolResult{
+		IsError: true,
+		Content: []mcp.Content{&mcp.TextContent{Text: msg}},
+	}, data, nil
+}
+
 // Flexible input decoding.
 //
 // Some MCP clients (notably bridges that transport every tool parameter as a
@@ -1109,7 +1133,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 					}
 				}
 			}
-			return nil, data, nil
+			return toolErrorResult(data)
 		case <-time.After(20 * time.Second):
 			m.mu.Lock()
 			delete(m.pendingRequests, requestID)
@@ -1165,7 +1189,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 					}
 				}
 			}
-			return nil, data, nil
+			return toolErrorResult(data)
 		case <-time.After(15 * time.Second):
 			m.mu.Lock()
 			delete(m.pendingRequests, requestID)
@@ -1243,7 +1267,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if len(rateLimit) > 0 {
 			out["rateLimit"] = rateLimit
 		}
-		return nil, out, nil
+		return toolErrorResult(out)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1271,7 +1295,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1304,7 +1328,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 				}
 			}
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1329,7 +1353,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 		select {
 		case data := <-ch:
-			return nil, data, nil
+			return toolErrorResult(data)
 		case <-time.After(5 * time.Second):
 			m.mu.Lock()
 			delete(m.pendingRequests, requestID)
@@ -1370,7 +1394,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 		select {
 		case data := <-ch:
-			return nil, data, nil
+			return toolErrorResult(data)
 		case <-time.After(15 * time.Second):
 			m.mu.Lock()
 			delete(m.pendingRequests, requestID)
@@ -1428,7 +1452,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1455,7 +1479,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1474,7 +1498,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1490,7 +1514,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1508,7 +1532,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1527,7 +1551,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1546,7 +1570,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1561,7 +1585,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1583,7 +1607,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 		select {
 		case data := <-ch:
-			return nil, data, nil
+			return toolErrorResult(data)
 		case <-time.After(5 * time.Second):
 			m.mu.Lock()
 			delete(m.pendingRequests, requestID)
@@ -1601,7 +1625,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1620,7 +1644,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1640,7 +1664,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1669,7 +1693,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 				}
 			}
 		}
-		return nil, data, nil
+		return toolErrorResult(data)
 	})
 
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -1691,7 +1715,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 		select {
 		case data := <-ch:
-			return nil, data, nil
+			return toolErrorResult(data)
 		case <-time.After(15 * time.Second):
 			m.mu.Lock()
 			delete(m.pendingRequests, requestID)
@@ -1719,7 +1743,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 		select {
 		case data := <-ch:
-			return nil, data, nil
+			return toolErrorResult(data)
 		case <-time.After(15 * time.Second):
 			m.mu.Lock()
 			delete(m.pendingRequests, requestID)
@@ -1747,7 +1771,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 		select {
 		case data := <-ch:
-			return nil, data, nil
+			return toolErrorResult(data)
 		case <-time.After(15 * time.Second):
 			m.mu.Lock()
 			delete(m.pendingRequests, requestID)
@@ -1775,7 +1799,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 		select {
 		case data := <-ch:
-			return nil, data, nil
+			return toolErrorResult(data)
 		case <-time.After(15 * time.Second):
 			m.mu.Lock()
 			delete(m.pendingRequests, requestID)

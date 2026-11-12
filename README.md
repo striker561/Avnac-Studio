@@ -186,7 +186,16 @@ claude mcp add --transport http avnac-studio http://127.0.0.1:<port-from-setting
 
 > Tip: open the connect URL in any browser (no token needed) to confirm the server is up before connecting a client.
 
-### What agents can do — 27 tools
+### What agents can do — 12 tools
+
+Six reads (`get_canvas_summary`, `get_canvas_state`, `get_canvas_image`, `list_objects`, `get_object_properties`, `get_selection`) and six noun-shaped tools whose verbs are `op` values:
+
+- **`canvas`** — `create` (size, background, name), `clear`, `background`, `preset` (IG, HD, A4…)
+- **`elements`** — `render` rects, ellipses, polygons, stars, lines, text, images and stickers in one batch (images support `fit`/`focalPoint` crop); `modify`; `delete`; `measure` text layout before drawing
+- **`arrange`** — `align` (including optical `cap-middle`), `distribute`, `group`, `ungroup`, `fit`, `select`
+- **`files`** — `list`, `open`, `rename` (work even with no canvas open)
+- **`assets`** — `unsplash`, `fonts` (Google Fonts), `stickers`
+- **`export`** — `png`, `object`
 
 - **Files** — `list_files`, `open_canvas`, `rename_file` (work even with no canvas open)
 - **Canvas setup** — `create_canvas` (size, background, name), `apply_artboard_preset` (IG, HD, A4…), `set_background`, `clear_canvas`, `get_canvas_summary`

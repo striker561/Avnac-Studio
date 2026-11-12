@@ -85,20 +85,20 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Parse the request and extract known constraints: dimensions, exact copy, brand or shop names, dates/addresses, palette, style, imagery.
    - Identify critical unknowns: real text content, names, dates, addresses, size intent. If any are missing, ask the user up to 3 targeted questions and STOP — do not call tools yet. If nothing critical is missing, state your assumptions explicitly and proceed.
    - Write a compact design plan: layout zones with approximate coordinates, type hierarchy, palette, fonts, asset needs. The later verification step checks the render against this brief.
-   - For EDIT requests, write a diff-oriented brief (what changes, what stays). Start from the real canvas: if the target file is not currently open, call list_files then open_canvas — NEVER silently recreate an existing design in a new file.
+   - For EDIT requests, write a diff-oriented brief (what changes, what stays). Start from the real canvas: if the target file is not currently open, call files op=list then files op=open — NEVER silently recreate an existing design in a new file.
 
 2. INSPECT / CANVAS SETUP:
-   - Call get_canvas_summary to see the active canvas. For a NEW design, call create_canvas with width, height, backgroundColor, and a descriptive name.
-   - create_canvas already applies backgroundColor — do not call set_background again with the same value.
-   - To edit an existing file that is not open: list_files → open_canvas(fileId). To change its title: rename_file(fileId, name).
+   - Call get_canvas_summary to see the active canvas. For a NEW design, call canvas op=create with width, height, backgroundColor, and a descriptive name.
+   - canvas op=create already applies backgroundColor — do not call canvas op=background again with the same value.
+   - To edit an existing file that is not open: files op=list → files op=open(fileId). To change its title: files op=rename(fileId, name).
 
 3. ASSETS:
-   - Call search_unsplash for photography when relevant, and get_font_list if unsure which fonts to use.
-   - Every search spends the app's Unsplash hourly quota, and each result carries the remaining budget in rateLimit: reuse photos you already have instead of re-running a query. Place a photo by passing its regular URL as an image element's url in render_elements — that is when Unsplash download tracking fires.
+   - Call assets op=unsplash for photography when relevant, and assets op=fonts if unsure which fonts to use.
+   - Every search spends the app's Unsplash hourly quota, and each result carries the remaining budget in rateLimit: reuse photos you already have instead of re-running a query. Place a photo by passing its regular URL as an image element's url in elements op=render — that is when Unsplash download tracking fires.
    - Unsplash requires the photographer and Unsplash to be credited wherever a photo is used. Placement stores that credit on the image and get_canvas_summary lists it under credits. Always name the photographers in your final message, and when the design is for publication add a small credit line (e.g. "Photo: Ada / Unsplash") to the layout.
 
 4. DECLARATIVE COMPOSITION:
-   - Call render_elements once with all elements, layered bottom (background) to top (foreground).
+   - Call elements op=render once with all elements, layered bottom (background) to top (foreground).
    - Coordinates: top-left origin (0, 0). 'left' (or 'x') and 'top' (or 'y') in pixels.
    - Elements: 'rect', 'ellipse', 'polygon' (sides 3-8), 'star', 'line', 'text', 'image', 'sticker'.
    - Typography: strong hierarchy (Headline 48-72px, Subhead 24-32px, Body 16-20px). Prefer Poppins, Inter, and DM Serif Display — other Google Fonts may fall back if not yet loaded; get_canvas_image now waits for fonts before rendering.
@@ -106,7 +106,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
 
 5. VERIFY AGAINST THE BRIEF:
    - Call get_canvas_image and compare it to the design brief AND the user's original request, item by item: required content present and spelled correctly, dimensions, hierarchy, palette, style, no unintended placeholder text.
-   - If something mismatches, fix it with modify_elements (or align_objects / group_objects), take one more screenshot, then report an honest pass/fail per requirement. Explicitly flag any content you invented.
+   - If something mismatches, fix it with elements op=modify (or arrange ops: align, distribute, group), take one more screenshot, then report an honest pass/fail per requirement. Explicitly flag any content you invented.
 `
 
 func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, secrets *avnacsecrets.SecretsManager) *AvnacMCP {

@@ -37,7 +37,7 @@ scripted way to start a task, it is a prompt.**
 │                    │  builds *mcp.Server (go-sdk)                                                 │
 │                    │  instructions = DesignerInstructions + designResourceIndex()                  │
 │    startup ───────► MCPServer.Start(wailsCtx)                                                      │
-│                    ├── RegisterTools(wailsCtx)      27 tools, each handler closes over wailsCtx    │
+│                    ├── RegisterTools(wailsCtx)      27 handlers, 12 published tools        │
 │                    ├── RegisterPrompts()            3 prompts                                      │
 │                    └── RegisterResources()          internal/skill ──► 149 MCP resources           │
 │                                                                                                    │
@@ -239,13 +239,22 @@ mcp tools/call  ──► handler ──► emitSync(ctx, action, payload, timeo
 - Image-returning tools attach a PNG content block alongside text, so the model can look at
   what it produced.
 
-Tool categories: canvas inspection (`get_canvas_summary`, `get_canvas_image`, `list_objects`,
-`get_object_properties`, `get_selection`), composition (`render_elements`, `modify_elements`,
-`delete_object`, `group_objects`, `ungroup_objects`, `align_objects`, `distribute_objects`,
-`fit_to_artboard`, `apply_artboard_preset`, `set_background`, `clear_canvas`), files
-(`list_files`, `open_canvas`, `rename_file`, `export_png`, `export_object`), assets
-(`search_unsplash`, `get_font_list`, `list_stickers`), and interaction (`select_objects`,
-`get_canvas_state`, `create_canvas`).
+**The published surface is 12 tools**, not 27. Six reads keep one name per operation
+(`get_canvas_summary`, `get_canvas_state`, `get_canvas_image`, `list_objects`,
+`get_object_properties`, `get_selection`). The other 21 registrations are still built — their
+handlers, schemas and frontend action names are unchanged — but they are collected into a
+`legacy` map instead of being published, and six noun-shaped tools dispatch to them by `op`:
+`canvas` (create/clear/background/preset), `elements` (render/modify/delete), `arrange` (align/
+distribute/group/ungroup/fit/select), `files` (list/open/rename), `assets` (unsplash/fonts/
+stickers) and `export` (png/object).
+
+`opDispatcher` lowercases the op, routes through the map, accepts the legacy action name as an
+alias, and forwards the arguments minus the op keys — so every existing decoder (including the
+flexible stringified-input paths) is reused unchanged. Unknown or missing ops fail with a message
+that lists the allowed values. This mirrors SpriteWare's noun+op design; see
+[MCP_TOOL_SURFACE.md](MCP_TOOL_SURFACE.md) for the comparison and the migration record. Reads stay
+granular on purpose: they return five different shapes, and a single `inspect` op would trade
+clarity for a smaller number.
 
 ---
 
@@ -269,7 +278,7 @@ designGraphicPrompt(topic, dimensions, style)
 ```
 
 Three pieces are prompt-only because the library cannot know them: the user's brief, this app's
-tool names (`get_canvas_summary`, `render_elements`, `get_canvas_image`, ...), and the
+tool names (`get_canvas_summary`, `elements` op=render, `get_canvas_image`, ...), and the
 verification gate that closes the loop with a render. Everything else — ordering, decision
 points, thresholds — comes from `skill://create|edit|critique` and the rules they link.
 
@@ -539,7 +548,7 @@ Wails bindings the UI calls: `GetMCPInfo`, `RegenerateToken`, and the existing
 | 401 on every call | Stale token after regeneration | Response body names Settings |
 | Bind error on start | Pinned port taken by another process | `MCPState.Error`, log line |
 | Tool times out | The editor is not open, so nothing answers `mcp:action` | Tool error names the likely cause |
-| 413 | Request body over 32 MiB (usually an oversized `render_elements`) | HTTP status |
+| 413 | Request body over 32 MiB (usually an oversized `elements` render batch) | HTTP status |
 | `-32002` on `resources/read` | Typo or a URI scheme the server does not serve | JSON-RPC error |
 | Resources missing entirely | Library failed to load; logged, tools still work | Log: `mcp: design resources unavailable` |
 | URL changes between launches | Port 12345 was taken, ephemeral fallback used | Settings shows the resolved URL |

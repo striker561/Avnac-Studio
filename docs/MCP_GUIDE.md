@@ -92,7 +92,7 @@ mapping. A poster brief therefore gets the poster workflow; a logo brief gets th
 2. **`edit-canvas`**:
    - **Arguments**: `instruction` (required, e.g. *"Change the color scheme to dark mode and center the title"*).
    - **Description**: Routes to the edit workflow, inspects the live canvas with `get_canvas_summary`,
-     maps object IDs, applies targeted `modify_elements` updates, and forbids recreating the design.
+     maps object IDs, applies targeted `elements` op=modify updates, and forbids recreating the design.
 3. **`design-audit`**:
    - **Description**: Routes to the critique workflow; reads the canvas summary and an annotated
      screenshot, critiques intent match, balance, contrast, margins and hierarchy, makes one
@@ -148,37 +148,59 @@ When connected, the MCP server also automatically transmits `Instructions` to th
 
 ---
 
-## 4. Key Tools Summary (27 Tools)
+## 4. Key Tools (12 Tools)
 
-### File Management
-- `list_files`: List all saved canvas files — `{id, name, width, height, updatedAt}`. Works even when no canvas is open.
-- `open_canvas`: Open a saved file by workspace id (from `list_files`) and make it the active scene. Unknown ids return an error listing where to look.
-- `rename_file`: Rename a saved file by workspace id; also updates the live editor title if the file is open.
+The published surface is noun-shaped. Six **read** tools keep one name per operation; six
+**mutation** tools map to a domain and take an `op`. Every op returns the same payload the old
+one-tool-per-action surface returned, and the legacy action name is accepted as an `op` value
+(e.g. `op: "render_elements"`), so older habits still work.
 
-### Setup & Canvas
-- `get_canvas_summary`: Get token-efficient summary of the artboard and all objects. Returns `{error: "No active canvas scene..."}` when no canvas is open — call `create_canvas` first, or `list_files` + `open_canvas` to load an existing file.
-- `create_canvas`: Initialize canvas with `width`, `height`, optional `backgroundColor` (`color` alias accepted) and `name`.
-- `apply_artboard_preset`: Resize via `presetId` (`ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`; `preset` alias accepted). Unknown ids return an error listing valid ids.
-- `set_background`: Set canvas background via `color` (`backgroundColor` alias accepted). Returns the new background or a no-scene error. Not needed right after `create_canvas` when a background was passed there.
-- `clear_canvas`: Remove all objects. Returns `clearedCount`.
+### Reads (6)
 
-### Assets & Photography
-- `search_unsplash`: Search royalty-free photos and retrieve image URLs. Returns compact records (`id`, `alt_description`, `width`, `height`, `photographer`, `credit`, `urls.small`/`urls.regular`) and the remaining hourly quota in `rateLimit`. Identical queries are served from a two-minute cache. Unsplash's download call fires from `render_elements` when a searched photo's URL is actually placed — searching or previewing costs no download, and the photo's credit is stored on the placed image (listed under `credits` in `get_canvas_summary`).
-- `list_stickers`: Get built-in sticker names (`donut`, `leaf`, `lollipop`, `pineapple`, `shooting-star-badge`, `sunflower-badge`).
-- `get_font_list`: List supported Google Fonts. Prefer `Poppins`, `Inter`, and `DM Serif Display` for reliable canvas rendering.
+- `get_canvas_summary`: Token-efficient artboard + object summary. Returns a no-scene error when nothing is open — call `canvas` op=create, or `files` op=list + `files` op=open.
+- `get_canvas_state`: Raw scene state.
+- `get_canvas_image`: PNG screenshot of the artboard, or `objectId` to crop to one object; `annotated=true` overlays boxes.
+- `list_objects`: Object ids and types on the canvas.
+- `get_object_properties`: Bounding box and styles of one object. Text nodes also return `metrics` — measured `ascent`, `descent`, `capHeight`, and absolute `baseline`, `capTop`, `capCenterY` — so an agent can align to the letters instead of the text box.
+- `get_selection`: Ids and properties of the current selection.
 
-### Creation & Editing
-- `render_elements`: Create elements in one call (`rect`, `ellipse`, `polygon`, `star`, `line`, `text`, `image`, `sticker`). Text supports `textAlign`, `fontWeight`, `fontStyle`, `lineHeight`, `underline`. Lines use `stroke`/`strokeWidth` (not `width`). Elements that cannot be built are reported in `skipped` with their index and type; if nothing could be created the call fails (`isError: true`) instead of returning an empty success.
-- `modify_elements`: Update properties by `objectId`, including text controls (`fontWeight`, `textAlign`, `lineHeight`, etc.).
-- **Flexible inputs**: top-level keys and nested `elements[]` / `modifications[]` fields accept flexible forms — numeric font weights (`fontWeight: 700`), numeric strings for pixel values (`fontSize: "230"`), and object strokes (`stroke: {color: "#ff00ff"}`) alongside the string forms above.
-- `delete_object`: Delete object by ID (omit to delete current selection).
-- `align_objects`: Align selection via `type` (`left`, `center`, `right`, `top`, `middle`, `bottom`, `cap-middle`). Single selection aligns to artboard; multiple aligns to each other. `cap-middle` is optical: it centres the other selected objects on the **cap-height band** of the first selected text object — the letters, not the text's rectangular box — which is what aligns a dot or icon with a label. It uses measured glyph metrics and fails rather than silently falling back to box centring.
-- `distribute_objects`: Distribute 3+ selected elements via `direction` (`horizontal`, `vertical`; `type` alias accepted).
-- `group_objects` / `ungroup_objects`: Manage grouping (`objectIds` min 2 / `groupId`).
-- `fit_to_artboard`: Scale selection to fill canvas with optional `padding`.
+### Mutations (6, `op`-based)
 
-### Verification & Export
-- `get_canvas_image`: Render a visual PNG screenshot of the artboard.
-- `get_object_properties`: Inspect bounding box and styles of an element. For text nodes it also returns `metrics` — measured `ascent`, `descent`, `capHeight`, and the absolute `baseline`, `capTop`, `capCenterY` — so an agent can align other elements to the letters instead of the text box.
-- `export_png`: Export the canvas to a downloadable PNG file.
-- `export_object`: Export an individual object/group as PNG or SVG.
+**`canvas`** — artboard lifecycle:
+- `create` (`width`, `height`, `name`, `backgroundColor`/`color`) — starts a new canvas and navigates to it. The background is applied here; do not also call `background`.
+- `clear` — removes every object, returns `clearedCount`.
+- `background` (`backgroundColor`/`color`) — sets the page background.
+- `preset` (`presetId`/`preset`) — `ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`.
+
+**`elements`** — create or change elements:
+- `render` (`elements[]` or a JSON-encoded string, `includePreview`) — one declarative batch, bottom to top. Images take `fit` (`fill` default, or `cover`), `focalPoint` (`{x,y}`, normalized 0–1) and `crop` (`{x,y,width,height}`, normalized source rect that wins over fit); without them the photo keeps the old stretch behaviour. Types: `rect`, `ellipse`, `circle`, `polygon`, `star`, `line`, `text`, `image`, `sticker`. Text supports `textAlign`, `fontWeight`, `fontStyle`, `lineHeight`, `underline`; lines use `stroke`/`strokeWidth`. When `modify` changes a text `fontSize`, pass `width` too — the auto-measured width is kept and larger type re-wraps. Elements that cannot be built are reported in `skipped` by index and type; a batch that creates nothing fails (`isError: true`).
+- `modify` (`modifications[]` or a JSON-encoded string, `includePreview`) — updates by `objectId`, including text controls.
+- `delete` (`objectId`/`id`; omit to delete the current selection).\n- `measure` (`elements[]`) — returns width, height, line count, line breaks, `capHeight`/`ascent` and (with `x`/`y`) absolute `baseline`/`capTop`/`capCenterY` for proposed elements **without drawing**. Use it to check wrapping or fit a headline before rendering; for images it returns natural dimensions.
+
+**`arrange`** — the current selection:
+- `align` (`type`: `left`, `center`, `right`, `top`, `middle`, `bottom`, `cap-middle`). Single selection aligns to the artboard, multiple to each other. `cap-middle` is optical: it centres the other selected objects on the cap-height band of the first selected text object — the letters, not the text box — and fails rather than falling back to box centring.
+- `distribute` (`direction`: `horizontal`/`vertical`) — needs 3+ selected objects.
+- `group` (`objectIds`, min 2) / `ungroup` (`groupId`).
+- `fit` (`padding`) — scales the selection to the artboard.
+- `select` (`objectIds`) — selects by id.
+
+**`files`** — saved canvases:
+- `list` — `{id, name, width, height, updatedAt}`; works with no canvas open.
+- `open` (`fileId`/`id`/`workspaceId`) — opens a file and makes it the active scene; unknown ids name where to look.
+- `rename` (`fileId`, `name`) — renames the saved file and the live editor title when open.
+
+**`assets`** — external assets:
+- `unsplash` (`query`, `page`, `perPage`) — compact photo records plus remaining hourly quota. Identical queries are served from a two-minute cache. Placement through `elements` op=render is what fires Unsplash download tracking and stores the credit, which `get_canvas_summary` then lists.
+- `fonts` — supported Google Fonts. Prefer `Poppins`, `Inter`, `DM Serif Display` for reliable rendering.
+- `stickers` — built-in sticker names.
+
+**`export`** — output:
+- `png` (`multiplier`, `transparent`) — base64 PNG of the artboard.
+- `object` (`objectId`, `multiplier`) — PNG of one object or group. SVG object export is not supported over MCP yet.
+
+### Errors
+
+A missing `op` fails schema validation; an unknown `op` names the allowed values; an op from the
+wrong group fails the same way. Per-op required fields are validated by the existing decoders,
+which name the missing field. Flexible input still applies: numeric strings for pixel values,
+numeric font weights, and JSON-encoded arrays for `elements`/`modifications`/`objectIds`.

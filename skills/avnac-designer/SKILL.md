@@ -43,72 +43,66 @@ rule you followed when you report a design decision.
 - **Vertical**: `top` (alias `y`) increases downward.
 - **Dimensions**: `width` and `height` in pixels.
 - **Rotation**: `angle` (alias `rotation`) in degrees clockwise.
-- **Layering Order**: Elements created with `render_elements` are placed from **bottom (background) to top (foreground)** in array order.
+- **Layering Order**: Elements created with `elements` op=render are placed from **bottom (background) to top (foreground)** in array order.
 
 ---
 
 ## 3. Tool Reference Cheat Sheet
 
-### Canvas Setup & Discovery
+Twelve tools: six **reads** keep one name per operation, six **mutations** take an `op`. The legacy
+action name is accepted as an `op` value (e.g. `op: "render_elements"`), so older phrasing works.
+
+### Reads
+
 | Tool | Purpose | Key Arguments |
 |---|---|---|
-| `get_canvas_summary` | Get token-efficient semantic summary of canvas and objects | None |
-| `create_canvas` | Create a new canvas with custom dimensions | `width`, `height`, `name`, `backgroundColor` (`color` alias accepted) |
-| `apply_artboard_preset` | Resize canvas to a standard preset | `presetId` (`"ig-square"`, `"ig-portrait"`, `"ig-story"`, `"hd"`, `"twitter-post"`, `"linkedin"`, `"youtube-thumb"`, `"a4-300"`, `"custom-4000"`; legacy `preset` alias accepted) |
-| `set_background` | Change artboard background color | `color` (hex string, e.g. `"#0f172a"`) |
-| `clear_canvas` | Remove all objects from the canvas | None |
+| `get_canvas_summary` | Token-efficient semantic summary of the canvas and objects | None |
+| `get_canvas_state` | Raw scene state | None |
+| `get_canvas_image` | PNG screenshot of the canvas (or one object) | `annotated`, `objectId` |
+| `list_objects` | Object IDs and types on the canvas | None |
+| `get_object_properties` | Bounding box and styles of one object; text nodes also return measured `metrics` (`capHeight`, `baseline`, `capTop`, `capCenterY`) | `objectId` |
+| `get_selection` | Currently selected objects | None |
 
-### File Management (saved canvases)
-| Tool | Purpose | Key Arguments |
+### Mutations
+
+| Tool | Ops | Key Arguments |
 |---|---|---|
-| `list_files` | List all saved canvas files: `{id, name, width, height, updatedAt}` | None |
-| `open_canvas` | Open a saved file by workspace id, navigate to it, make it the active scene | `fileId` (from `list_files`; `id`/`workspaceId` accepted) |
-| `rename_file` | Rename a saved file (and the live editor title if open) | `fileId`, `name` |
+| `canvas` | `create`, `clear`, `background`, `preset` | create: `width`, `height`, `name`, `backgroundColor` (`color` alias); background: `backgroundColor`/`color`; preset: `presetId` (`ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`) |
+| `elements` | `render`, `modify`, `delete`, `measure` | `elements[]` or a JSON-encoded string, `modifications[]`, `objectId`/`id`, `includePreview`; image elements: `fit`, `focalPoint`, `crop` |
+| `arrange` | `align`, `distribute`, `group`, `ungroup`, `fit`, `select` | align: `type` (incl. `cap-middle`); distribute: `direction`; group/select: `objectIds`; ungroup: `groupId`; fit: `padding` |
+| `files` | `list`, `open`, `rename` | `fileId` (`id`/`workspaceId` accepted), `name` |
+| `assets` | `unsplash`, `fonts`, `stickers` | `query`, `page`, `perPage` |
+| `export` | `png`, `object` | `multiplier`, `transparent`, `objectId` |
 
-Use these whenever the user references an existing file that is not currently open — e.g. *"restyle the webinar slide"*. Call `get_canvas_summary` first; if it reports no active canvas scene, call `list_files`, locate the file by name, then `open_canvas`. **Never recreate an existing design in a new file.** There is no duplicate or delete tool over MCP; the canvas title can also be changed later via `rename_file`.
+Use `files` whenever the user references an existing file that is not currently open — e.g.
+*"restyle the webinar slide"*. Call `get_canvas_summary` first; if it reports no active canvas
+scene, call `files` op=list, locate the file by name, then `files` op=open. **Never recreate an
+existing design in a new file.** There is no duplicate or delete-file tool over MCP; the canvas
+title can be changed later with `files` op=rename.
 
-### Asset Discovery
-| Tool | Purpose | Key Arguments |
-|---|---|---|
-| `search_unsplash` | Search high-quality royalty-free photos | `query`, `page`, `perPage` |
-| `list_stickers` | Get list of built-in decorative stickers | Returns `donut`, `leaf`, `lollipop`, `pineapple`, `shooting-star-badge`, `sunflower-badge` |
-| `get_font_list` | List supported Google Fonts | None |
+`assets` op=unsplash results include `rateLimit.remaining` — the app's Unsplash quota resets
+hourly, so reuse photos you already searched for instead of re-running a query. Placing a searched
+photo's `urls.regular` as an image element in `elements` op=render files the required Unsplash
+download; searching alone does not. The placed image also stores the photographer's credit (shown
+in the image toolbar and listed under `credits` in `get_canvas_summary`): name the photographers in
+your final message, and add a small credit line to the layout when the design is for publication.
 
-`search_unsplash` results include `rateLimit.remaining` — the app's Unsplash quota resets hourly, so reuse photos you already searched for instead of re-running a query. Placing a searched photo's `urls.regular` as an image element in `render_elements` files the required Unsplash download; searching alone does not. The placed image also stores the photographer's credit (shown in the image toolbar and listed under `credits` in `get_canvas_summary`): name the photographers in your final message, and add a small credit line to the layout when the design is for publication.
+Text is measured against its real font when no width is given, so the bounds returned by
+`elements` op=render are trustworthy for layout. To align a dot or icon with a label, use
+`arrange` op=align with `type: "cap-middle"` — it targets the letters' cap-height band, not the
+text box. `get_object_properties` returns the same numbers (`metrics.capCenterY`) if you need to
+place something manually.
 
-### Creation & Batch Rendering
-| Tool | Purpose | Key Arguments |
-|---|---|---|
-| `render_elements` | Declaratively create multiple elements in one batch | `elements: []ElementDefinition`, `includePreview: bool` |
+Before a text-heavy composition, call `elements` op=measure with the proposed text specs: it
+returns the width, height, line count and line breaks the render will use, plus the cap-height
+metrics, without drawing anything. Check wrapping and fit there first instead of discovering a
+collision in the verification screenshot.
 
-### Inspection & Verification
-| Tool | Purpose | Key Arguments |
-|---|---|---|
-| `get_canvas_image` | Render a PNG visual screenshot of the canvas | `annotated` (`true` for bounding box debug overlays), `objectId` |
-| `get_object_properties` | Get detailed properties of a specific object | `objectId` |
-| `list_objects` | List all objects on canvas with IDs and types | None |
-| `get_selection` | Get currently selected objects | None |
+For photography, always pass `fit: "cover"` when the image ratio differs from the box ratio —
+without it the photo is stretched, which is the most common way a layout looks amateur. Add
+`focalPoint` to choose which part survives the crop.
 
-### Modification & Manipulation
-| Tool | Purpose | Key Arguments |
-|---|---|---|
-| `modify_elements` | Batch update properties of existing elements | `modifications: []ElementModification`, `includePreview: bool` |
-| `delete_object` | Delete an object | `objectId` (omitted deletes current selection) |
-| `align_objects` | Align selected objects | `type` (`"left"`, `"center"`, `"right"`, `"top"`, `"middle"`, `"bottom"`; `center`=centerH, `middle`=centerV) |
-| `distribute_objects` | Distribute selected objects evenly (needs 3+ selected) | `direction` (`"horizontal"`, `"vertical"`; `type` alias accepted) |
-| `group_objects` | Group multiple objects | `objectIds: string[]` (min 2, same parent) |
-| `ungroup_objects` | Ungroup a group | `groupId: string` |
-| `fit_to_artboard` | Scale selection to fill canvas | `padding` (pixels, default 0) |
-
-### Export
-| Tool | Purpose | Key Arguments |
-|---|---|---|
-| `export_png` | Export full canvas as PNG | `multiplier` (e.g. `1`, `2`), `transparent: bool` |
-| `export_object` | Export specific object/group | `objectId`, `format` (`"png"`, `"svg"`), `multiplier` |
-
----
-
-## 4. Element Definition Schema (`render_elements`)
+## 4. Element Definition Schema (`elements` op=render)
 
 Each element in the `elements` array supports:
 
@@ -146,7 +140,10 @@ Each element in the `elements` array supports:
   - `x1`, `y1`, `x2`, `y2`: Line segment start and end points.
   - `stroke` / `strokeWidth`: Line color and width (do NOT use `width` for line width).
 - **`image`**:
-  - `url`: Direct image URL (e.g. from `search_unsplash`).
+  - `url`: Direct image URL (e.g. from `assets` op=unsplash).
+  - `fit`: `"fill"` (default, stretches to the box) or `"cover"` (crops the source to the box aspect).
+  - `focalPoint`: `{ x, y }` normalized 0–1; keeps that point in frame when `fit: "cover"`. Default centre.
+  - `crop`: `{ x, y, width, height }` normalized source rectangle; an explicit crop wins over `fit`.
 - **`sticker`**:
   - `stickerName`: One of `"donut"`, `"leaf"`, `"lollipop"`, `"pineapple"`, `"shooting-star-badge"`, `"sunflower-badge"`.
 
@@ -161,30 +158,30 @@ Never start with tool calls. First reason about the image the user wants and tur
 1. **Extract known constraints**: dimensions, exact copy (headline/subhead/body text), brand or shop names, dates/addresses, palette, style keywords, imagery requirements.
 2. **Identify critical unknowns**: real text content, names, dates, addresses, size intent. If any critical info is missing, **ask the user up to 3 targeted questions and stop** — do not call tools yet. If nothing critical is missing, state your assumptions explicitly (e.g. *"Using the placeholder shop name 'KUMO RAMEN' — flag if you want the real one"*) and proceed.
 3. **Write a compact design plan**: layout zones with approximate coordinates, type hierarchy, palette, fonts, asset needs. This brief is the checklist the Verify phase audits against.
-4. **Edit requests**: write a diff-oriented brief (what changes, what stays) and always start from the real canvas. If the target file is not currently open, `get_canvas_summary` will report no active scene — then call `list_files`, locate the file by name, and `open_canvas(fileId)`. **Never silently recreate an existing design in a new file**, and never present a recreation as an edit.
+4. **Edit requests**: write a diff-oriented brief (what changes, what stays) and always start from the real canvas. If the target file is not currently open, `get_canvas_summary` will report no active scene — then call `files` op=list, locate the file by name, and `files` op=open(fileId). **Never silently recreate an existing design in a new file**, and never present a recreation as an edit.
 
 ### Phase 1 — Inspect & Setup
 
 1. Call `get_canvas_summary` to understand the active canvas state, artboard dimensions, and pre-existing elements.
-2. For a **new** design: call `create_canvas` with dimensions, a descriptive `name`, and `backgroundColor`. `create_canvas` already applies the background — **do not call `set_background` again with the same value**.
-3. To open an existing file: `list_files` → `open_canvas(fileId)`. To retitle any file: `rename_file(fileId, name)`.
+2. For a **new** design: call `canvas` op=create with dimensions, a descriptive `name`, and `backgroundColor`. `canvas` op=create already applies the background — **do not call `canvas` op=background again with the same value**.
+3. To open an existing file: `files` op=list → `files` op=open(fileId). To retitle any file: `files` op=rename(fileId, name).
 4. Avoid redundant inspection: `get_canvas_summary` and `list_objects` return overlapping data — call one (usually `get_canvas_summary`), not both, unless you specifically need raw IDs.
 
 ### Phase 2 — Atmosphere & Assets
 
-- If the background was not set at `create_canvas`, call `set_background` to establish the mood (e.g. deep dark `#0a0f1d`, clean warm white `#fafafa`, bold `#1e1b4b`).
-- If the design benefits from photography, call `search_unsplash` with relevant keywords. Results are compact: pick from `id`, `alt_description`, `width`/`height`, and `urls.regular` (preferred for canvas placement) or `urls.small` (for thumbnails).
-- Call `get_font_list` if unsure which fonts are available.
+- If the background was not set at `canvas` op=create, call `canvas` op=background to establish the mood (e.g. deep dark `#0a0f1d`, clean warm white `#fafafa`, bold `#1e1b4b`).
+- If the design benefits from photography, call `assets` op=unsplash with relevant keywords. Results are compact: pick from `id`, `alt_description`, `width`/`height`, and `urls.regular` (preferred for canvas placement) or `urls.small` (for thumbnails).
+- Call `assets` op=fonts if unsure which fonts are available.
 
 ### Phase 3 — Declarative Composition
 
-Call `render_elements` with all design components in a **single call**, layered bottom → top:
+Call `elements` op=render with all design components in a **single call**, layered bottom → top:
 - Background card / overlay container panels.
 - Images and photo frames.
 - Text hierarchy: Headline → Subheadline → Body / Call-To-Action.
 - Accents: pill badges, divider lines, stickers.
 
-Prefer the verified fonts `Poppins`, `Inter`, and `DM Serif Display`; other Google Fonts are allowed, but if a screenshot shows fallback glyphs or wrong sizes, switch the text to a verified font via `modify_elements`. Keep content at least 40–80px away from canvas borders.
+Prefer the verified fonts `Poppins`, `Inter`, and `DM Serif Display`; other Google Fonts are allowed, but if a screenshot shows fallback glyphs or wrong sizes, switch the text to a verified font via `elements` op=modify. Keep content at least 40–80px away from canvas borders.
 
 ### Phase 4 — Verify Against the Brief
 
@@ -197,7 +194,7 @@ Call `get_canvas_image` (one audit screenshot per milestone — not per element)
 - No unintended placeholder or invented text.
 
 Then:
-1. **Auto-fix once**: if something mismatches, correct it with `modify_elements` (plus `align_objects` / `group_objects` for layout), take one more screenshot.
+1. **Auto-fix once**: if something mismatches, correct it with `elements` op=modify (plus `arrange` op=align / op=group for layout), take one more screenshot.
 2. **Report honestly**: give an item-by-item pass/fail against the original request. Explicitly flag anything you invented or had to approximate. If verification still fails after the fix pass, say so — never claim success silently.
 
 ---
@@ -210,4 +207,4 @@ Then:
   - **Body / Badges**: 14px – 18px (Clean, high readability).
 - **Margins & Breathing Room**: Never place important text right up against canvas edges. Leave a margin of 60–100px.
 - **Contrast**: Never place dark text on dark backgrounds or light text on light backgrounds. When placing text over photos, create a semi-transparent dark card (`fill: "#000000"`, `opacity: 0.5`, `cornerRadius: 16`) behind the text.
-- **Layering with `action`**: In `modify_elements`, use `action: "bringToFront"` or `"sendToBack"` to fix any z-index stacking issues.
+- **Layering with `action`**: In `elements` op=modify, use `action: "bringToFront"` or `"sendToBack"` to fix any z-index stacking issues.

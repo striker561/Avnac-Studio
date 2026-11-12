@@ -37,21 +37,22 @@ const defaultCanvasSize = "derive from the brief and state the size you choose"
 
 // designTools is the app-specific half of a design prompt: which tools exist.
 // It names capabilities only — no ordering, no duplicated workflow steps.
-const designTools = "Tools: `get_canvas_summary` to read the canvas, `create_canvas` to set size and background, " +
-	"`render_elements` to compose in one batch, `modify_elements` / `align_objects` / `group_objects` to fix, " +
-	"`get_canvas_image` to look at the result, `search_unsplash` for photography (credit the photographer), " +
-	"`get_font_list` and `list_stickers` when you need the available set."
+const designTools = "Tools: `get_canvas_summary` to read the canvas, `canvas` op=create for size and background, " +
+	"`elements` op=render to compose in one batch, `elements` op=measure to check text fit before drawing, " +
+	"`elements` op=modify and `arrange` ops align/group to fix, " +
+	"`get_canvas_image` to look at the result, `assets` op=unsplash for photography (credit the photographer, and pass `fit: \"cover\"`), " +
+	"`assets` ops fonts/stickers when you need the available set."
 
 // auditTools names the two reads an audit starts from.
 const auditTools = "Tools: `get_canvas_summary` for structure and text, `get_canvas_image` with annotated=true " +
-	"for the visual read, `modify_elements` for the one corrective pass."
+	"for the visual read, `elements` op=modify for the one corrective pass."
 
 // verifyGate closes every prompt. It is the part the library cannot state,
 // because it is about looking at this app's render before reporting.
 const verifyGate = "## Before you report\n\n" +
 	"Call `get_canvas_image` and compare the render to the brief item by item: required copy present and spelled " +
 	"correctly, dimensions, hierarchy, palette, style, and no unintended placeholder text. Fix what mismatches with " +
-	"`modify_elements`, look again, then report an honest pass/fail per requirement. Flag any content you invented."
+	"`elements` op=modify, look again, then report an honest pass/fail per requirement. Flag any content you invented."
 
 // fallbackWorkflow is used only if the embedded library fails to load. It keeps
 // the prompt useful instead of empty; the server logs the load failure.

@@ -3,6 +3,8 @@
 **Question:** Avnac exposes 27 tools; SpriteWare exposes 14 for a comparably deep editor. Is
 SpriteWare's op-based design better for Avnac, and what would adopting it cost?
 
+**Status:** implemented — Avnac now publishes 12 tools: six reads plus `canvas`, `elements`, `arrange`, `files`, `assets`, `export` with `op` dispatch. This document records the analysis and the decision.
+
 **Short answer:** SpriteWare's count is low because its domain has a fixed noun model and it pushes
 *verbs* into an `op` field, not because it exposes less. Avnac should adopt the pattern selectively —
 batch the mutation verbs into one transactional tool — but should not collapse reads into a single
@@ -142,13 +144,13 @@ quietly regrow.
 
 ## 4. Recommendation
 
-| Step | Do it now? | Why |
+| Step | Status | Why |
 |---|---|---|
-| Keep `cap-middle` + text metrics as separate read/align capability | done | correct, testable, small |
-| Batch `render_elements` + `modify_elements` + `delete_object` into `elements` with `ops[]` | next | biggest undo/round-trip win, contained change |
-| Batch `align` / `distribute` / `group` / `ungroup` / `fit` / `select` into `arrange` | after | same mechanic, slightly more surface |
-| Collapse `canvas` / `files` / `assets` / `export` | optional | small benefit, real churn |
-| Collapse `inspect` | no | reads differ in shape; granular is better |
+| Keep `cap-middle` + text metrics as separate read/align capability | shipped | correct, testable, small |
+| Batch `render_elements` + `modify_elements` + `delete_object` into `elements` with `ops[]` | shipped as `elements` op dispatch | biggest undo/round-trip win, contained change |
+| Batch `align` / `distribute` / `group` / `ungroup` / `fit` / `select` into `arrange` | shipped | same mechanic, slightly more surface |
+| Collapse `canvas` / `files` / `assets` / `export` | shipped | small benefit, real churn |
+| Collapse `inspect` | deliberately not done | reads differ in shape; granular is better |
 
 Net target: **12 tools**, one transactional `elements` call per composition, and a documented
 ceiling that keeps the number honest.

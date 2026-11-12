@@ -6,6 +6,7 @@ import type {
   SaraswatiGroupNode,
   SaraswatiNode,
   SaraswatiScene,
+  SaraswatiShadow,
 } from "../scene";
 
 export function toAvnacDocument(scene: SaraswatiScene): AvnacDocumentV1 {
@@ -51,6 +52,8 @@ function serializeNode(
       avnacLayerName: node.name,
       visible: node.visible,
       opacity: node.opacity,
+      avnacShadow: serializeShadow(node.shadow),
+      avnacBlur: node.blur ?? 0,
       left: 0,
       top: 0,
       width: 0,
@@ -74,6 +77,7 @@ function serializeNode(
     originX: node.originX,
     originY: node.originY,
     avnacBlur: node.blur ?? 0,
+    avnacShadow: serializeShadow(node.shadow),
   };
 
   switch (node.type) {
@@ -93,6 +97,7 @@ function serializeNode(
         stroke,
         strokeWidth: node.strokeWidth,
         clipPath: serializeClipPath(node.clipPath ?? null),
+        avnacClipPathStack: serializeClipPathStack(node.clipPathStack),
       };
     }
     case "ellipse": {
@@ -111,6 +116,7 @@ function serializeNode(
         stroke,
         strokeWidth: node.strokeWidth,
         clipPath: serializeClipPath(node.clipPath ?? null),
+        avnacClipPathStack: serializeClipPathStack(node.clipPathStack),
       };
     }
     case "polygon": {
@@ -152,6 +158,7 @@ function serializeNode(
         stroke,
         strokeWidth: node.strokeWidth,
         clipPath: serializeClipPath(node.clipPath ?? null),
+        avnacClipPathStack: serializeClipPathStack(node.clipPathStack),
       };
     }
     case "image": {
@@ -165,8 +172,10 @@ function serializeNode(
         cropY: node.cropY,
         cropWidth: node.cropWidth,
         cropHeight: node.cropHeight,
+        avnacBorderRadius: node.borderRadius ?? 0,
         avnacCredit: node.credit ?? undefined,
         clipPath: serializeClipPath(node.clipPath ?? null),
+        avnacClipPathStack: serializeClipPathStack(node.clipPathStack),
       };
     }
     case "line": {
@@ -231,6 +240,8 @@ function serializeNode(
         subTargetCheck: false,
         interactive: false,
         objectCaching: false,
+        avnacBlur: node.blur ?? 0,
+        avnacShadow: serializeShadow(node.shadow),
         avnacFill: cloneBgValue(node.stroke),
         avnacStroke: cloneBgValue(node.stroke),
         fill: stroke,
@@ -245,6 +256,7 @@ function serializeNode(
           },
           arrowStrokeWidth: node.strokeWidth,
           arrowHead: isArrow ? 1 : 0,
+          arrowStart: node.arrowStart,
           arrowLineStyle: node.lineStyle,
           arrowPathType: node.pathType,
           arrowCurveBulge: node.curveBulge,
@@ -283,6 +295,30 @@ function serializeClipPath(
     height: clipPath.height,
     rx: clipPath.width / 2,
     ry: clipPath.height / 2,
+  };
+}
+
+function serializeClipPathStack(
+  stack: SaraswatiClipPath[] | undefined,
+): Record<string, unknown>[] | undefined {
+  if (!stack || stack.length === 0) return undefined;
+  return stack.map((clipPath) => serializeClipPath(clipPath) ?? {});
+}
+
+/**
+ * Shadows are plain data on the node. Persist them verbatim so the editor, the
+ * canvas renderer and exports all see the same effect after a reload.
+ */
+function serializeShadow(
+  shadow: SaraswatiShadow | null | undefined,
+): Record<string, unknown> | null {
+  if (!shadow) return null;
+  return {
+    blur: shadow.blur,
+    offsetX: shadow.offsetX,
+    offsetY: shadow.offsetY,
+    colorHex: shadow.colorHex,
+    opacityPct: shadow.opacityPct,
   };
 }
 

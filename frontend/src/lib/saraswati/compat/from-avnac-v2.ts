@@ -28,6 +28,7 @@ import {
   regularPolygonPoints,
   starPolygonPoints,
 } from "../../avnac-shape-geometry";
+import { readBlur, readShadow } from "./effects";
 
 // ---------------------------------------------------------------------------
 // V2 raw types (parsed from JSON)
@@ -40,6 +41,7 @@ type V2Paint =
 type V2Object = {
   id: string;
   type: string;
+  name?: string;
   x: number;
   y: number;
   width: number;
@@ -146,7 +148,7 @@ function convertObject(obj: V2Object, parentId: string): SaraswatiNode | null {
   const base = {
     id: obj.id,
     parentId,
-    name: undefined as string | undefined,
+    name: typeof obj.name === "string" ? obj.name : undefined,
     visible: obj.visible !== false,
     x,
     y,
@@ -156,7 +158,8 @@ function convertObject(obj: V2Object, parentId: string): SaraswatiNode | null {
     opacity,
     originX: "left" as const,
     originY: "top" as const,
-    blur: readNumber(obj.blurPct, 0, { min: 0 }),
+    blur: readBlur(obj.blurPct),
+    shadow: readShadow(obj.shadow),
   };
 
   const fill = readPaint(obj.fill, { type: "solid", color: "#262626" });
@@ -287,6 +290,8 @@ function convertObject(obj: V2Object, parentId: string): SaraswatiNode | null {
           typeof obj.cropWidth === "number" ? obj.cropWidth : undefined,
         cropHeight:
           typeof obj.cropHeight === "number" ? obj.cropHeight : undefined,
+        borderRadius:
+          typeof obj.cornerRadius === "number" ? obj.cornerRadius : 0,
         clipPath: null,
       };
       return node;

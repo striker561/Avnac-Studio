@@ -38,6 +38,7 @@ import {
 import {
   getSharedTextMeasure,
   layoutTextLines,
+  measureTextVerticalMetrics,
 } from "@/lib/renderer/backends/canvas2d/text-layout";
 import { ensureGoogleFontsForFamilies } from "@/lib/load-google-font";
 import {
@@ -542,6 +543,42 @@ const measureSummaryText: TextBoxMeasurer = (node) => {
   return { width: Math.ceil(layout.boxWidth), height: Math.ceil(layout.boxHeight) };
 };
 
+/**
+ * Ink-level text metrics for a node, in canvas coordinates.
+ *
+ * The renderer draws with textBaseline "top" at the node's y, so the alphabetic
+ * baseline is y + ascent and the capital-letter band is [baseline - capHeight,
+ * baseline]. Exposing this is what lets a dot or icon align to the letters
+ * instead of to the text's rectangular box.
+ */
+type TextInkMetrics = {
+  ascent: number;
+  descent: number;
+  capHeight: number;
+  baseline: number;
+  capTop: number;
+  capCenterY: number;
+};
+
+function textInkMetrics(node: LooseRecord): TextInkMetrics | null {
+  if (!node || node.type !== "text") return null;
+  const measured = measureTextVerticalMetrics({
+    fontSize: Number(node.fontSize),
+    fontFamily: String(node.fontFamily ?? ""),
+    fontWeight: String(node.fontWeight ?? "400"),
+    fontStyle: node.fontStyle === "italic" ? "italic" : "normal",
+  });
+  if (!measured) return null;
+  const baseline = Number(node.y) + measured.ascent;
+  const capTop = baseline - measured.capHeight;
+  return {
+    ...measured,
+    baseline,
+    capTop,
+    capCenterY: capTop + measured.capHeight / 2,
+  };
+}
+
 async function getCanvasSummary(requestId: string | undefined): Promise<void> {
   const scene = await requireScene(requestId);
   if (!scene) return;
@@ -603,7 +640,8 @@ async function getObjectProperties(
   if (!scene) return;
   const node = scene.nodes[payload?.objectId];
   if (node) {
-    respond(requestId, { node });
+    const metrics = textInkMetrics(node as LooseRecord);
+    respond(requestId, metrics ? { node, metrics } : { node });
   } else {
     respondError(requestId, `Object ${payload?.objectId} not found`);
   }
@@ -756,7 +794,7 @@ async function alignObjects(
   if (!ALIGN_KINDS.includes(kind)) {
     respondError(
       requestId,
-      `Unknown align type ${JSON.stringify(payload?.type)}. Expected one of left, center, right, top, middle, bottom.`,
+      `Unknown align type ${JSON.stringify(payload?.type)}. Expected one of left, center, right, top, middle, bottom, cap-middle.`,
     );
     return;
   }
@@ -769,7 +807,26 @@ async function alignObjects(
     );
     return;
   }
-  const { commands, alignedCount } = buildAlignCommands(scene, selected, kind);
+
+  // cap-middle targets the ink band of the first selected text object: the
+  // letters, not the line box. Without real metrics there is nothing honest to
+  // align to, so say so instead of silently falling back to box centring.
+  const anchor = selected
+    .map((id) => scene.nodes[id])
+    .find((node) => node?.type === "text");
+  const anchorMetrics = anchor ? textInkMetrics(anchor as LooseRecord) : null;
+  if (kind === "cap-middle" && (!anchor || !anchorMetrics)) {
+    respondError(
+      requestId,
+      "cap-middle needs at least one text object in the selection, and text metrics are unavailable in this environment.",
+    );
+    return;
+  }
+
+  const { commands, alignedCount } = buildAlignCommands(scene, selected, kind, {
+    anchorId: anchor?.id,
+    capCenterY: anchorMetrics?.capCenterY,
+  });
   if (alignedCount === 0) {
     respondError(requestId, "Selected objects have no measurable bounds");
     return;

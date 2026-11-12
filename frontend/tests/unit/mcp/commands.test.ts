@@ -794,3 +794,80 @@ describe("buildRenderElementsCommands skipped elements", () => {
     expect(skipped[0]?.index).toBe(1);
   });
 });
+
+describe("buildAlignCommands cap-middle", () => {
+  function sceneWithTextAndDot(dotY: number) {
+    const scene = createEmptySaraswatiScene({ width: 800, height: 600 });
+    (scene.nodes as any)["label"] = {
+      id: "label",
+      type: "text",
+      parentId: "root",
+      visible: true,
+      x: 100,
+      y: 92,
+      width: 300,
+      text: "FARM-FRESH",
+      fontSize: 13,
+      fontFamily: "Poppins",
+      fontWeight: "600",
+      fontStyle: "normal",
+      lineHeight: 1.2,
+      textAlign: "left",
+      originX: "left",
+      originY: "top",
+      scaleX: 1,
+      scaleY: 1,
+      rotation: 0,
+      opacity: 1,
+      color: { type: "solid", color: "#C9DF8A" },
+    };
+    (scene.nodes as any)["dot"] = {
+      id: "dot",
+      type: "rect",
+      parentId: "root",
+      visible: true,
+      x: 96,
+      y: dotY,
+      width: 8,
+      height: 8,
+      radiusX: 4,
+      radiusY: 4,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      opacity: 1,
+      originX: "left",
+      originY: "top",
+      fill: { type: "solid", color: "#C9DF8A" },
+    };
+    return scene;
+  }
+
+  it("moves the dot to the anchor's cap-centre, not the text box centre", () => {
+    const scene = sceneWithTextAndDot(120); // box centre 124
+    const { commands, alignedCount } = buildAlignCommands(
+      scene,
+      ["label", "dot"],
+      "cap-middle",
+      { anchorId: "label", capCenterY: 97 },
+    );
+
+    expect(alignedCount).toBe(2);
+    expect(commands).toEqual([
+      { type: "MOVE_NODE", id: "dot", dx: 0, dy: -27 },
+    ]);
+  });
+
+  it("does nothing without measured metrics", () => {
+    const scene = sceneWithTextAndDot(120);
+    const { commands, alignedCount } = buildAlignCommands(
+      scene,
+      ["label", "dot"],
+      "cap-middle",
+      { anchorId: "label" },
+    );
+
+    expect(commands).toHaveLength(0);
+    expect(alignedCount).toBe(0);
+  });
+});

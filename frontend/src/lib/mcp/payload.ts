@@ -193,7 +193,15 @@ export function normalizeFontStyle(input: unknown): "normal" | "italic" {
 
 // ─── align kinds ──────────────────────────────────────────────────────────────
 
-export const ALIGN_KINDS = ["left", "centerH", "right", "top", "centerV", "bottom"];
+export const ALIGN_KINDS = [
+  "left",
+  "centerH",
+  "right",
+  "top",
+  "centerV",
+  "bottom",
+  "cap-middle",
+];
 
 export function normalizeAlignKind(input: unknown): string {
   const v = String(input ?? "").trim();
@@ -204,6 +212,10 @@ export function normalizeAlignKind(input: unknown): string {
   if (lower === "top") return "top";
   if (lower === "middle" || lower === "centerv" || lower === "center_v") return "centerV";
   if (lower === "bottom") return "bottom";
+  // Optical alignment: center on the cap-height band of a selected text object.
+  if (lower === "cap-middle" || lower === "capmiddle" || lower === "cap_middle" || lower === "cap middle") {
+    return "cap-middle";
+  }
   // Already-normalized engine kinds pass through.
   if (v === "centerH" || v === "centerV") return v;
   return v;

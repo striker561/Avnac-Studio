@@ -172,13 +172,13 @@ When connected, the MCP server also automatically transmits `Instructions` to th
 - `modify_elements`: Update properties by `objectId`, including text controls (`fontWeight`, `textAlign`, `lineHeight`, etc.).
 - **Flexible inputs**: top-level keys and nested `elements[]` / `modifications[]` fields accept flexible forms — numeric font weights (`fontWeight: 700`), numeric strings for pixel values (`fontSize: "230"`), and object strokes (`stroke: {color: "#ff00ff"}`) alongside the string forms above.
 - `delete_object`: Delete object by ID (omit to delete current selection).
-- `align_objects`: Align selection via `type` (`left`, `center`, `right`, `top`, `middle`, `bottom`). Single selection aligns to artboard; multiple aligns to each other.
+- `align_objects`: Align selection via `type` (`left`, `center`, `right`, `top`, `middle`, `bottom`, `cap-middle`). Single selection aligns to artboard; multiple aligns to each other. `cap-middle` is optical: it centres the other selected objects on the **cap-height band** of the first selected text object — the letters, not the text's rectangular box — which is what aligns a dot or icon with a label. It uses measured glyph metrics and fails rather than silently falling back to box centring.
 - `distribute_objects`: Distribute 3+ selected elements via `direction` (`horizontal`, `vertical`; `type` alias accepted).
 - `group_objects` / `ungroup_objects`: Manage grouping (`objectIds` min 2 / `groupId`).
 - `fit_to_artboard`: Scale selection to fill canvas with optional `padding`.
 
 ### Verification & Export
 - `get_canvas_image`: Render a visual PNG screenshot of the artboard.
-- `get_object_properties`: Inspect bounding box and styles of an element.
+- `get_object_properties`: Inspect bounding box and styles of an element. For text nodes it also returns `metrics` — measured `ascent`, `descent`, `capHeight`, and the absolute `baseline`, `capTop`, `capCenterY` — so an agent can align other elements to the letters instead of the text box.
 - `export_png`: Export the canvas to a downloadable PNG file.
 - `export_object`: Export an individual object/group as PNG or SVG.

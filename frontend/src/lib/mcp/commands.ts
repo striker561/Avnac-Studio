@@ -568,6 +568,12 @@ export function buildAlignCommands(
   scene: SaraswatiScene,
   selectedIds: string[],
   kind: string,
+  options?: {
+    /** Text object whose cap-height band is the target (cap-middle only). */
+    anchorId?: string;
+    /** Absolute y of the anchor's cap-height centre, from real text metrics. */
+    capCenterY?: number;
+  },
 ): { commands: SaraswatiCommand[]; alignedCount: number } {
   const entries = selectedIds
     .map((id) => ({ id, bounds: visualBounds(scene, id) }))
@@ -577,6 +583,22 @@ export function buildAlignCommands(
   }
 
   const commands: SaraswatiCommand[] = [];
+
+  // Optical alignment: the target is the ink band of capital letters, not the
+  // text's rectangular box. Callers must pass measured metrics; without them
+  // there is nothing honest to align to.
+  if (kind === "cap-middle") {
+    if (options?.capCenterY == null) {
+      return { commands: [], alignedCount: 0 };
+    }
+    for (const e of entries) {
+      if (e.id === options.anchorId) continue;
+      const dy = options.capCenterY - (e.bounds.y + e.bounds.height / 2);
+      if (dy !== 0) commands.push({ type: "MOVE_NODE", id: e.id, dx: 0, dy });
+    }
+    return { commands, alignedCount: entries.length };
+  }
+
   if (entries.length === 1) {
     const b = entries[0]!.bounds;
     let dx = 0, dy = 0;

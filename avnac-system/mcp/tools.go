@@ -723,6 +723,8 @@ func normalizeAlignType(s string) string {
 		return "centerV"
 	case "bottom":
 		return "bottom"
+	case "cap-middle", "capmiddle", "cap_middle", "cap middle", "caps-middle", "optical-middle":
+		return "cap-middle"
 	default:
 		return trimmed
 	}
@@ -735,7 +737,7 @@ func decodeAlignInput(raw map[string]any) (AlignObjectsInput, error) {
 	}
 	t := stringField(raw, "type", "kind", "align", "alignment")
 	if t == "" {
-		return out, fmt.Errorf("type is required (left, center, right, top, middle, bottom)")
+		return out, fmt.Errorf("type is required (left, center, right, top, middle, bottom, cap-middle)")
 	}
 	out.Type = normalizeAlignType(t)
 	return out, nil
@@ -931,7 +933,7 @@ type SetBackgroundInput struct {
 }
 
 type AlignObjectsInput struct {
-	// The alignment type (left, center, right, top, middle, bottom)
+	// The alignment type (left, center, right, top, middle, bottom, cap-middle)
 	Type string `json:"type"`
 }
 
@@ -1649,9 +1651,9 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "align_objects",
-		Description: "Align the currently selected objects. type: left, center, right, top, middle, bottom (center=centerH, middle=centerV). Single selection aligns to artboard; multiple aligns to each other.",
+		Description: "Align the currently selected objects. type: left, center, right, top, middle, bottom, cap-middle (center=centerH, middle=centerV). Single selection aligns to artboard; multiple aligns to each other. cap-middle is optical: it centres the other selected objects on the cap-height band of the first selected text object (the letters, not the text box), which is how a dot or icon lines up with a label. Text metrics come from the real font; if they are unavailable the call fails rather than falling back to box centring.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
-			"type":      desc("Alignment: left, center, right, top, middle, bottom."),
+			"type":      desc("Alignment: left, center, right, top, middle, bottom, cap-middle."),
 			"kind":      desc("Alias for type."),
 			"alignment": desc("Alias for type."),
 		}),

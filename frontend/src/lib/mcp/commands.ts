@@ -105,12 +105,20 @@ export function buildRenderElementsCommands(
   scene: SaraswatiScene,
   elements: unknown[],
   measure?: TextMeasurer,
-): { commands: SaraswatiCommand[]; created: CreatedElementInfo[] } {
+): {
+  commands: SaraswatiCommand[];
+  created: CreatedElementInfo[];
+  skipped: Array<{ index: number; type: string; reason: string }>;
+} {
   const rootId = scene.root || SARASWATI_ROOT_ID;
   const commands: SaraswatiCommand[] = [];
   const created: CreatedElementInfo[] = [];
+  // Elements the node builder could not turn into a node. Reported instead of
+  // dropped: an agent that sends an unsupported type must not be told the batch
+  // rendered when nothing appeared on the canvas.
+  const skipped: Array<{ index: number; type: string; reason: string }> = [];
 
-  for (const raw of elements) {
+  for (const [index, raw] of elements.entries()) {
     const el = (raw ?? {}) as LooseRecord;
     const id = el.id || crypto.randomUUID();
     const name = el.name || el.type;
@@ -167,10 +175,17 @@ export function buildRenderElementsCommands(
           ? { left: b.x, top: b.y, width, height: measured.height }
           : { left: b.x, top: b.y, width: b.width, height: b.height },
       });
+    } else {
+      skipped.push({
+        index,
+        type: typeof el.type === "string" ? el.type : "unknown",
+        reason:
+          "unsupported element type or missing required fields; use rect, ellipse, circle, polygon, star, line, text, image, or sticker",
+      });
     }
   }
 
-  return { commands, created };
+  return { commands, created, skipped };
 }
 
 function baseNodeFields(input: {

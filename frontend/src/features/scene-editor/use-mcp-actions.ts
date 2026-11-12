@@ -44,6 +44,7 @@ import {
   buildCanvasSummary,
   buildObjectList,
   buildSelectionSummary,
+  type TextBoxMeasurer,
 } from "@/lib/mcp/summaries";
 import {
   annotateSceneCanvas,
@@ -439,7 +440,7 @@ async function renderElements(
     new Promise((resolve) => setTimeout(resolve, MCP_FONT_WAIT_MS)),
   ]);
 
-  const { commands, created } = buildRenderElementsCommands(
+  const { commands, created, skipped } = buildRenderElementsCommands(
     scene,
     elements,
     measureTextElement,
@@ -448,20 +449,33 @@ async function renderElements(
     useSceneEditorStore.getState().applyCommands(commands);
   }
 
+  // A batch that produced nothing is a failure, not a success with an empty
+  // list: silently accepting an unsupported type teaches the caller nothing.
+  if (created.length === 0 && skipped.length > 0) {
+    const detail = skipped
+      .map((s) => `#${s.index} "${s.type}"`)
+      .join(", ");
+    respondError(
+      requestId,
+      `No elements were created (${detail}). ${skipped[0].reason}`,
+    );
+    return;
+  }
+
   if (requestId) {
     if (includePreview) {
       try {
         const updatedScene = useSceneEditorStore.getState().scene;
         if (updatedScene) {
           const imageData = await renderScenePreviewBase64(updatedScene);
-          SubmitResponse(requestId, { created, imageData });
+          SubmitResponse(requestId, { created, skipped, imageData });
           return;
         }
       } catch (err) {
         console.warn("Failed to generate preview for render_elements:", err);
       }
     }
-    SubmitResponse(requestId, { created });
+    SubmitResponse(requestId, { created, skipped });
   }
 }
 
@@ -505,10 +519,33 @@ async function modifyElements(
 
 // ─── scene queries ────────────────────────────────────────────────────────────
 
+/**
+ * Real text bounds for get_canvas_summary.
+ *
+ * Text nodes store no height, and the pure estimator in spatial/index.ts guesses
+ * from a 0.5em average, which over-reports line count for text whose box is its
+ * own measured width (the shape MCP's render_elements creates). Measuring here
+ * keeps the summary consistent with the renderer and with the bounds
+ * render_elements returned.
+ */
+const measureSummaryText: TextBoxMeasurer = (node) => {
+  if (!getSharedTextMeasure()) return null;
+  const layout = layoutTextLines({
+    text: node.text,
+    fontSize: node.fontSize,
+    fontFamily: node.fontFamily,
+    fontWeight: node.fontWeight,
+    fontStyle: node.fontStyle === "italic" ? "italic" : "normal",
+    lineHeight: node.lineHeight,
+    width: node.width,
+  });
+  return { width: Math.ceil(layout.boxWidth), height: Math.ceil(layout.boxHeight) };
+};
+
 async function getCanvasSummary(requestId: string | undefined): Promise<void> {
   const scene = await requireScene(requestId);
   if (!scene) return;
-  respond(requestId, buildCanvasSummary(scene));
+  respond(requestId, buildCanvasSummary(scene, measureSummaryText));
 }
 
 async function getCanvasState(requestId: string | undefined): Promise<void> {

@@ -764,3 +764,33 @@ describe("text bounds", () => {
     });
   });
 });
+
+describe("buildRenderElementsCommands skipped elements", () => {
+  it("reports an unsupported element type instead of silently dropping it", () => {
+    const scene = createEmptySaraswatiScene({ width: 800, height: 600 });
+
+    const { commands, created, skipped } = buildRenderElementsCommands(scene, [
+      { type: "banana", left: 10, top: 10 },
+    ]);
+
+    expect(commands).toHaveLength(0);
+    expect(created).toHaveLength(0);
+    expect(skipped).toEqual([
+      expect.objectContaining({ index: 0, type: "banana" }),
+    ]);
+  });
+
+  it("keeps valid elements and reports only the invalid ones", () => {
+    const scene = createEmptySaraswatiScene({ width: 800, height: 600 });
+
+    const { commands, created, skipped } = buildRenderElementsCommands(scene, [
+      { type: "rect", left: 10, top: 10, width: 100, height: 100 },
+      { type: "banana", left: 10, top: 10 },
+    ]);
+
+    expect(commands).toHaveLength(1);
+    expect(created).toHaveLength(1);
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0]?.index).toBe(1);
+  });
+});

@@ -28,6 +28,20 @@ type BoundsReport = { x: number; y: number; width: number; height: number };
 const NO_BOUNDS: BoundsReport = { x: 0, y: 0, width: 0, height: 0 };
 
 /**
+ * Optional real text measurement, supplied by the orchestration layer.
+ *
+ * Text nodes carry no height: getNodeBounds estimates it from a 0.5em average
+ * glyph width. That estimate is wider than most UI faces' real advance, so text
+ * whose box is its own measured natural width (exactly what MCP's
+ * render_elements stores) was reported as two lines. When a measurer is supplied,
+ * the summary uses the same layout the renderer draws, and the number agrees with
+ * the bounds render_elements returned.
+ */
+export type TextBoxMeasurer = (
+  node: Extract<SaraswatiNode, { type: "text" }>,
+) => { width: number; height: number } | null;
+
+/**
  * Bounds for a read-only response, from the engine rather than raw fields.
  *
  * Text nodes have no height field at all — height is derived from the wrapped
@@ -36,7 +50,31 @@ const NO_BOUNDS: BoundsReport = { x: 0, y: 0, width: 0, height: 0 };
  * out around it. Groups report the union of their descendants (null for an
  * invisible node, which still carries `visible` in the response).
  */
-function boundsOf(scene: SaraswatiScene, node: SaraswatiNode): BoundsReport {
+function boundsOf(
+  scene: SaraswatiScene,
+  node: SaraswatiNode,
+  measureText?: TextBoxMeasurer,
+): BoundsReport {
+  if (node.type === "text" && measureText && !node.rotation) {
+    const box = measureText(node);
+    if (box) {
+      const width = Math.abs(box.width * node.scaleX);
+      const height = Math.abs(box.height * node.scaleY);
+      const x =
+        node.originX === "center"
+          ? node.x - width / 2
+          : node.originX === "right"
+            ? node.x - width
+            : node.x;
+      const y =
+        node.originY === "center"
+          ? node.y - height / 2
+          : node.originY === "bottom"
+            ? node.y - height
+            : node.y;
+      return { x, y, width, height };
+    }
+  }
   const bounds =
     node.type === "group"
       ? getRenderableNodeBounds(scene, node.id)
@@ -93,7 +131,10 @@ export function collectCredits(scene: SaraswatiScene): CanvasCredit[] {
 }
 
 /** Summarized artboard + node list for get_canvas_summary. */
-export function buildCanvasSummary(scene: SaraswatiScene): {
+export function buildCanvasSummary(
+  scene: SaraswatiScene,
+  measureText?: TextBoxMeasurer,
+): {
   artboard: SaraswatiScene["artboard"];
   nodes: LooseRecord[];
   credits: CanvasCredit[];
@@ -102,7 +143,7 @@ export function buildCanvasSummary(scene: SaraswatiScene): {
     .filter((n) => n.id !== scene.root)
     .map((n) => {
       const anyNode = n as LooseRecord;
-      const bounds = boundsOf(scene, n);
+      const bounds = boundsOf(scene, n, measureText);
       return {
         id: n.id,
         name: n.name,

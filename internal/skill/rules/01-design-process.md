@@ -10,6 +10,7 @@ Design process is the ordered set of stages — brief, research, thumbnails, ref
 
 ## Core Principles
 - Decide in words before pixels. A five-line brief — audience, one message, format in px, constraints, success test — costs six minutes and prevents most rework.
+- Research the meaning before the references. What the subject is, who it serves, and where it will be used decide the range of appropriate solutions; a direction found before that is a guess with a mood board (see `48-semantics-syntax-pragmatics`).
 - Diverge cheap, converge expensive. Twenty thumbnails at 1:4 scale cost less than one hour of refinement on the wrong concept.
 - End every stage with a recorded decision and the alternative you rejected. A decision you cannot restate was not a decision.
 - Risk sets depth: internal one-off (light), client deliverable (standard), print at cost or brand system (full).
@@ -60,3 +61,4 @@ Production: PNG at 1080×1350 for the feed, plus an A4 master at 2480×3508 px w
 - Shaughnessy, *How to Be a Graphic Designer Without Losing Your Soul*, p. 84 — announce the work, show it, stop talking; clients need time to respond.
 - Monteiro, *Design Is a Job* — scope, change orders, and why unfrozen concepts destroy schedules.
 - Graphic Artists Guild, *Handbook*, "Estimates" — pricing and scheduling by stage rather than by finished artifact.
+- Vignelli, *The Vignelli Canon*, "Semantics", p. 10 — the first work on an assignment is the search for meaning, before any direction is chosen.

@@ -42,6 +42,7 @@ judgment layer: what should the color do, and is it doing it.
 - [`14-color-contrast`](../rules/14-color-contrast.md) — building contrast budgets.
 - [`18-color-accessibility`](../rules/18-color-accessibility.md) — the measurable minimums.
 - [`12-color-psychology`](../rules/12-color-psychology.md) — meaning, with its honest limits.
+- [`59-color-naming-and-reference`](../rules/59-color-naming-and-reference.md) — naming, specifying, and briefing the color you chose.
 
 ## References
 - [`color`](../references/color.md) — spaces, harmony tables, contrast anchors.

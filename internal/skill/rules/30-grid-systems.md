@@ -45,6 +45,9 @@ be visible in the finished piece.
 5. **Draw the grid as a locked layer** — in Avnac, a `group` of 1 px `rect`s at 8% opacity named
    `GRID 12/24/96`, locked and hidden from export. Delete it before delivery; a visible grid is a
    wireframe, not a design.
+6. **Derive the module from the dominant pictures** — measure the proportions of most of the
+   images before fixing the grid. When the fields match the majority, cropping drops and the book
+   gains integrity; content determines the container, so square plates make a square book (p. 48).
 
 ## When to Use
 - Multi-page, multi-element work: catalogues, reports, magazines, dashboards, any layout with more
@@ -89,3 +92,4 @@ play; its caption starts at y 654, one unit below.
 - Müller-Brockmann, *Grid Systems in Graphic Design*, "The typographic grid" and "Margin proportions" — margins of equal size can never produce an interesting page; differing margins bring tension.
 - Müller-Brockmann, *Grid Systems in Graphic Design*, "Type and picture area with 20 and 32 grid fields" — the finer the mesh, the greater the flexibility and the harder the grid is to find and apply.
 - Tufte, *The Visual Display of Quantitative Information*, "Data-based grids" — a grid keyed to the data serves the content; a grid imposed on it fights it.
+- Vignelli, *The Vignelli Canon*, "Grids for Books", p. 48 — relate the grid to the proportion of most of the pictures so little is cropped; the content determines the container.

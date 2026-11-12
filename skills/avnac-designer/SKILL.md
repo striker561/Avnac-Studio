@@ -28,7 +28,7 @@ task needs rather than guessing:
 | `skill://avnac-design` | Entry point: routing table, always-on gates, how to read a rule |
 | `skill://<task>` | 21 task workflows — `poster`, `logo`, `brand`, `color`, `typography`, `layout`, `print`, `export`, `ui`, `packaging`, ... |
 | `references://<subject>` | 14 lookup notes — thresholds, tables, format specs |
-| `rules://<id>` | 112 authoritative principles, e.g. `rules://24-typographic-hierarchy`, `rules://82-bleed-trim-and-safe-areas` |
+| `rules://<id>` | 117 authoritative principles, e.g. `rules://24-typographic-hierarchy`, `rules://82-bleed-trim-and-safe-areas` |
 | `rules://index` | Every rule by domain, with counts |
 
 Start at `skill://avnac-design`, then the task workflow, then the 4–8 rules it links. Cite the

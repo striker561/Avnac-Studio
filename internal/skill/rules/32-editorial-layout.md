@@ -13,6 +13,9 @@ recurring standing elements (folios, running heads, captions, rules, sidebars) p
 coordinates on every page, composed in two-page spreads rather than as individual pages.
 
 ## Core Principles
+- Compose the turn, not only the spread. A publication is read as a sequence of turns; the
+  right-hand page is the reward for the turn, and a run of identical density stops registering
+  (see `77-sequence-and-pacing`).
 - Compose the spread, not the page. The gutter is the centre of the unit a reader actually sees,
   so put the strongest mass off-centre and let the two halves balance as one field.
 - Furniture is a signature, not a variable. One folio position, one size (8–9 pt / 11–12 px), one
@@ -83,6 +86,7 @@ standing sidebar at exactly the y-position used on pages 4 and 6.
 - [`25-spacing-and-typesetting`](25-spacing-and-typesetting.md) — hyphenation and widow control inside the columns this layout creates.
 - [`30-grid-systems`](30-grid-systems.md) — the baseline and column measurements the furniture sits on.
 - [`31-layout-structures`](31-layout-structures.md) — the macro-structure chosen before the repeating furniture is drawn.
+- [`77-sequence-and-pacing`](77-sequence-and-pacing.md) — the order of turns this layout sits inside.
 - [`82-bleed-trim-and-safe-areas`](82-bleed-trim-and-safe-areas.md) — how much image must extend past the trim for a full-bleed spread.
 - [`83-resolution-and-raster-formats`](83-resolution-and-raster-formats.md) — resolving images at the physical size a running page demands.
 

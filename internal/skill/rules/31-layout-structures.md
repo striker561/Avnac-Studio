@@ -40,6 +40,9 @@ single column, multi-column, modular, broken, and full-bleed.
    single column in disguise.
 5. **Spend the bleed once** — a full-bleed image plus a second full-bleed color block halves the
    impact of both. The second edge should stop 48–96 px short of the trim.
+6. **Let the content choose the container** — canvas proportion is a structural decision, not a
+   default. A book of square plates is square and a book of panoramas is oblong; the proportion
+   follows the dominant asset, not the nearest standard sheet (p. 48).
 
 ## When to Use
 - Single column: long-form reading, letters, legal copy, mobile-first layouts, one-argument
@@ -90,3 +93,4 @@ the page.
 - Müller-Brockmann, *Grid Systems in Graphic Design*, "Type and picture area with 8, 20 and 32 grid fields" — field count is a structural decision that fixes how many picture sizes a layout can offer.
 - Müller-Brockmann, *Grid Systems in Graphic Design*, "Examples of layouts with oblong and upright pictures" — full-width pictures read as generosity; upright pictures read as strength and energy, and the choice must suit the material.
 - Hofmann, *Graphic Design Manual*, the confrontation and grouping studies — arrangement is decided by contrast and grouping before any grid is drawn.
+- Vignelli, *The Vignelli Canon*, "Grids for Books", p. 48 — the content determines the container; a book of square pictures is square, a book of rectangular pictures is rectangular or oblong.

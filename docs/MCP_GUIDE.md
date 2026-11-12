@@ -114,7 +114,7 @@ and routed programmatically:
 - [`internal/skill/SKILL.md`](../internal/skill/SKILL.md) — entry point, routing table and always-on gates.
 - `internal/skill/<task>/SKILL.md` — 21 task workflows (poster, logo, brand, color, typography, layout, print, export, ui, ...).
 - [`internal/skill/references/`](../internal/skill/references/) — 14 compact lookup notes: thresholds, tables, format specs.
-- [`internal/skill/rules/`](../internal/skill/rules/) — 112 authoritative, applied design principles, grouped by domain.
+- [`internal/skill/rules/`](../internal/skill/rules/) — 117 authoritative, applied design principles, grouped by domain.
 
 [`internal/skill/skill.go`](../internal/skill/skill.go) embeds the markdown, parses it once, and
 routes work: `skill.Default()` then `lib.Plan(task, 0)` returns the matching task workflow plus
@@ -132,12 +132,12 @@ nothing still reads it on demand:
 | `skill://avnac-design` | Entry point: routing table, always-on gates, how to read a rule |
 | `skill://<task>` | 21 task workflows — `skill://poster`, `skill://ui`, `skill://print`, ... |
 | `references://<subject>` | 14 lookup notes — `references://typography`, `references://color`, ... |
-| `rules://<id>` | 112 authoritative principles — `rules://24-typographic-hierarchy`, ... |
+| `rules://<id>` | 117 authoritative principles — `rules://24-typographic-hierarchy`, ... |
 | `rules://index` | Every rule by domain, with counts |
 
 All are `text/markdown`. Relative links in the served markdown are rewritten into these URIs, so
 an agent reading `skill://poster` can follow `rules://34-composition-techniques` directly. The
-connect instructions carry a compact index (one line per tier) instead of all 112 rules;
+connect instructions carry a compact index (one line per tier) instead of all 117 rules;
 `rules://index` names the rest without spending context up front.
 
 Registration lives in [`avnac-system/mcp/resources.go`](../avnac-system/mcp/resources.go) and is

@@ -198,7 +198,7 @@ func registerDesignResources(srv *sdkmcp.Server, lib *skill.Library) error {
 // designResourceIndex is appended to the server instructions so an agent knows
 // the library exists before its first tool call.
 //
-// The 112 rules collapse to one line on purpose: instructions are paid for on
+// The rules collapse to one line on purpose: instructions are paid for on
 // every message, and rules://index names them all without spending that
 // context up front. This is the same trade SpriteWare makes with its subject
 // chapters.

@@ -22,7 +22,7 @@ Four kinds of files, with one job each:
 | `rules/NN-topic.md` | The authoritative principle, with techniques and failure modes | When a decision needs a reason |
 
 The split is deliberate. A skill tells you *how to run the task*; a rule tells you *what is
-true*; a reference gives you *the numbers*. Reading all 112 rules is wasteful and flattens your
+true*; a reference gives you *the numbers*. Reading all 117 rules is wasteful and flattens your
 attention. Read the routed skill, then the four to eight rules it links, then a reference only
 when you need a value table.
 

@@ -12,21 +12,21 @@ exists, or when a decision has no obvious owner.
 - **Ceiling**: this library holds at most 120 rule files so an agent can hold the index in context.
 - **Adding a rule**: follow the template in any existing rule exactly; the H2 headings and their
   order are enforced by `go test ./internal/skill`.
-
+- **Regenerating**: `node scripts/gen-rule-index.mjs` rewrites this file from the rule headers.
 
 ## Index
 
 | Domain | Rules |
 |---|---|
 | Foundations | 15 |
-| Color | 11 |
+| Color | 12 |
 | Typography | 10 |
-| Layout & composition | 9 |
+| Layout & composition | 10 |
 | Perception & psychology | 7 |
-| Branding & identity | 8 |
-| Illustration | 8 |
+| Branding & identity | 9 |
+| Illustration | 9 |
 | Imagery & photography | 7 |
-| Print production | 7 |
+| Print production | 8 |
 | Interface design | 13 |
 | Design history | 11 |
 | Critique, quality & delivery | 6 |
@@ -43,8 +43,8 @@ exists, or when a decision has no obvious owner.
 - [`07-alignment-and-proximity`](07-alignment-and-proximity.md) — Alignment and Proximity
 - [`08-negative-space`](08-negative-space.md) — Negative Space
 - [`09-figure-ground`](09-figure-ground.md) — Figure-Ground
-- [`55-brand-color-and-typography`](55-brand-color-and-typography.md) — Brand Cnlnr and Typngraphy
-- [`63-light-and-shadow`](63-light-and-shadow.md) — Lnght and Shadow
+- [`48-semantics-syntax-pragmatics`](48-semantics-syntax-pragmatics.md) — Semantics, Syntax, and Pragmatics
+- [`49-timelessness-and-longevity`](49-timelessness-and-longevity.md) — Timelessness and Longevity
 - [`111-design-critique`](111-design-critique.md) — Design Critique
 - [`112-common-design-mistakes`](112-common-design-mistakes.md) — Common Design Mistakes
 - [`113-design-quality-checklist`](113-design-quality-checklist.md) — Design Quality Checklist
@@ -61,6 +61,7 @@ exists, or when a decision has no obvious owner.
 - [`17-limited-and-functional-palettes`](17-limited-and-functional-palettes.md) — Limited and Functional Palettes
 - [`18-color-accessibility`](18-color-accessibility.md) — Color Accessibility
 - [`19-color-in-context`](19-color-in-context.md) — Color in Context
+- [`59-color-naming-and-reference`](59-color-naming-and-reference.md) — Color Naming and Reference
 - [`73-duotone-and-color-grading`](73-duotone-and-color-grading.md) — Duotone and Color Grading
 
 ## Typography — selection, hierarchy, setting, type at size
@@ -87,6 +88,7 @@ exists, or when a decision has no obvious owner.
 - [`36-scale-and-proportion`](36-scale-and-proportion.md) — Scale and Proportion
 - [`37-direction-and-movement`](37-direction-and-movement.md) — Direction and Movement
 - [`39-responsive-composition`](39-responsive-composition.md) — Responsive Composition
+- [`77-sequence-and-pacing`](77-sequence-and-pacing.md) — Sequence and Pacing
 
 ## Perception & psychology — how people actually look at a design
 
@@ -105,6 +107,7 @@ exists, or when a decision has no obvious owner.
 - [`52-visual-identity-systems`](52-visual-identity-systems.md) — Visual Identity Systems
 - [`53-logo-construction`](53-logo-construction.md) — Logo Construction
 - [`54-logo-types-and-variations`](54-logo-types-and-variations.md) — Logo Types and Variations
+- [`55-brand-color-and-typography`](55-brand-color-and-typography.md) — Brand Color and Typography
 - [`56-brand-consistency`](56-brand-consistency.md) — Brand Consistency
 - [`57-brand-guidelines`](57-brand-guidelines.md) — Brand Guidelines
 - [`58-rebranding-and-evolution`](58-rebranding-and-evolution.md) — Rebranding and Evolution
@@ -114,6 +117,7 @@ exists, or when a decision has no obvious owner.
 - [`60-illustration-fundamentals`](60-illustration-fundamentals.md) — Illustration Fundamentals
 - [`61-shapes-and-forms`](61-shapes-and-forms.md) — Shapes and Forms
 - [`62-linework-and-contours`](62-linework-and-contours.md) — Linework and Contours
+- [`63-light-and-shadow`](63-light-and-shadow.md) — Light and Shadow
 - [`64-texture-and-patterns`](64-texture-and-patterns.md) — Texture and Patterns
 - [`65-character-and-object-design`](65-character-and-object-design.md) — Character and Object Design
 - [`66-vector-illustration`](66-vector-illustration.md) — Vector Illustration
@@ -139,6 +143,7 @@ exists, or when a decision has no obvious owner.
 - [`84-print-finishing-techniques`](84-print-finishing-techniques.md) — Print Finishing Techniques
 - [`85-paper-and-material-selection`](85-paper-and-material-selection.md) — Paper and Material Selection
 - [`86-packaging-and-dielines`](86-packaging-and-dielines.md) — Packaging and Dielines
+- [`88-binding-and-book-construction`](88-binding-and-book-construction.md) — Binding and Book Construction
 
 ## Interface design — systems, components, states, accessibility, data
 
@@ -181,4 +186,4 @@ exists, or when a decision has no obvious owner.
 
 ---
 
-112 rule files. Generated index; edit the rules, not this file.
+117 rule files. Generated index; edit the rules, not this file.

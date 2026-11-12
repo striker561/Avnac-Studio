@@ -43,6 +43,7 @@ choosing one color or judging a pair, use `color`; for owning a brand color stra
 - [`17-limited-and-functional-palettes`](../rules/17-limited-and-functional-palettes.md) — one/two-color work.
 - [`18-color-accessibility`](../rules/18-color-accessibility.md) — the pairs that must pass.
 - [`55-brand-color-and-typography`](../rules/55-brand-color-and-typography.md) — when the palette is a brand asset.
+- [`59-color-naming-and-reference`](../rules/59-color-naming-and-reference.md) — names, coordinates, and print builds for every token.
 
 ## References
 - [`color`](../references/color.md) — spaces and contrast anchors.

@@ -51,6 +51,7 @@ covers critiquing your own draft before delivery, and interpreting vague client 
 - [`113-design-quality-checklist`](../rules/113-design-quality-checklist.md) — the pre-delivery gate.
 - [`114-design-accessibility-checklist`](../rules/114-design-accessibility-checklist.md) — accessibility is not optional in a review.
 - [`03-contrast-and-emphasis`](../rules/03-contrast-and-emphasis.md) — diagnosing "flat" and "busy" complaints.
+- [`48-semantics-syntax-pragmatics`](../rules/48-semantics-syntax-pragmatics.md) — meaning, structure, or comprehension: which layer the note belongs to.
 
 ## References
 - [`visual-hierarchy`](../references/visual-hierarchy.md) — level counts and contrast steps to check.

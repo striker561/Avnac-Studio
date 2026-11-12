@@ -74,11 +74,11 @@ internal/skill/
 ├── SKILL.md                     entry point: routing table, invariants, how to read a rule
 ├── <task>/SKILL.md              21 task workflows (poster, logo, brand, ...)
 ├── references/<subject>.md      14 lookup notes: thresholds, tables, format matrices
-├── rules/NN-topic.md            112 principles, fixed 10-section shape
+├── rules/NN-topic.md            117 principles, fixed 10-section shape
 └── rules/README.md              generated index by domain (committed)
 ```
 
-Counts at the time of writing: 1 entry + 21 skills + 14 references + 112 rules + 1 index = **149
+Counts at the time of writing: 1 entry + 21 skills + 14 references + 117 rules + 1 index = **154
 documents**. The rule count is capped at **120**.
 
 The corpus was gathered and cross-checked with [vectile](https://github.com/d3uceY/vectile) —
@@ -127,7 +127,7 @@ correct and cheap.
 ### 2.4 Precomputed publication
 
 At server registration, build one `URI → string` map from the library. Reads become a map
-lookup: no disk I/O, no markdown parsing, no allocation per request. 149 small strings ≈ a few
+lookup: no disk I/O, no markdown parsing, no allocation per request. 154 small strings ≈ a few
 hundred KB — keep them.
 
 ### 2.5 Why not a database
@@ -320,7 +320,7 @@ md     = route.body + "\n\n---\n\n" + each rule body
 | Entry | `skill://avnac-design` | 1 | routing table |
 | Task skill | `skill://<folder>` | 21 | `skill://poster` |
 | Reference | `references://<stem>` | 14 | `references://typography` |
-| Rule | `rules://<stem>` | 112 | `rules://24-typographic-hierarchy` |
+| Rule | `rules://<stem>` | 117 | `rules://24-typographic-hierarchy` |
 | Index | `rules://index` | 1 | every rule by domain |
 
 All are `text/markdown`. Descriptions: frontmatter description truncated to 150 runes at a word
@@ -634,7 +634,7 @@ storage contract is what makes the library portable.
 
 // list
 {"jsonrpc":"2.0","id":2,"method":"resources/list"}
-// → 149 {uri, name, description, mimeType:"text/markdown"}
+// → 154 {uri, name, description, mimeType:"text/markdown"}
 
 // read a workflow
 {"jsonrpc":"2.0","id":3,"method":"resources/read",

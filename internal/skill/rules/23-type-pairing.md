@@ -15,6 +15,7 @@ Pairing is the deliberate combination of families across roles — display, text
 - Match apparent weight, not named weight. A Bold serif and a Regular sans can put the same darkness on the page.
 - The one-voice rule: never two faces competing for one role. If both must shout, one is not doing a display job.
 - A single family with three weights is a valid pairing; for interfaces it is usually the best one.
+- An economy of type is a system, not a limitation. Four well-chosen families can cover years of work; the variety comes from scale, weight, and arrangement, not from adding faces (p. 54).
 
 ## Techniques
 1. **Assign by text run.** Give the primary family the longest run; the secondary gets headlines, captions, and numbers.
@@ -56,3 +57,4 @@ A poster pairs a high-contrast display serif at 120 px for "SALT" with a neutral
 - Cheng, *Designing Type*, p. 51 — Verdana and Microsoft Sans: even within one category, width and evenness of set differ enough to change the page's texture.
 - Cheng, *Designing Type*, p. 180 — tabular versus proportional figures, and why a numbers problem is not a second-family problem.
 - Bringhurst, *The Elements of Typographic Style* — pairing by structure and proportion rather than by style label.
+- Vignelli, *The Vignelli Canon*, "Typefaces", p. 54 — an exhibition of years of work set in only four typefaces, as proof that an economy of type still produces variety.

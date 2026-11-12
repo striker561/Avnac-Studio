@@ -38,6 +38,9 @@ legitimate either way and need a decision-maker rather than a defense.
    anchors the room and everyone converges on it, right or wrong.
 5. **Close with a decision list** — who changes what, by when, and what will not change. Without one,
    the same notes return next round with a new attendee.
+6. **Run the three-level pass** — meaning (does it say the right thing?), structure (do the
+   relationships repeat?), use (does a stranger understand it in five seconds?). Report the layer,
+   not just the symptom: each is repaired at a different stage (see `48-semantics-syntax-pragmatics`).
 
 ## When to Use
 - At every milestone with a real artifact: after the direction is chosen, before the client
@@ -78,6 +81,7 @@ the new scan; P1 stays open until the print date and does not block prepress.
 ## Related Rules
 - [`113-design-quality-checklist`](113-design-quality-checklist.md) — the pass/fail gate that handles the F list mechanically, leaving critique free for W.
 - [`01-design-process`](01-design-process.md) — where critique sits between refinement and production.
+- [`48-semantics-syntax-pragmatics`](48-semantics-syntax-pragmatics.md) — the meaning / structure / use pass that sorts a symptom into a layer.
 - [`117-design-documentation`](117-design-documentation.md) — where the decision list is recorded so it is not re-argued next month.
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — the most common source of W notes, and how to test it.
 - [`112-common-design-mistakes`](112-common-design-mistakes.md) — the faults you should catch without a critique at all.

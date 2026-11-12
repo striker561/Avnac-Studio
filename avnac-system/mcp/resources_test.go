@@ -33,8 +33,8 @@ func TestDesignResourcesCoverTheLibrary(t *testing.T) {
 	if len(resources) != want {
 		t.Fatalf("resources = %d, want %d", len(resources), want)
 	}
-	if len(lib.RuleIDs()) != 112 {
-		t.Errorf("library has %d rules, want 112", len(lib.RuleIDs()))
+	if len(lib.RuleIDs()) != 117 {
+		t.Errorf("library has %d rules, want 117", len(lib.RuleIDs()))
 	}
 
 	seen := make(map[string]bool, len(resources))

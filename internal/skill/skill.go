@@ -383,7 +383,7 @@ func (l *Library) Reference(name string) (*Reference, bool) {
 
 // RuleIndexBody returns rules/README.md, the generated index of every rule by
 // domain. MCP serves it as rules://index so an agent can discover rules without
-// the server enumerating all 112 in every resource list.
+// the server enumerating every one of them in each resource list.
 func (l *Library) RuleIndexBody() (string, error) {
 	if l.ruleIndex == "" {
 		return "", fmt.Errorf("skill: rules/README.md is not embedded; run the index generator")

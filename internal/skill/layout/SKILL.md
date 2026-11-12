@@ -45,6 +45,7 @@ use `poster`; for interface chrome, use `ui`; for fixing an existing weak arrang
 - [`07-alignment-and-proximity`](../rules/07-alignment-and-proximity.md) — edges and grouping.
 - [`39-responsive-composition`](../rules/39-responsive-composition.md) — reflow across formats.
 - [`08-negative-space`](../rules/08-negative-space.md) — margins as material.
+- [`77-sequence-and-pacing`](../rules/77-sequence-and-pacing.md) — the order of turns across a multi-page document.
 
 ## References
 - [`layout`](../references/layout.md) — grid anatomy, column math, breakpoints, editorial parts.

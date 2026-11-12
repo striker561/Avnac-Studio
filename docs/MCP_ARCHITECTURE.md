@@ -19,7 +19,7 @@ One loopback HTTP server publishes three MCP surfaces. They are deliberately sep
 |---|---|---|---|
 | Tools | `tools/list`, `tools/call` | 27 actions that read or mutate the open canvas | Called per action; each call has side effects |
 | Prompts | `prompts/list`, `prompts/get` | 3 parameterised workflow starters | Fetched once, pasted into a conversation |
-| Resources | `resources/list`, `resources/read` | The whole design library: 149 read-only documents | Pulled on demand; no side effects |
+| Resources | `resources/list`, `resources/read` | The whole design library: 154 read-only documents | Pulled on demand; no side effects |
 
 The rule that decides where new functionality goes: **if it changes the document, it is a
 tool; if it is knowledge the model should be able to consult, it is a resource; if it is a
@@ -39,7 +39,7 @@ scripted way to start a task, it is a prompt.**
 │    startup ───────► MCPServer.Start(wailsCtx)                                                      │
 │                    ├── RegisterTools(wailsCtx)      27 handlers, 12 published tools        │
 │                    ├── RegisterPrompts()            3 prompts                                      │
-│                    └── RegisterResources()          internal/skill ──► 149 MCP resources           │
+│                    └── RegisterResources()          internal/skill ──► 154 MCP resources           │
 │                                                                                                    │
 │    ConfigManager.AddWatcher(mcpServer.UpdateConfig)                                                │
 │                    MCPEnabled / MCPPort ──► start, stop, or restart the listener live              │
@@ -59,7 +59,7 @@ scripted way to start a task, it is a prompt.**
 │                                  │                                                                │
 │  ┌───────────────────────────────▼───────────────────────────────┐                                │
 │  │ internal/skill (embedded markdown, parsed once)                │                                │
-│  │ SKILL.md · 21 task skills · 14 references · 112 rules          │                                │
+│  │ SKILL.md · 21 task skills · 14 references · 117 rules          │                                │
 │  └────────────────────────────────────────────────────────────────┘                                │
 │                                                                                                    │
 │  React frontend                                                                                    │
@@ -81,7 +81,7 @@ scripted way to start a task, it is a prompt.**
 | `avnac-system/mcp/resources_test.go` | Resource count, link rewriting, in-memory list/read over a real client session |
 | `avnac-system/mcp/flexible_input_test.go` | Tolerant decoding of agent-supplied JSON |
 | `internal/skill/skill.go` | Embed, parse, validate, route, search, plan |
-| `internal/skill/rules/` | 112 rule documents plus the generated `README.md` index |
+| `internal/skill/rules/` | 117 rule documents plus the generated `README.md` index |
 | `internal/skill/<task>/SKILL.md` | 21 task workflows |
 | `internal/skill/references/` | 14 lookup notes |
 | `frontend/src/features/scene-editor/use-mcp-actions.ts` | Dispatches `mcp:action` events into the scene store |
@@ -309,7 +309,7 @@ internal/skill/
 ├── SKILL.md               entry point: routing table, gates, how to read a rule
 ├── <task>/SKILL.md        21 workflows (poster, logo, brand, color, ...)
 ├── references/*.md        14 lookup notes (thresholds, tables, formats)
-├── rules/NN-topic.md      112 principles, fixed 10-section shape
+├── rules/NN-topic.md      117 principles, fixed 10-section shape
 └── rules/README.md        generated index by domain (rules://index)
 ```
 
@@ -351,10 +351,10 @@ parse per process is enough. Both the MCP server and any future caller share it.
 | Entry | `skill://avnac-design` | 1 | routing table and gates |
 | Task skill | `skill://<folder>` | 21 | `skill://poster`, `skill://ui` |
 | Reference | `references://<stem>` | 14 | `references://typography` |
-| Rule | `rules://<stem>` | 112 | `rules://24-typographic-hierarchy` |
+| Rule | `rules://<stem>` | 117 | `rules://24-typographic-hierarchy` |
 | Index | `rules://index` | 1 | every rule by domain |
 
-Total 149. Descriptions are the frontmatter description (truncated to 150 runes on a word
+Total 154. Descriptions are the frontmatter description (truncated to 150 runes on a word
 boundary) or, for rules, `"<Title> — <domain> rule"` — a resource an agent will not recognise is
 a resource it will not read. The list is sorted by URI so `resources/list` is stable between
 launches.
@@ -406,7 +406,7 @@ must never take the canvas tools down.
 
 ### 8.6 The instruction index
 
-Instructions are paid for on every message, so the server does not enumerate 112 rules there.
+Instructions are paid for on every message, so the server does not enumerate 117 rules there.
 `designResourceIndex(lib)` appends a compact block computed from the live library:
 
 ```
@@ -416,12 +416,12 @@ The design library is served as resources. Read the one the task needs rather th
 - `skill://avnac-design` — entry point: routing table, always-on gates, how to read a rule.
 - `skill://<task>` — 21 task workflows: analyze, brand, color, ... visualize.
 - `references://<subject>` — 14 lookup notes: accessibility, branding, ... web-and-ui.
-- `rules://index` — all 112 rules by domain, with links.
+- `rules://index` — all 117 rules by domain, with links.
 - `rules://<id>` — one authoritative principle, e.g. `rules://24-typographic-hierarchy`.
 Start at `skill://avnac-design`, then the task skill, then the 4–8 rules it links.
 ```
 
-Counts come from the library, so they cannot drift from reality. The 112 rules collapse to two
+Counts come from the library, so they cannot drift from reality. The 117 rules collapse to two
 lines; `rules://index` carries the names.
 
 ### 8.7 Read sequence
@@ -432,7 +432,7 @@ Client                          Avnac MCP                                    Lib
   │─ initialize ──────────────────►│                                          │
   │◄─ instructions + capabilities ─│  (tools, prompts, resources)             │
   │                                │                                          │
-  │─ resources/list ──────────────►│  149 URIs + descriptions                  │
+  │─ resources/list ──────────────►│  154 URIs + descriptions                  │
   │◄───────────────────────────────│  (map built at registration)             │
   │                                │                                          │
   │─ resources/read skill://poster►│                                          │
@@ -463,8 +463,8 @@ Client                          Avnac MCP                                    Lib
 `Server.AddResourceTemplate` is supported by go-sdk v1.6.0. The alternative design exposes
 `rules://{id}` as a template and only lists `rules://index`, which keeps `resources/list` short.
 It is not used because explicit resources work in every client, while template support varies.
-If the rule count grows past the point where a 149-entry list is unwieldy, the migration is:
-register the index explicitly, add one template, and drop the 112 individual registrations —
+If the rule count grows past the point where a 154-entry list is unwieldy, the migration is:
+register the index explicitly, add one template, and drop the 117 individual registrations —
 `designResources` is the single place to change.
 
 ---
@@ -560,7 +560,7 @@ Wails bindings the UI calls: `GetMCPInfo`, `RegenerateToken`, and the existing
 - `go test ./avnac-system/mcp` — auth and constant-time comparison, HTTP routing table,
   lifecycle start/stop, token regeneration, resource publication.
 - `TestResourcesListAndReadOverMCP` is the important one: it connects a real go-sdk client to a
-  real server over `mcp.NewInMemoryTransports()`, lists all 149 resources and reads the entry,
+  real server over `mcp.NewInMemoryTransports()`, lists all 154 resources and reads the entry,
   a skill, a reference, a rule and the index — the same path a client takes, minus the socket.
 - `go test ./internal/skill` — contract validation, routing table, plan assembly, rule lookup by
   number/ID/title, search ranking, section access.

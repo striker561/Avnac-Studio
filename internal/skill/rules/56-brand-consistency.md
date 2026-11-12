@@ -13,6 +13,9 @@ five to seven invariants, let everything else be free, and treat unlisted variat
 ## Core Principles
 - Name the invariants, at most seven: lockup geometry, hero hex, secondary hex, family and weight per level,
   margin or grid, image treatment, one voice rule. Unwritten invariants do not exist.
+- Balance identity and diversity. Too much diversity fragments the system; too much identity
+  produces "perceptive redundancy and lack of retention" (p. 90). A book series — constant
+  identifiers, a changing cover image — is the model, not the exception.
 - Consistency tolerates variety: Weishaupt runs every brochure on one 30-field grid, with the red wordmark on
   stationery and on vans, while photography and format change.
 - Drift is locally invisible. Each substitution looks fine alone; twelve touchpoints together read as three
@@ -72,3 +75,4 @@ the Pantone reference only, and a 2 px `#12100E` hairline in the audit template.
 - Müller-Brockmann, *Grid Systems in Graphic Design*, p. 141 — every cover on one grid, typeface and size
   unchanged.
 - Monteiro, *Design Is a Job* — feedback needs written guidelines, or a review becomes a discussion of taste.
+- Vignelli, *The Vignelli Canon*, "Identity and Diversity", p. 90 — enough diversity to avoid sameness, enough identity to be retained; too much of either fragments or deadens the system.

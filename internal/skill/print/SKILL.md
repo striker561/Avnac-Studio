@@ -47,6 +47,7 @@ is a structural object, add `packaging`.
 - [`84-print-finishing-techniques`](../rules/84-print-finishing-techniques.md) — designing for a finish.
 - [`85-paper-and-material-selection`](../rules/85-paper-and-material-selection.md) — stock choice.
 - [`87-prepress-and-production`](../rules/87-prepress-and-production.md) — preflight and handoff.
+- [`88-binding-and-book-construction`](../rules/88-binding-and-book-construction.md) — binding, gutter, spine, and creep before the grid.
 
 ## References
 - [`print-production`](../references/print-production.md) — numbers, stocks, finishes, cost levers.

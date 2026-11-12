@@ -43,6 +43,7 @@ yet, use `create`.
 - [`04-balance-and-proportion`](../rules/04-balance-and-proportion.md) — weights and proportion systems.
 - [`08-negative-space`](../rules/08-negative-space.md) — when emptiness is the fix.
 - [`34-composition-techniques`](../rules/34-composition-techniques.md) — the pattern library.
+- [`48-semantics-syntax-pragmatics`](../rules/48-semantics-syntax-pragmatics.md) — name the layer that is failing before moving anything.
 - [`36-scale-and-proportion`](../rules/36-scale-and-proportion.md) — scale jumps that resolve flatness.
 - [`37-direction-and-movement`](../rules/37-direction-and-movement.md) — repairing the reading path.
 - [`07-alignment-and-proximity`](../rules/07-alignment-and-proximity.md) — grouping and edges.

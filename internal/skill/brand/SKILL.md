@@ -46,6 +46,7 @@ is "what should this brand look like *everywhere*".
 - [`56-brand-consistency`](../rules/56-brand-consistency.md) — drift and audits.
 - [`57-brand-guidelines`](../rules/57-brand-guidelines.md) — documents people actually use.
 - [`58-rebranding-and-evolution`](../rules/58-rebranding-and-evolution.md) — when and how to change.
+- [`49-timelessness-and-longevity`](../rules/49-timelessness-and-longevity.md) — how long the identity must live, and what that rules out.
 
 ## References
 - [`branding`](../references/branding.md) — strategy templates, system layers, audit method.

@@ -47,6 +47,7 @@ instead and keep this one for the first hour of work.
 ## Rules to apply
 - [`00-core-principles`](../rules/00-core-principles.md) — the five questions every first draft answers.
 - [`02-visual-hierarchy`](../rules/02-visual-hierarchy.md) — decide the reading order before placing elements.
+- [`48-semantics-syntax-pragmatics`](../rules/48-semantics-syntax-pragmatics.md) — what it must mean, and whether the parts relate, before the first draft.
 - [`08-negative-space`](../rules/08-negative-space.md) — empty space is what makes a first draft readable.
 - [`30-grid-systems`](../rules/30-grid-systems.md) — a quick grid stops the draft drifting.
 - [`31-layout-structures`](../rules/31-layout-structures.md) — choose a structure instead of improvising one.

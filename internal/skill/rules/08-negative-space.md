@@ -11,6 +11,7 @@ Negative space is every area not occupied by an element: outer margins, gutters,
 ## Core Principles
 - Measure space against the short edge: keep type 8% of it from trim, 64 px on 800 px and 108 px on 1350 px.
 - Margins should be unequal — largest at the bottom, then the outer edge, then the top. Equal margins read as indecision and flatten the page.
+- Margin width is an expressive dial, not clearance. Tight margins put the content in tension with the edge; wide margins deflate that tension into serenity. Choose the setting before you choose the ratio (p. 92).
 - Containers need padding of 1–2× the body size: 16–32 px around 16 px text. Text touching a box edge reads as an error, not a style.
 - Density has a number: 55–75% active area for information-dense work, 25–45% for premium and editorial, under 20% for a single-message poster.
 - Space between groups is the cheapest grouping device — cheaper than a rule, a box, or a color, all of which add ink.
@@ -58,3 +59,4 @@ Active area is about 21%, which is correct for a single-message piece: at 270 px
 - Müller-Brockmann, *Grid Systems in Graphic Design*, p. 45 — margins of equal size "can never result in an interesting page design"; the wide back margin belongs to the binding.
 - Hofmann, *Graphic Design Manual*, p. 66 — the spacing between dots produces either incorporation of the background or separation from it: space generates grouping.
 - Arnheim, *Art and Visual Perception* — emptiness as an active part of the visual field.
+- Vignelli, *The Vignelli Canon*, "White Space", p. 92 — white space is more important than the black of the type; tight margins establish tension, wider margins bring serenity.

@@ -22,6 +22,9 @@ Typesetting is the adjustment of space at three scales — between letters (trac
 3. **Separate paragraphs one way.** 16 px body at 1.5 leading gets 18 px of space before, or a 16 px first-line indent with no space — pick one per document.
 4. **Fix widows in order.** Copy edit one word, then change the measure by 2–3%, then adjust tracking by 0.3%. Never insert a manual line break; it returns with the next edit.
 5. **Set hyphenation rules.** Two consecutive hyphens maximum, three characters minimum each side, no proper nouns, nothing hyphenated across a spread.
+6. **Read the page as gray** — at 25% zoom the text block should be an even tone. Light patches
+   mean loose lines or wide word-space; dark bands mean tight leading. Tight setting turns words
+   into lines, loose setting turns them into dots (p. 92).
 
 ## When to Use
 - Any block longer than three lines.
@@ -54,3 +57,4 @@ An A4 editorial page sets 10/12 pt body (120% leading) in two 62 mm columns, jus
 - Müller-Brockmann, *Grid Systems in Graphic Design*, p. 69 — 10 pt medium sans at 3 pt leading (130%), set ragged, column length proportioned to type size.
 - Cheng, *Designing Type*, p. 59 — word-space and punctuation widths, and why a period shares a quarter-em body with the space.
 - Bringhurst, *The Elements of Typographic Style* — hyphenation limits and widow control.
+- Vignelli, *The Vignelli Canon*, "White Space", p. 92 — decreasing or increasing letter spacing confers distinctive character; tight setting turns words into lines, loose setting turns them into dots.

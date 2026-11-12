@@ -17,6 +17,8 @@ it is noise.
 - Four levels cover almost every layout: primary (headline), secondary (subhead or deck),
   tertiary (body), quaternary (captions, labels, legal). Five is the practical maximum on a
   poster; three on a social post.
+- Sizes are not levels. A hierarchy can be built from two sizes when weight, case, and space do
+  the separating; in display work the explicit size ladder is the clearer instrument (p. 72).
 - Make adjacent levels differ by at least one clear step: a size jump of roughly 1.3×–1.5×, a
   weight jump of two steps (Regular → Bold, not Regular → Medium), or a value jump of at least
   30% lightness. Two mild changes do not add up to one clear change.
@@ -44,6 +46,9 @@ it is noise.
 5. **The three-second test** — view the composition at 25% zoom. You should be able to name the
    levels top-down in three seconds. If two elements compete, change one variable by a full step
    rather than nudging both.
+6. **Two sizes, four levels — for text-heavy work** — set headline and body, then build subhead
+   and caption from weight (Bold → Semibold → Regular) and space instead of adding sizes. Vignelli's
+   rule is one or two sizes at most; a poster usually reads better with the explicit ladder above.
 
 ## When to Use
 - Any composition with more than one text element, from a 1080×1080 post to a 24-page brochure.
@@ -89,3 +94,4 @@ as another body line.
 - Cheng, *Designing Type*, p. 140 — x-height and cap-height ratios change apparent size at the same point size, so equal numeric sizes do not read as equal.
 - Müller-Brockmann, *Grid Systems in Graphic Design*, "Body and display faces" — the split between text and display type, and why display sizes need their own treatment.
 - Tufte, *The Visual Display of Quantitative Information*, p. 190 — contrast in weight encodes contrast in meaning; heavier means more important.
+- Vignelli, *The Vignelli Canon*, "Contrasting Type Sizes", p. 72 — one or two type sizes at most, weight and style for differentiation, and white space as the silence that makes type read.

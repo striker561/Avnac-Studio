@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,8 +20,8 @@ import (
 
 // Standard no-scene error surfaced by the frontend when no canvas is active.
 // Backend timeouts preserve the underlying frontend payload when present, so
-// keep this copy in sync with frontend/src/lib/mcp-listener.ts NO_SCENE_ERROR.
-const noSceneMessage = "No active canvas scene. Call create_canvas first."
+// keep this copy in sync with frontend/src/lib/mcp/payload.ts NO_SCENE_ERROR.
+const noSceneMessage = "No active canvas scene. Call canvas op=create first."
 
 // Explicit input schemas.
 //
@@ -855,6 +856,27 @@ type ElementDefinition struct {
 	// Credit is filled in by the server for image URLs that came from
 	// search_unsplash, so the attribution is stored with the design.
 	Credit *avnacserver.UnsplashCredit `json:"credit,omitempty"`
+	// Fit controls how a photo fills its box: "fill" (default, stretches) or
+	// "cover" (crops the source to the box aspect, anchored on focalPoint).
+	Fit *string `json:"fit,omitempty"`
+	// FocalPoint is the normalized (0..1) point kept in frame by fit=cover.
+	FocalPoint *FocalPoint `json:"focalPoint,omitempty"`
+	// Crop is an explicit normalized (0..1) source rectangle; it wins over fit.
+	Crop *NormalizedCrop `json:"crop,omitempty"`
+}
+
+// FocalPoint is a normalized point inside an image, used by fit=cover.
+type FocalPoint struct {
+	X *float64 `json:"x,omitempty"`
+	Y *float64 `json:"y,omitempty"`
+}
+
+// NormalizedCrop is a source rectangle in 0..1 image coordinates.
+type NormalizedCrop struct {
+	X      *float64 `json:"x,omitempty"`
+	Y      *float64 `json:"y,omitempty"`
+	Width  *float64 `json:"width,omitempty"`
+	Height *float64 `json:"height,omitempty"`
 }
 
 type RenderElementsInput struct {
@@ -897,6 +919,10 @@ type ElementModification struct {
 	Locked        *bool             `json:"locked,omitempty"`
 	GradientAngle *float64          `json:"gradientAngle,omitempty"`
 	GradientStops []GradientStop    `json:"gradientStops,omitempty"`
+	// Image art direction (same semantics as ElementDefinition).
+	Fit        *string         `json:"fit,omitempty"`
+	FocalPoint *FocalPoint     `json:"focalPoint,omitempty"`
+	Crop       *NormalizedCrop `json:"crop,omitempty"`
 }
 
 type ModifyElementsInput struct {
@@ -1084,7 +1110,36 @@ func decodeRenameFileInput(raw map[string]any) (RenameFileInput, error) {
 }
 
 func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
-	mcp.AddTool(m.server, &mcp.Tool{
+	// Every handler keeps its body and its frontend action name; only the
+	// published surface changes. Legacy names are collected here so the grouped
+	// tools (canvas, elements, arrange, files, assets, export) can dispatch to
+	// the same code that used to be registered one tool per action.
+	legacy := make(map[string]toolHandler, 27)
+	defs := make(map[string]*mcp.Tool, 27)
+	addLegacy := func(t *mcp.Tool, h toolHandler) {
+		legacy[t.Name] = h
+		defs[t.Name] = t
+	}
+	// measure_elements is published only as `elements` op=measure; the hidden
+	// registration keeps its handler in the same dispatch table as the rest.
+	addLegacy(&mcp.Tool{
+		Name:        "measure_elements",
+		Description: "Measure proposed elements without drawing them: text width/height, line breaks, and vertical metrics.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"elements": desc("Array of element specs, same shape as `elements` op=render, or a JSON-encoded string of that array."),
+		}, "elements"),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		input, err := decodeRenderElementsInput(raw)
+		if err != nil {
+			return nil, nil, err
+		}
+		data, err := m.emitSync(wailsCtx, "measure_elements", input, 10*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+	addLegacy(&mcp.Tool{
 		Name:        "render_elements",
 		Description: "Declaratively create multiple elements (rect, ellipse, polygon, star, text, image, sticker, line) in a single batch. Supports layout (left/top or x/y, width, height), styling (fill, opacity, angle/rotation, blur, cornerRadius), text controls (textAlign, fontWeight, fontStyle, lineHeight, underline), effects (shadows, gradients), and specialized properties (fontFamily, stickerName, url, sides, x1/y1/x2/y2). Text sent without a width is measured against its real font and auto-sized to its natural width, so use the returned bounds to lay out around it rather than assuming a line count. Returns created element IDs and metadata, plus an optional visual preview if includePreview=true.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1144,7 +1199,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "modify_elements",
 		Description: "Batch update properties of existing elements by their ObjectID. Supports layout (left/top/x/y/width/height), styling (fill, opacity, rotation), text controls (text, fontSize, fontFamily, fontWeight, fontStyle, textAlign, lineHeight, underline, stroke), effects (shadows, blur, cornerRadius), locking, layer names. Returns modified counts and an optional visual preview if includePreview=true.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1200,7 +1255,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "search_unsplash",
 		Description: "Search for high-quality photos on Unsplash. Returns compact records (id, alt text, size, photographer, credit line, small/regular URLs) plus the remaining hourly quota in rateLimit. Place a photo by passing its regular URL as an image element's url in render_elements — that is when Unsplash download tracking fires and when the photo's credit is stored on the node, so search results you never use cost nothing extra. Each call spends the app's hourly quota: reuse results you already have instead of re-running the same query.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1272,16 +1327,17 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(out)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "list_stickers",
 		Description: "Get the list of available built-in stickers",
 		InputSchema: emptyObjSchema(),
-	}, func(ctx context.Context, req *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		_ = raw
 		stickers := []string{"donut", "leaf", "lollipop", "pineapple", "shooting-star-badge", "sunflower-badge"}
 		return nil, map[string]any{"stickers": stickers}, nil
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "apply_artboard_preset",
 		Description: "Resize the canvas to a standard preset. Valid presetId: ig-square (1080x1080), ig-portrait (1080x1350), ig-story (1080x1920), hd (1920x1080), twitter-post, linkedin, youtube-thumb, a4-300, custom-4000. Alias 'preset' also accepted. Returns the applied dimensions or a no-scene/unknown-preset error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1300,7 +1356,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "export_object",
 		Description: "Export a specific object or group as PNG or SVG. Returns imageData (base64 PNG) or SVG markup, or a not-found/no-scene error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1333,6 +1389,8 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
+	// get_object_properties keeps its typed handler and is registered directly:
+	// it is a read tool, so it still appears as its own name.
 	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "get_object_properties",
 		Description: "Get detailed properties of a specific object by its ID",
@@ -1364,7 +1422,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "create_canvas",
 		Description: "Create a new canvas with the specified dimensions. Navigates to /scene and returns the new workspace id.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1405,7 +1463,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "list_files",
 		Description: "List all saved canvas files with their workspace ids, names, dimensions, and last-updated time. Use before open_canvas when the user references an existing file that is not currently open.",
 		InputSchema: emptyObjSchema(),
@@ -1427,7 +1485,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return nil, map[string]any{"files": files, "count": len(files)}, nil
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "open_canvas",
 		Description: "Open a saved canvas file by workspace id (from list_files), navigate the editor to it, and make it the active scene. Returns the opened file's name and dimensions or an unknown-id error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1457,7 +1515,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "rename_file",
 		Description: "Rename a saved canvas file by workspace id (from list_files). Renames the file in storage and, if it is currently open, the live editor title too.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1484,7 +1542,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "select_objects",
 		Description: "Select one or more objects by their IDs. Returns the selected IDs or a no-scene error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1503,7 +1561,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "delete_object",
 		Description: "Delete an object from the canvas. If no objectId is provided, deletes the current selection. Returns deleted status or a no-scene error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1519,7 +1577,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "group_objects",
 		Description: "Group multiple objects together. Requires at least 2 ids with the same parent. Returns the new groupId or an error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1537,7 +1595,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "ungroup_objects",
 		Description: "Ungroup an existing group. Returns the ungrouped children or a not-found error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1556,7 +1614,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "distribute_objects",
 		Description: "Evenly space the selected objects horizontally or vertically. Requires at least 3 selected objects.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1575,7 +1633,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "fit_to_artboard",
 		Description: "Scale the current selection to fill the canvas with optional padding.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1590,11 +1648,12 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "get_font_list",
 		Description: "Get the list of supported Google Fonts",
 		InputSchema: emptyObjSchema(),
-	}, func(ctx context.Context, req *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		_ = raw
 		requestID := uuid.New().String()
 		ch := make(chan any, 1)
 
@@ -1618,11 +1677,12 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "clear_canvas",
 		Description: "Remove all objects from the canvas. Returns cleared count or a no-scene error.",
 		InputSchema: emptyObjSchema(),
-	}, func(ctx context.Context, req *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		_ = raw
 		data, err := m.emitSync(wailsCtx, "clear_canvas", map[string]any{}, 15*time.Second)
 		if err != nil {
 			return nil, nil, err
@@ -1630,7 +1690,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "set_background",
 		Description: "Change the background color of the artboard. Returns the new background or a no-scene error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1649,7 +1709,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "align_objects",
 		Description: "Align the currently selected objects. type: left, center, right, top, middle, bottom, cap-middle (center=centerH, middle=centerV). Single selection aligns to artboard; multiple aligns to each other. cap-middle is optical: it centres the other selected objects on the cap-height band of the first selected text object (the letters, not the text box), which is how a dot or icon lines up with a label. Text metrics come from the real font; if they are unavailable the call fails rather than falling back to box centring.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1669,7 +1729,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "export_png",
 		Description: "Export the current canvas as PNG. Returns imageData (base64 PNG) or a no-scene error.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1698,11 +1758,12 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		return toolErrorResult(data)
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "list_objects",
 		Description: "List all objects currently on the canvas with their IDs and types",
 		InputSchema: emptyObjSchema(),
-	}, func(ctx context.Context, req *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		_ = raw
 		requestID := uuid.New().String()
 		ch := make(chan any, 1)
 
@@ -1726,11 +1787,12 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "get_selection",
 		Description: "Get the IDs and properties of the currently selected objects",
 		InputSchema: emptyObjSchema(),
-	}, func(ctx context.Context, req *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		_ = raw
 		requestID := uuid.New().String()
 		ch := make(chan any, 1)
 
@@ -1754,11 +1816,12 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "get_canvas_state",
 		Description: "Get the current state of the canvas",
 		InputSchema: emptyObjSchema(),
-	}, func(ctx context.Context, req *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		_ = raw
 		requestID := uuid.New().String()
 		ch := make(chan any, 1)
 
@@ -1782,11 +1845,12 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "get_canvas_summary",
 		Description: "Get a token-efficient semantic summary of the current canvas artboard and objects without raw engine internals",
 		InputSchema: emptyObjSchema(),
-	}, func(ctx context.Context, req *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		_ = raw
 		requestID := uuid.New().String()
 		ch := make(chan any, 1)
 
@@ -1810,7 +1874,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}
 	})
 
-	mcp.AddTool(m.server, &mcp.Tool{
+	addLegacy(&mcp.Tool{
 		Name:        "get_canvas_image",
 		Description: "Get a visual PNG screenshot of the current canvas or a specific object. Set annotated=true for bounding box debug overlays.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -1864,5 +1928,219 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 			m.mu.Unlock()
 			return nil, nil, fmt.Errorf("timeout waiting for canvas image")
 		}
+	})
+
+	// Six read tools keep one name per operation. Reads are cheap, side-effect
+	// free, and return five different shapes; folding them into one `inspect`
+	// op would trade clarity for a smaller number.
+	for _, name := range []string{
+		"get_canvas_summary",
+		"get_canvas_state",
+		"get_canvas_image",
+		"list_objects",
+		"get_selection",
+	} {
+		handler := legacy[name]
+		mcp.AddTool(m.server, defs[name], func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+			return handler(ctx, req, raw)
+		})
+	}
+
+	m.registerGroupedTools(legacy)
+}
+
+// toolHandler is the decoded handler shape the op dispatcher calls. Every tool
+// body in this file already has it; the type exists so the grouped tools can
+// invoke them without re-registering each one.
+type toolHandler func(context.Context, *mcp.CallToolRequest, map[string]any) (*mcp.CallToolResult, any, error)
+
+// addOpTool publishes one noun-shaped tool whose verbs are `op` values.
+func (m *AvnacMCP) addOpTool(
+	legacy map[string]toolHandler,
+	tool *mcp.Tool,
+	ops map[string]string,
+) {
+	handler := opDispatcher(tool.Name, ops, legacy)
+	mcp.AddTool(m.server, tool, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		return handler(ctx, req, raw)
+	})
+}
+
+// opDispatcher routes {op: ...} to the legacy handler for that action.
+//
+// Aliases are deliberate: an agent that learned `render_elements` may pass it as
+// `op`, and accepting the old action name costs one map entry instead of a
+// failed call. Arguments are forwarded unchanged minus the op keys, so every
+// existing decoder (including the flexible stringifying ones) keeps working.
+func opDispatcher(group string, ops map[string]string, legacy map[string]toolHandler) toolHandler {
+	names := make([]string, 0, len(ops))
+	for op := range ops {
+		names = append(names, op)
+	}
+	sort.Strings(names)
+	allowed := strings.Join(names, ", ")
+
+	return func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		op := strings.ToLower(strings.TrimSpace(stringField(raw, "op", "operation", "action")))
+		if op == "" {
+			return nil, nil, fmt.Errorf("%s requires op: one of %s", group, allowed)
+		}
+		action, ok := ops[op]
+		if !ok {
+			// Accept the legacy action name as an op so old habits still work.
+			if _, isAction := legacy[op]; isAction {
+				action, ok = op, true
+			}
+		}
+		if !ok {
+			return nil, nil, fmt.Errorf("unknown %s op %q; expected one of %s", group, op, allowed)
+		}
+		handler, ok := legacy[action]
+		if !ok {
+			return nil, nil, fmt.Errorf("%s op %q is not available in this build", group, op)
+		}
+
+		args := make(map[string]any, len(raw))
+		for k, v := range raw {
+			switch k {
+			case "op", "operation", "action":
+				continue
+			}
+			args[k] = v
+		}
+		return handler(ctx, req, args)
+	}
+}
+
+// registerGroupedTools publishes the six verb tools. Their schemas are unions:
+// per-op required fields are enforced by the existing decoders, which return an
+// error naming the missing argument, so a loose object schema is enough and
+// avoids six oneOf branches per tool.
+func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
+	m.addOpTool(legacy, &mcp.Tool{
+		Name: "canvas",
+		Description: "Manage the artboard. op=create (width, height, name, backgroundColor) starts a new canvas and navigates to it; " +
+			"op=clear removes every object; op=background (backgroundColor|color) sets the page background; " +
+			"op=preset (presetId|preset) resizes to a standard preset (ig-square, ig-portrait, ig-story, hd, twitter-post, linkedin, youtube-thumb, a4-300, custom-4000). " +
+			"Returns the same payloads the old one-tool-per-action surface returned.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"op":              desc("Operation: create, clear, background, preset."),
+			"width":           desc("create: canvas width in pixels (100-16000)."),
+			"height":          desc("create: canvas height in pixels (100-16000)."),
+			"name":            desc("create: optional workspace name."),
+			"backgroundColor": desc("create/background: background color hex."),
+			"color":           desc("Alias for backgroundColor."),
+			"presetId":        desc("preset: standard preset id."),
+			"preset":          desc("Alias for presetId."),
+		}, "op"),
+	}, map[string]string{
+		"create":     "create_canvas",
+		"clear":      "clear_canvas",
+		"background": "set_background",
+		"preset":     "apply_artboard_preset",
+	})
+
+	m.addOpTool(legacy, &mcp.Tool{
+		Name: "elements",
+		Description: "Create, change or measure canvas elements. op=render (elements[]) draws a batch in one call, bottom to top; " +
+			"op=modify (modifications[]) updates existing objects by id; op=delete (objectId|id, omit to delete the selection) removes an object; " +
+			"op=measure (elements[]) returns width/height, line count, line breaks and text vertical metrics for proposed elements WITHOUT drawing them — use it to check wrapping or fit a headline before rendering. " +
+			"Elements are rect, ellipse, circle, polygon, star, line, text, image, sticker. Text without a width is measured against its real font " +
+			"and auto-sized; when a later modify changes fontSize, pass width too, because the stored auto-measured width is kept and larger type will re-wrap. " +
+			"Images take `fit` (fill default, or cover to crop the source to the box aspect), `focalPoint` (normalized 0..1, keeps the subject in frame) " +
+			"and `crop` (explicit normalized source rectangle, wins over fit); modify accepts the same fields to re-crop an existing image. " +
+			"Unsupported element types are reported in `skipped`, and a batch that creates nothing fails. " +
+			"includePreview=true attaches a PNG preview to render/modify.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"op":             desc("Operation: render, modify, delete, measure."),
+			"elements":       desc("render/measure: array of element objects, or a JSON-encoded string of that array."),
+			"modifications":  desc("modify: array of {objectId, ...fields} updates, or a JSON-encoded string."),
+			"objectId":       desc("delete: id of the object to remove. Omit to delete the current selection."),
+			"id":             desc("Alias for objectId."),
+			"includePreview": desc("render/modify: attach a PNG preview."),
+		}, "op"),
+	}, map[string]string{
+		"render":  "render_elements",
+		"modify":  "modify_elements",
+		"delete":  "delete_object",
+		"measure": "measure_elements",
+	})
+
+	m.addOpTool(legacy, &mcp.Tool{
+		Name: "arrange",
+		Description: "Arrange the current selection. op=align (type: left, center, right, top, middle, bottom, cap-middle) lines objects up; " +
+			"cap-middle is optical and centres other selected objects on the first selected text object's cap-height band (letters, not the text box). " +
+			"op=distribute (direction: horizontal|vertical) evens spacing; op=group (objectIds, min 2) groups; op=ungroup (groupId) ungroups; " +
+			"op=fit (padding) scales the selection to the artboard; op=select (objectIds) selects by id. " +
+			"Single-selection align targets the artboard; multi-selection aligns to each other.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"op":        desc("Operation: align, distribute, group, ungroup, fit, select."),
+			"type":      desc("align: alignment kind, including cap-middle."),
+			"kind":      desc("Alias for type."),
+			"alignment": desc("Alias for type."),
+			"direction": desc("distribute: horizontal or vertical."),
+			"objectIds": desc("group/select: array of object ids, a JSON-encoded string array, or one id."),
+			"groupId":   desc("ungroup: group id."),
+			"objectId":  desc("Alias for groupId."),
+			"padding":   desc("fit: padding in pixels around the fitted selection."),
+		}, "op"),
+	}, map[string]string{
+		"align":      "align_objects",
+		"distribute": "distribute_objects",
+		"group":      "group_objects",
+		"ungroup":    "ungroup_objects",
+		"fit":        "fit_to_artboard",
+		"select":     "select_objects",
+	})
+
+	m.addOpTool(legacy, &mcp.Tool{
+		Name: "files",
+		Description: "Saved canvases. op=list returns every saved file with id, name, dimensions and last-updated time; " +
+			"op=open (fileId|id|workspaceId) opens a file and makes it the active scene; op=rename (fileId, name) renames a saved file " +
+			"and the open editor title when it is current.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"op":          desc("Operation: list, open, rename."),
+			"fileId":      desc("open/rename: workspace id from `files` op=list."),
+			"id":          desc("Alias for fileId."),
+			"workspaceId": desc("Alias for fileId."),
+			"name":        desc("rename: new file name."),
+		}, "op"),
+	}, map[string]string{
+		"list":   "list_files",
+		"open":   "open_canvas",
+		"rename": "rename_file",
+	})
+
+	m.addOpTool(legacy, &mcp.Tool{
+		Name: "assets",
+		Description: "External assets. op=unsplash (query, page, perPage) searches photos and returns compact records plus remaining quota; " +
+			"identical queries hit a two-minute cache, and placement via `elements` op=render is what fires Unsplash download tracking and stores the credit. " +
+			"op=fonts lists supported Google Fonts; op=stickers lists built-in stickers.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"op":      desc("Operation: unsplash, fonts, stickers."),
+			"query":   desc("unsplash: search keywords."),
+			"page":    desc("unsplash: page number."),
+			"perPage": desc("unsplash: results per page."),
+		}, "op"),
+	}, map[string]string{
+		"unsplash": "search_unsplash",
+		"fonts":    "get_font_list",
+		"stickers": "list_stickers",
+	})
+
+	m.addOpTool(legacy, &mcp.Tool{
+		Name: "export",
+		Description: "Export the canvas or one object. op=png (multiplier, transparent) returns a base64 PNG of the artboard; " +
+			"op=object (objectId, multiplier) returns a PNG of that object or group; SVG object export is not supported over MCP yet.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"op":          desc("Operation: png, object."),
+			"objectId":    desc("object: id of the object or group to export."),
+			"format":      desc("object: png (default) or svg."),
+			"multiplier":  desc("png/object: scale multiplier."),
+			"transparent": desc("png: omit the artboard background."),
+		}, "op"),
+	}, map[string]string{
+		"png":    "export_png",
+		"object": "export_object",
 	})
 }

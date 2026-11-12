@@ -11,7 +11,7 @@
 import type { SaraswatiColor } from "@/lib/saraswati";
 
 /** Standard error for scene-touching tools called before a canvas is open. */
-export const NO_SCENE_ERROR = "No active canvas scene. Call create_canvas first.";
+export const NO_SCENE_ERROR = "No active canvas scene. Call canvas op=create first.";
 
 /** Loosely-typed MCP tool payload (JSON-decoded on the Go side). */
 export type MCPPayload = Record<string, any>;

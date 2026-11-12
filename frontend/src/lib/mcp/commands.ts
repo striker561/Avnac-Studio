@@ -23,6 +23,7 @@ import {
   type SaraswatiShadow,
 } from "@/lib/saraswati";
 import { getRenderableNodeBounds } from "@/lib/editor/overlays";
+import { computeImageCrop, type CropPixels, type ImageSize } from "@/lib/mcp/image-fit";
 import {
   normalizeFontStyle,
   normalizeFontWeight,
@@ -105,6 +106,7 @@ export function buildRenderElementsCommands(
   scene: SaraswatiScene,
   elements: unknown[],
   measure?: TextMeasurer,
+  imageSizes?: Map<string, ImageSize | null>,
 ): {
   commands: SaraswatiCommand[];
   created: CreatedElementInfo[];
@@ -149,6 +151,17 @@ export function buildRenderElementsCommands(
       };
     }
 
+    const imageCrop =
+      el.type === "image" && typeof el.url === "string"
+        ? computeImageCrop({
+            natural: imageSizes?.get(el.url) ?? null,
+            target: { width, height },
+            fit: el.fit,
+            focalPoint: el.focalPoint,
+            crop: el.crop,
+          })
+        : null;
+
     const node = buildElementNode(el, {
       id,
       rootId,
@@ -162,6 +175,7 @@ export function buildRenderElementsCommands(
       blur,
       fill,
       shadow,
+      crop: imageCrop,
     });
 
     if (node && isSaraswatiRenderableNode(node)) {
@@ -232,6 +246,7 @@ function buildElementNode(
     blur: number;
     fill: SaraswatiColor;
     shadow: SaraswatiShadow | null;
+    crop?: CropPixels | null;
   },
 ): SaraswatiNode | null {
   const stroke = el.stroke ? parseColor(el.stroke) : null;
@@ -330,14 +345,14 @@ function buildElementNode(
     };
   }
   if (el.type === "image" && el.url) {
+    const crop = input.crop ?? { cropX: 0, cropY: 0 };
     return {
       ...baseNodeFields(input),
       type: "image",
       width: input.width,
       height: input.height,
       src: el.url,
-      cropX: 0,
-      cropY: 0,
+      ...crop,
       clipPath: null,
       borderRadius: el.cornerRadius ?? el.radius ?? 0,
       // The Go side stamps credit onto image elements whose URL came from
@@ -370,6 +385,7 @@ function buildElementNode(
 export function buildModifyElementsCommands(
   scene: SaraswatiScene,
   modifications: unknown[],
+  imageSizes?: Map<string, ImageSize | null>,
 ): { commands: SaraswatiCommand[]; modifiedCount: number } {
   const commands: SaraswatiCommand[] = [];
   let modifiedCount = 0;
@@ -380,6 +396,28 @@ export function buildModifyElementsCommands(
     if (!node) continue;
     modifiedCount++;
     const anyNode = node as LooseRecord;
+
+    // Image art direction: fit/focalPoint/crop recompute the source rectangle
+    // against the node's (possibly new) box.
+    if (
+      node.type === "image" &&
+      (mod.fit !== undefined || mod.focalPoint !== undefined || mod.crop !== undefined)
+    ) {
+      const natural = imageSizes?.get(node.src) ?? null;
+      const targetWidth = Number(mod.width ?? node.width);
+      const targetHeight = Number(mod.height ?? node.height);
+      const crop = computeImageCrop({
+        natural,
+        target: {
+          width: Number.isFinite(targetWidth) ? targetWidth : node.width,
+          height: Number.isFinite(targetHeight) ? targetHeight : node.height,
+        },
+        fit: mod.fit,
+        focalPoint: mod.focalPoint,
+        crop: mod.crop,
+      });
+      commands.push({ type: "SET_IMAGE_CROP", id: node.id, ...crop });
+    }
 
     const newX = mod.x ?? mod.left;
     const newY = mod.y ?? mod.top;

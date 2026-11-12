@@ -40,6 +40,11 @@ import {
   layoutTextLines,
   measureTextVerticalMetrics,
 } from "@/lib/renderer/backends/canvas2d/text-layout";
+import {
+  getCachedImageSize,
+  loadImageSize,
+  loadImageSizes,
+} from "@/lib/mcp/image-size";
 import { ensureGoogleFontsForFamilies } from "@/lib/load-google-font";
 import {
   buildCanvasSummary,
@@ -167,6 +172,8 @@ export async function handleMCPAction(
         return await applyArtboardPreset(payload ?? {}, requestId);
       case "get_object_properties":
         return await getObjectProperties(payload ?? {}, requestId);
+      case "measure_elements":
+        return await measureElements(payload ?? {}, requestId);
       case "clear_canvas":
         return await clearCanvas(requestId);
       case "list_objects":
@@ -294,7 +301,7 @@ async function openWorkspace(
 ): Promise<void> {
   const fileId = typeof payload?.fileId === "string" ? payload.fileId.trim() : "";
   if (!fileId) {
-    respondError(requestId, "fileId is required (from list_files)");
+    respondError(requestId, "fileId is required (from files op=list)");
     return;
   }
   try {
@@ -302,7 +309,7 @@ async function openWorkspace(
     if (!record) {
       respondError(
         requestId,
-        `No saved file with id '${fileId}'. Call list_files to see available canvases.`,
+        `No saved file with id '${fileId}'. Call files op=list to see available canvases.`,
       );
       return;
     }
@@ -441,10 +448,18 @@ async function renderElements(
     new Promise((resolve) => setTimeout(resolve, MCP_FONT_WAIT_MS)),
   ]);
 
+  // Image fit needs the source dimensions; load them best-effort so a slow CDN
+  // degrades to the old full-source behaviour instead of blocking the render.
+  const imageUrls = (elements as LooseRecord[])
+    .map((el) => (el?.type === "image" && typeof el.url === "string" ? el.url : ""))
+    .filter(Boolean);
+  const imageSizes = imageUrls.length > 0 ? await loadImageSizes(imageUrls) : undefined;
+
   const { commands, created, skipped } = buildRenderElementsCommands(
     scene,
     elements,
     measureTextElement,
+    imageSizes,
   );
   if (commands.length > 0) {
     useSceneEditorStore.getState().applyCommands(commands);
@@ -493,9 +508,24 @@ async function modifyElements(
     return;
   }
 
+  // Art-direction modifications on image nodes need the source dimensions to
+  // recompute the crop; everything else modifies without any I/O.
+  const urls = (modifications as LooseRecord[])
+    .filter((mod) => {
+      const node = scene.nodes[mod?.objectId];
+      return (
+        node?.type === "image" &&
+        (mod.fit !== undefined || mod.focalPoint !== undefined || mod.crop !== undefined)
+      );
+    })
+    .map((mod) => (scene.nodes[mod.objectId] as LooseRecord).src)
+    .filter((src): src is string => typeof src === "string" && src.length > 0);
+  const imageSizes = urls.length > 0 ? await loadImageSizes(urls) : undefined;
+
   const { commands, modifiedCount } = buildModifyElementsCommands(
     scene,
     modifications,
+    imageSizes,
   );
   if (commands.length > 0) {
     useSceneEditorStore.getState().applyCommands(commands);
@@ -640,6 +670,12 @@ async function getObjectProperties(
   if (!scene) return;
   const node = scene.nodes[payload?.objectId];
   if (node) {
+    if (node.type === "image") {
+      const cached = getCachedImageSize(node.src);
+      const naturalSize = cached !== undefined ? cached : await loadImageSize(node.src);
+      respond(requestId, naturalSize ? { node, naturalSize } : { node });
+      return;
+    }
     const metrics = textInkMetrics(node as LooseRecord);
     respond(requestId, metrics ? { node, metrics } : { node });
   } else {
@@ -651,6 +687,114 @@ async function listObjects(requestId: string | undefined): Promise<void> {
   const scene = await requireScene(requestId);
   if (!scene) return;
   respond(requestId, { objects: buildObjectList(scene) });
+}
+
+/**
+ * Measure proposed elements without drawing them.
+ *
+ * This is the pre-render half of composition: an agent can ask "how big will
+ * this headline be, and will it wrap?" and then place it correctly first time.
+ * Text uses the same layout + vertical metrics as rendering, so the numbers are
+ * the ones the canvas will use. Image dimensions come from the decoded source.
+ */
+async function measureElements(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const elements = payload?.elements;
+  if (!Array.isArray(elements)) {
+    respondError(requestId, "elements must be an array");
+    return;
+  }
+
+  const results = await Promise.all(
+    elements.map(async (raw, index) => {
+      const el = (raw ?? {}) as LooseRecord;
+      if (el.type === "text") {
+        const text = typeof el.text === "string" ? el.text : "";
+        if (!text.trim()) return { index, type: "text", error: "text is empty" };
+        const requestedWidth = Number(el.width);
+        const naturalWidth = !(Number.isFinite(requestedWidth) && requestedWidth > 0);
+        const width = naturalWidth ? 1 : requestedWidth;
+        const fontSize = Number(el.fontSize) || 16;
+        const fontFamily = String(el.fontFamily ?? "Inter");
+        const fontWeight = String(el.fontWeight ?? "400");
+        const fontStyle = el.fontStyle === "italic" ? "italic" : "normal";
+        const lineHeight = Number(el.lineHeight) || 1.2;
+
+        const layout = layoutTextLines({
+          text,
+          fontSize,
+          fontFamily,
+          fontWeight,
+          fontStyle,
+          lineHeight,
+          width,
+        });
+        const metrics = measureTextVerticalMetrics({
+          fontSize,
+          fontFamily,
+          fontWeight,
+          fontStyle,
+        });
+        const boxWidth = Math.ceil(naturalWidth ? layout.boxWidth : requestedWidth);
+        const boxHeight = Math.ceil(layout.boxHeight);
+        const x = Number(el.x ?? el.left);
+        const y = Number(el.y ?? el.top);
+        const hasOrigin = Number.isFinite(x) && Number.isFinite(y);
+        const capTopOffset = metrics ? metrics.ascent - metrics.capHeight : null;
+        const capCenterOffset =
+          metrics && capTopOffset !== null ? capTopOffset + metrics.capHeight / 2 : null;
+
+        return {
+          index,
+          type: "text",
+          text,
+          naturalWidth,
+          width: boxWidth,
+          height: boxHeight,
+          lineCount: layout.lines.length,
+          lines: layout.lines,
+          capHeight: metrics ? Math.round(metrics.capHeight * 100) / 100 : null,
+          ascent: metrics ? Math.round(metrics.ascent * 100) / 100 : null,
+          capTopOffset,
+          capCenterOffset,
+          ...(hasOrigin && metrics
+            ? {
+                baseline: Math.round((y + metrics.ascent) * 100) / 100,
+                capTop: Math.round((y + (capTopOffset ?? 0)) * 100) / 100,
+                capCenterY: Math.round((y + (capCenterOffset ?? 0)) * 100) / 100,
+              }
+            : {}),
+        };
+      }
+
+      if (el.type === "image" && typeof el.url === "string") {
+        const size = await loadImageSize(el.url);
+        const width = Number(el.width);
+        const height = Number(el.height);
+        return {
+          index,
+          type: "image",
+          width: Number.isFinite(width) && width > 0 ? width : size?.width ?? 100,
+          height: Number.isFinite(height) && height > 0 ? height : size?.height ?? 100,
+          naturalWidth: size?.width ?? null,
+          naturalHeight: size?.height ?? null,
+        };
+      }
+
+      const width = Number(el.width);
+      const height = Number(el.height);
+      return {
+        index,
+        type: typeof el.type === "string" ? el.type : "unknown",
+        width: Number.isFinite(width) && width > 0 ? width : 100,
+        height: Number.isFinite(height) && height > 0 ? height : 100,
+      };
+    }),
+  );
+
+  respond(requestId, { elements: results });
 }
 
 async function getSelection(requestId: string | undefined): Promise<void> {
@@ -803,7 +947,7 @@ async function alignObjects(
   if (selected.length === 0) {
     respondError(
       requestId,
-      "No selected objects to align. Call select_objects first.",
+      "No selected objects to align. Call arrange op=select first.",
     );
     return;
   }
@@ -861,7 +1005,7 @@ async function distributeObjects(
   if (selected.length < 3) {
     respondError(
       requestId,
-      `distribute_objects needs at least 3 selected objects (got ${selected.length}). Call select_objects first.`,
+      `arrange op=distribute needs at least 3 selected objects (got ${selected.length}). Call arrange op=select first.`,
     );
     return;
   }
@@ -941,7 +1085,7 @@ async function fitToArtboard(
   if (selected.length === 0) {
     respondError(
       requestId,
-      "No selected objects to fit. Call select_objects first.",
+      "No selected objects to fit. Call arrange op=select first.",
     );
     return;
   }
@@ -953,7 +1097,7 @@ async function fitToArtboard(
   ) {
     respondError(
       requestId,
-      "fit_to_artboard currently supports single rect/ellipse/image/text/polygon selections",
+      "arrange op=fit currently supports single rect/ellipse/image/text/polygon selections",
     );
     return;
   }

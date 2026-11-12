@@ -56,9 +56,11 @@ import {
   annotateSceneCanvas,
   canvasToPngBase64,
   cropCanvasToNodeBase64,
+  cropCanvasToNodeCanvas,
   renderScenePreviewBase64,
   renderSceneToExportCanvas,
 } from "@/lib/mcp/canvas-export";
+import { planExport } from "@/lib/mcp/export";
 import { subscribeToMCPActions } from "@/lib/mcp/transport";
 
 type LooseRecord = Record<string, any>;
@@ -629,7 +631,10 @@ async function getCanvasImage(
   if (!scene) return;
 
   try {
-    const canvas = await renderSceneToExportCanvas(scene, 1024, true);
+    const canvas = await renderSceneToExportCanvas(scene, {
+      maxCssPx: 1024,
+      prePaint: true,
+    });
     if (!canvas) {
       respondError(requestId, "Failed to render scene to canvas");
       return;
@@ -1115,31 +1120,55 @@ async function exportImage(
   const scene = await requireScene(requestId);
   if (!scene) return;
   try {
-    const canvas = await renderSceneToExportCanvas(
-      scene,
-      2048,
-      !payload?.transparent,
-    );
+    const exportId =
+      typeof payload?.objectId === "string" && payload.objectId
+        ? payload.objectId
+        : null;
+    if (exportId && !scene.nodes[exportId]) {
+      respondError(requestId, `Object ${exportId} not found in scene`);
+      return;
+    }
+    if (exportId && payload?.format === "svg") {
+      respondError(
+        requestId,
+        "SVG object export is not yet supported via MCP; use PNG format",
+      );
+      return;
+    }
+
+    const plan = planExport(scene, payload ?? {});
+    const canvas = await renderSceneToExportCanvas(scene, {
+      multiplier: plan.multiplier,
+      prePaint: plan.prePaintBackground,
+    });
     if (!canvas) {
       respondError(requestId, "Failed to render scene");
       return;
     }
-    const exportId = payload?.objectId;
+
+    let imageData: string;
+    let width = canvas.width;
+    let height = canvas.height;
     if (exportId) {
-      const targetNode = scene.nodes[exportId];
-      if (!targetNode) {
-        respondError(requestId, `Object ${exportId} not found in scene`);
+      const cropped = cropCanvasToNodeCanvas(canvas, scene, exportId);
+      if (!cropped) {
+        respondError(requestId, `Could not crop object ${exportId}`);
         return;
       }
-      if (payload?.format === "svg") {
-        respondError(
-          requestId,
-          "SVG object export is not yet supported via MCP; use PNG format",
-        );
-        return;
-      }
+      imageData = canvasToPngBase64(cropped);
+      width = cropped.width;
+      height = cropped.height;
+    } else {
+      imageData = canvasToPngBase64(canvas);
     }
-    respond(requestId, { success: true, imageData: canvasToPngBase64(canvas) });
+
+    respond(requestId, {
+      success: true,
+      imageData,
+      multiplier: plan.multiplier,
+      width,
+      height,
+    });
   } catch (err: unknown) {
     respondError(requestId, (err as Error)?.message || "Export failed");
   }

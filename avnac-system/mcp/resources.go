@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -179,6 +180,10 @@ func registerDesignResources(srv *sdkmcp.Server, lib *skill.Library) error {
 			Description: r.Description,
 			MIMEType:    designMIME,
 		}, func(_ context.Context, req *sdkmcp.ReadResourceRequest) (*sdkmcp.ReadResourceResult, error) {
+			// Log every read: which documents an agent consults is the only
+			// signal that the library is doing its job rather than being listed
+			// and ignored. Parseable one-line format for local usage analysis.
+			log.Printf("[MCP] resource read %s", req.Params.URI)
 			body, ok := bodies[req.Params.URI]
 			if !ok {
 				return nil, sdkmcp.ResourceNotFoundError(req.Params.URI)

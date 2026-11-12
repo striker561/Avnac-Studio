@@ -45,7 +45,9 @@ export async function renderSceneToCanvas(
     }
   }
 
-  let multiplier = Math.max(1, options.multiplier ?? 1);
+  // Explicit multipliers may scale down (0.5 = half size) as well as up; the
+  // preview cap below is a separate, downscale-only path.
+  let multiplier = Math.max(0.01, options.multiplier ?? 1);
   if (options.maxCssPx != null) {
     const maxEdge = Math.max(aw, ah);
     multiplier = maxEdge > 0 ? Math.min(1, options.maxCssPx / maxEdge) : 1;

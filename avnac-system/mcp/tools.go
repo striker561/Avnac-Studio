@@ -2131,7 +2131,7 @@ func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
 	m.addOpTool(legacy, &mcp.Tool{
 		Name: "export",
 		Description: "Export the canvas or one object. op=png (multiplier, transparent) returns a base64 PNG of the artboard; " +
-			"op=object (objectId, multiplier) returns a PNG of that object or group; SVG object export is not supported over MCP yet.",
+			"op=object (objectId, multiplier) returns a transparent PNG cropped to that object or group's bounds; SVG object export is not supported over MCP yet.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
 			"op":          desc("Operation: png, object."),
 			"objectId":    desc("object: id of the object or group to export."),

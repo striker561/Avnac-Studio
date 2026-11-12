@@ -107,6 +107,43 @@ function formatSecretsError(error: unknown, action: "load" | "save"): string {
     : `Could not save key: ${message}`;
 }
 
+/** On/off switch used by the settings toggles */
+function SettingSwitch({
+  checked,
+  disabled,
+  onChange,
+  ariaLabel,
+  describedBy,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+  ariaLabel: string;
+  describedBy?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      aria-describedby={describedBy}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:opacity-50 ${
+        checked ? "bg-[var(--accent)]" : "bg-black/[0.16]"
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm ring-1 ring-black/[0.06] transition-transform duration-200 ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
+}
+
 /** Reusable card for a single API key field */
 function ApiKeyCard({
   icon,
@@ -555,7 +592,7 @@ export const Route = createFileRoute("/settings")({
                       </p>
                     </div>
 
-                    <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
+                    <div className="flex items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
                       <div className="pr-4">
                         <p className="text-sm font-medium text-[var(--text)]">
                           Enable MCP server
@@ -564,15 +601,13 @@ export const Route = createFileRoute("/settings")({
                           Off by default. Binds to 127.0.0.1 on a fixed port (free-port fallback if taken).
                         </p>
                       </div>
-                      <input
-                        type="checkbox"
+                      <SettingSwitch
+                        ariaLabel="Enable MCP server"
                         checked={mcpInfo?.enabled ?? false}
                         disabled={mcpLoading || mcpBusy || !getMCPBridge()}
-                        onChange={(e) => toggleMCPServer(e.target.checked)}
-                        className="size-4 shrink-0 rounded border border-black/20"
-                        style={{ accentColor: "var(--accent)" }}
+                        onChange={toggleMCPServer}
                       />
-                    </label>
+                    </div>
 
                     {mcpInfo?.enabled && mcpInfo.running ? (
                       <div className="flex flex-col gap-3 rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
@@ -769,7 +804,7 @@ export const Route = createFileRoute("/settings")({
                       </p>
                     </div>
 
-                    <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
+                    <div className="flex items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
                       <div className="pr-4">
                         <p className="text-sm font-medium text-[var(--text)]">
                           Enable developer mode
@@ -779,11 +814,10 @@ export const Route = createFileRoute("/settings")({
                           page.
                         </p>
                       </div>
-                      <input
-                        type="checkbox"
+                      <SettingSwitch
+                        ariaLabel="Enable developer mode"
                         checked={developerMode}
-                        onChange={(e) => {
-                          const next = e.target.checked;
+                        onChange={(next) => {
                           setDeveloperModeState(next);
                           setSceneDeveloperMode(next);
                           setDeveloperNotice(
@@ -792,10 +826,8 @@ export const Route = createFileRoute("/settings")({
                               : "Developer mode disabled.",
                           );
                         }}
-                        className="size-4 shrink-0 rounded border border-black/20"
-                        style={{ accentColor: "var(--accent)" }}
                       />
-                    </label>
+                    </div>
 
                     {developerNotice ? (
                       <p className="text-sm text-emerald-700">

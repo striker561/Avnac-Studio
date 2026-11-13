@@ -28,13 +28,13 @@ func TestLoadShape(t *testing.T) {
 	if lib.Root.Description == "" {
 		t.Error("root description is empty")
 	}
-	if got, want := len(lib.SkillNames()), 21; got != want {
+	if got, want := len(lib.SkillNames()), 22; got != want {
 		t.Errorf("skills = %d, want %d", got, want)
 	}
 	if got := len(lib.RuleIDs()); got == 0 || got > MaxRules {
 		t.Errorf("rules = %d, want 1..%d", got, MaxRules)
 	}
-	if got, want := len(lib.ReferenceNames()), 14; got != want {
+	if got, want := len(lib.ReferenceNames()), 15; got != want {
 		t.Errorf("references = %d, want %d", got, want)
 	}
 }

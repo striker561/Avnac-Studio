@@ -33,8 +33,8 @@ func TestDesignResourcesCoverTheLibrary(t *testing.T) {
 	if len(resources) != want {
 		t.Fatalf("resources = %d, want %d", len(resources), want)
 	}
-	if len(lib.RuleIDs()) != 117 {
-		t.Errorf("library has %d rules, want 117", len(lib.RuleIDs()))
+	if len(lib.RuleIDs()) != 125 {
+		t.Errorf("library has %d rules, want 125", len(lib.RuleIDs()))
 	}
 
 	seen := make(map[string]bool, len(resources))
@@ -115,8 +115,17 @@ func TestDesignResourceIndexMentionsTheLibrary(t *testing.T) {
 			t.Errorf("instruction index does not mention %q", want)
 		}
 	}
-	if !strings.Contains(index, "21 task workflows") {
+	if !strings.Contains(index, "22 task workflows") {
 		t.Errorf("instruction index does not report the skill count:\n%s", index)
+	}
+	// The instruction index is the only always-on advertisement for the
+	// library. If vector is missing here, an agent never learns the skill
+	// exists even though every resource resolves.
+	if !strings.Contains(index, "vector") {
+		t.Error("instruction index does not mention the vector skill")
+	}
+	if !strings.Contains(index, "125 rules") {
+		t.Error("instruction index does not report the rule count")
 	}
 }
 

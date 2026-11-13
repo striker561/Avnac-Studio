@@ -9,7 +9,7 @@ exists, or when a decision has no obvious owner.
 
 - **Reading order**: `SKILL.md` → `<task>/SKILL.md` → the 4–8 rules it links → a reference for numbers.
 - **Authority**: when a rule and a reference disagree about a number, the rule wins — fix the reference.
-- **Ceiling**: this library holds at most 120 rule files so an agent can hold the index in context.
+- **Ceiling**: this library holds at most 128 rule files so an agent can hold the index in context.
 - **Adding a rule**: follow the template in any existing rule exactly; the H2 headings and their
   order are enforced by `go test ./internal/skill`.
 - **Regenerating**: `node scripts/gen-rule-index.mjs` rewrites this file from the rule headers.
@@ -29,6 +29,7 @@ exists, or when a decision has no obvious owner.
 | Print production | 8 |
 | Interface design | 13 |
 | Design history | 11 |
+| Vector drawing | 8 |
 | Critique, quality & delivery | 6 |
 
 ## Foundations — principles that govern every decision
@@ -175,6 +176,17 @@ exists, or when a decision has no obvious owner.
 - [`109-brutalism-and-neobrutalism`](109-brutalism-and-neobrutalism.md) — Brutalism and Neobrutalism
 - [`110-retro-and-vintage-design`](110-retro-and-vintage-design.md) — Retro and Vintage Design
 
+## Vector drawing — scene graphs, coordinates, curves, paths, SVG
+
+- [`120-vector-scene-graphs`](120-vector-scene-graphs.md) — Vector Scene Graphs
+- [`121-vector-coordinate-systems`](121-vector-coordinate-systems.md) — Vector Coordinate Systems
+- [`122-geometric-primitives-and-construction`](122-geometric-primitives-and-construction.md) — Geometric Primitives and Construction
+- [`123-spatial-constraints-and-relationships`](123-spatial-constraints-and-relationships.md) — Spatial Constraints and Relationships
+- [`124-symmetry-and-transformations`](124-symmetry-and-transformations.md) — Symmetry and Transformations
+- [`125-bezier-curves-and-path-construction`](125-bezier-curves-and-path-construction.md) — Bézier Curves and Path Construction
+- [`126-vector-boolean-operations-and-composition`](126-vector-boolean-operations-and-composition.md) — Boolean Operations and Composition
+- [`127-svg-generation-and-validation`](127-svg-generation-and-validation.md) — SVG Generation and Validation
+
 ## Critique, quality & delivery — the gate before anything ships
 
 - [`87-prepress-and-production`](87-prepress-and-production.md) — Prepress and Production
@@ -186,4 +198,4 @@ exists, or when a decision has no obvious owner.
 
 ---
 
-117 rule files. Generated index; edit the rules, not this file.
+125 rule files. Generated index; edit the rules, not this file.

@@ -25,6 +25,7 @@ const sections = [
   ["print", "Print production — color management, bleed, paper, finishing, prepress"],
   ["ui", "Interface design — systems, components, states, accessibility, data"],
   ["history", "Design history — movements as usable visual languages"],
+  ["vector", "Vector drawing — scene graphs, coordinates, curves, paths, SVG"],
   ["production", "Critique, quality & delivery — the gate before anything ships"],
 ];
 
@@ -39,7 +40,7 @@ exists, or when a decision has no obvious owner.
 
 - **Reading order**: \`SKILL.md\` → \`<task>/SKILL.md\` → the 4–8 rules it links → a reference for numbers.
 - **Authority**: when a rule and a reference disagree about a number, the rule wins — fix the reference.
-- **Ceiling**: this library holds at most 120 rule files so an agent can hold the index in context.
+- **Ceiling**: this library holds at most 128 rule files so an agent can hold the index in context.
 - **Adding a rule**: follow the template in any existing rule exactly; the H2 headings and their
   order are enforced by \`go test ./internal/skill\`.
 - **Regenerating**: \`node scripts/gen-rule-index.mjs\` rewrites this file from the rule headers.

@@ -26,9 +26,9 @@ task needs rather than guessing:
 | URI | Contents |
 |---|---|
 | `skill://avnac-design` | Entry point: routing table, always-on gates, how to read a rule |
-| `skill://<task>` | 21 task workflows — `poster`, `logo`, `brand`, `color`, `typography`, `layout`, `print`, `export`, `ui`, `packaging`, ... |
-| `references://<subject>` | 14 lookup notes — thresholds, tables, format specs |
-| `rules://<id>` | 117 authoritative principles, e.g. `rules://24-typographic-hierarchy`, `rules://82-bleed-trim-and-safe-areas` |
+| `skill://<task>` | 22 task workflows — `poster`, `logo`, `brand`, `color`, `typography`, `layout`, `print`, `export`, `ui`, `packaging`, ... |
+| `references://<subject>` | 15 lookup notes — thresholds, tables, format specs |
+| `rules://<id>` | 125 authoritative principles, e.g. `rules://24-typographic-hierarchy`, `rules://82-bleed-trim-and-safe-areas` |
 | `rules://index` | Every rule by domain, with counts |
 
 Start at `skill://avnac-design`, then the task workflow, then the 4–8 rules it links. Cite the
@@ -49,7 +49,7 @@ rule you followed when you report a design decision.
 
 ## 3. Tool Reference Cheat Sheet
 
-Twelve tools: six **reads** keep one name per operation, six **mutations** take an `op`. The legacy
+Fourteen tools: six **reads** keep one name per operation, seven **mutations** take an `op`, and `guide` routes a brief to the knowledge library. The legacy
 action name is accepted as an `op` value (e.g. `op: "render_elements"`), so older phrasing works.
 
 ### Reads
@@ -73,6 +73,8 @@ action name is accepted as an `op` value (e.g. `op: "render_elements"`), so olde
 | `files` | `list`, `open`, `rename` | `fileId` (`id`/`workspaceId` accepted), `name` |
 | `assets` | `unsplash`, `fonts`, `stickers` | `query`, `page`, `perPage` |
 | `export` | `png`, `object` | `multiplier`, `transparent`, `objectId` |
+| `vector` | `draw`, `update`, `read`, `export`, `delete`, `list` | draw: `canvas`, `objects[]`, `layers[]`, `name`, `x`, `y`, `scale`; update: `boardId`, `operations[]` |
+| `guide` | (router) | `task` (the brief), `limit`, `inline` |
 
 Use `files` whenever the user references an existing file that is not currently open — e.g.
 *"restyle the webinar slide"*. Call `get_canvas_summary` first; if it reports no active canvas
@@ -171,6 +173,51 @@ Each element in the `elements` array supports:
 
 ---
 
+## 4b. Drawing Vectors (`vector` tool)
+
+Use `vector` when the deliverable is **geometry the user can edit** — a logo mark, icon, character,
+badge, pattern or diagram figure — not a page composition. `elements` places scene primitives; it
+cannot draw or re-edit a path.
+
+```json
+{
+  "op": "draw",
+  "name": "Rocket icon",
+  "canvas": { "width": 256, "height": 256, "background": "#F4F0E8" },
+  "objects": [
+    { "id": "body", "type": "capsule", "x": 102, "y": 52, "width": 52, "height": 116, "fill": "#E85D3F" },
+    { "id": "fin-left", "type": "polygon", "points": [[96,118],[62,154],[96,146]], "fill": "#D94A36" },
+    { "id": "fin-right", "type": "polygon", "mirrorOf": "fin-left", "axis": "vertical", "fill": "#D94A36" },
+    { "id": "window", "type": "circle", "x": 112, "y": 78, "width": 32, "height": 32, "fill": "#9FD3E8",
+      "constraints": [{ "relation": "centered_on", "target": "body", "offset": [0, -18] }] }
+  ]
+}
+```
+
+- Types: `rect`, `ellipse`, `circle`, `capsule`, `polygon`, `star`, `line`, `path`.
+- Box: `x`, `y`, `width`, `height` in board units (top-left). `path` takes `start` + `segments`
+  (`line`/`cubic`) and `closed`; `polygon`/`star` may take explicit `points`.
+- Relations: `constraints` (`centered_on`, `left_of`, `right_of`, `above`, `below`, `inside`,
+  `aligned_with`, `equal_size`) and `mirrorOf` + `axis` (`vertical`/`horizontal`).
+- Paint: `fill`, `stroke`, `strokeWidth`, `fillOpacity`, `strokeOpacity`, `fillRule`,
+  `lineCap`, `lineJoin`. Every visible object needs fill or stroke.
+- The result is an SVG element on the page; `draw` returns `boardId` and `objectId`.
+
+Refine instead of redrawing — the board keeps the IR:
+
+```json
+{ "op": "update", "boardId": "<from draw>", "operations": [
+  { "op": "resize", "target": "fin-left", "width": 28, "height": 32 },
+  { "op": "mirror", "target": "fin-right", "of": "fin-left" },
+  { "op": "restyle", "target": "body", "fill": "#EF6B4A" } ] }
+```
+
+Rules to apply: `rules://120-vector-scene-graphs` through `rules://127-svg-generation-and-validation`,
+starting with `125` for curves and `124` for symmetry. Full workflow: `skill://vector`.
+Verify with `get_canvas_image` (silhouette at 100% and 25%) and report the rules followed.
+
+---
+
 ## 5. Standard Design Workflow: Brief → Setup → Compose → Verify
 
 ### Phase 0 — Design Brief (before ANY tool call)
@@ -180,7 +227,8 @@ Never start with tool calls. First reason about the image the user wants and tur
 1. **Extract known constraints**: dimensions, exact copy (headline/subhead/body text), brand or shop names, dates/addresses, palette, style keywords, imagery requirements.
 2. **Identify critical unknowns**: real text content, names, dates, addresses, size intent. If any critical info is missing, **ask the user up to 3 targeted questions and stop** — do not call tools yet. If nothing critical is missing, state your assumptions explicitly (e.g. *"Using the placeholder shop name 'KUMO RAMEN' — flag if you want the real one"*) and proceed.
 3. **Write a compact design plan**: layout zones with approximate coordinates, type hierarchy, palette, fonts, asset needs. This brief is the checklist the Verify phase audits against.
-4. **Edit requests**: write a diff-oriented brief (what changes, what stays) and always start from the real canvas. If the target file is not currently open, `get_canvas_summary` will report no active scene — then call `files` op=list, locate the file by name, and `files` op=open(fileId). **Never silently recreate an existing design in a new file**, and never present a recreation as an edit. If you want to try a risky alternative, put it on a named page in the same project (`canvas` op=add-page), not in a new canvas.
+4. **Route the brief through `guide`**: call `guide` with the brief before composing. It returns the matching workflow (`skill://...`) and the 4–8 rules (`rules://...`) that apply, plus the matched tokens and confidence — even when the user did not ask for guidance. Read them, then design from them. Composition results also carry the same `guide` field, so the route appears in-band if you skip the call.
+5. **Edit requests**: write a diff-oriented brief (what changes, what stays) and always start from the real canvas. If the target file is not currently open, `get_canvas_summary` will report no active scene — then call `files` op=list, locate the file by name, and `files` op=open(fileId). **Never silently recreate an existing design in a new file**, and never present a recreation as an edit. If you want to try a risky alternative, put it on a named page in the same project (`canvas` op=add-page), not in a new canvas.
 
 ### Phase 1 — Inspect & Setup
 

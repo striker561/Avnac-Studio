@@ -1,6 +1,6 @@
 ---
 name: avnac-graphic-design
-description: Expert graphic design knowledge and production library for Avnac Studio — traditional print, branding, typography, color, layout, illustration, imagery, packaging, poster work, data visualization and modern UI design. Use for any request to create, adapt, critique or production-prepare a visual design, even when the user never says "design" (for example "make my logo work at 16 px", "why does this poster feel flat", "fix the contrast in my dashboard", "set up bleed for the printer", or "pick a palette for this brand").
+description: Expert graphic design knowledge and production library for Avnac Studio — traditional print, branding, typography, color, layout, illustration, vector path construction, imagery, packaging, poster work, data visualization and modern UI design. Use for any request to create, adapt, critique or production-prepare a visual design, even when the user never says "design" (for example "make my logo work at 16 px", "why does this poster feel flat", "fix the contrast in my dashboard", "draw a fox as clean vectors", "set up bleed for the printer", or "pick a palette for this brand").
 ---
 
 # Avnac Graphic Design Knowledge & Production Library
@@ -22,7 +22,7 @@ Four kinds of files, with one job each:
 | `rules/NN-topic.md` | The authoritative principle, with techniques and failure modes | When a decision needs a reason |
 
 The split is deliberate. A skill tells you *how to run the task*; a rule tells you *what is
-true*; a reference gives you *the numbers*. Reading all 117 rules is wasteful and flattens your
+true*; a reference gives you *the numbers*. Reading all 125 rules is wasteful and flattens your
 attention. Read the routed skill, then the four to eight rules it links, then a reference only
 when you need a value table.
 
@@ -43,6 +43,7 @@ and borrow rules from the other.
 | `brand` | Strategy, positioning, identity systems, guideline documents, rebrands |
 | `logo` | Marks and wordmarks: construction, optical correction, lockups, small-size behaviour |
 | `illustrate` | Original drawn imagery, style systems, character and object sets |
+| `vector` | Actual path construction: vector IR, Bézier curves, node repair, symmetry, booleans, SVG |
 | `icon` | Icon sets and single icons: grids, stroke weights, metaphor consistency |
 | `edit` | Revising existing work: refinement passes, feedback, version discipline |
 | `analyze` | Reading a design or a reference image: what it does, why, what to borrow |
@@ -60,7 +61,7 @@ the request is about judging existing work.
 
 ## Always-on gates
 
-These five checks apply to every deliverable, whatever the skill says. They are the difference
+These six checks apply to every deliverable, whatever the skill says. They are the difference
 between a design that looks finished and one that is finished.
 
 1. **One message per surface.** Name the first, second and third thing the viewer should see
@@ -78,6 +79,10 @@ between a design that looks finished and one that is finished.
 5. **Check it degraded.** Grayscale, 25% zoom, small phone, cheap paper, colorblind viewer. If
    it fails one, it fails — [`113-design-quality-checklist`](rules/113-design-quality-checklist.md),
    [`114-design-accessibility-checklist`](rules/114-design-accessibility-checklist.md).
+6. **Vectors are constructed, not guessed.** Primitives and relationships first, curves last; every
+   part has an id, mirrored halves are generated, handles stay inside the magic triangle —
+   [`120-vector-scene-graphs`](rules/120-vector-scene-graphs.md),
+   [`125-bezier-curves-and-path-construction`](rules/125-bezier-curves-and-path-construction.md).
 
 ## How to read a rule
 
@@ -101,8 +106,11 @@ reference is out of date — fix the reference.
   4961 × 7016 px.
 - Elements are `text`, `rect`, `ellipse`, `path`, `image`, `group`. Compose with these
   primitives; do not fake a layout with a screenshot of a layout.
-- The MCP server exposes canvas tools, an Unsplash search, and export. The design decision comes
-  from this library; the tools only execute it.
+- Drawing a *new* vector object (logo mark, icon, character) is not the same as placing a scene
+  primitive: use the `vector` tool, which resolves a small scene-graph IR into editable cubic paths
+  and places real SVG on the page. Scene `polygon` and `star` are layout primitives, not drawing.
+- The MCP server exposes canvas tools, a vector drawing tool, an Unsplash search, and export. The
+  design decision comes from this library; the tools only execute it.
 - A project (canvas) holds many pages. Drafts, tests and variations belong on a named page inside
   the open project — `canvas` op=add-page — never in a second project created for the experiment.
   Check `get_canvas_summary` for the active page name, and switch back with `canvas` op=go-page
@@ -133,6 +141,15 @@ Say so plainly, then reason from the closest principles and label the extrapolat
 answer that names its assumptions beats a confident answer that invents authority. Prefer
 [`00-core-principles`](rules/00-core-principles.md) and
 [`01-design-process`](rules/01-design-process.md) as the base for novel cases.
+
+## Routing during a task
+
+When the host exposes Avnac's `guide` tool, call it with the brief **before** specialized work —
+poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI, vector
+drawing or critique — even when the user did not ask for guidance. It returns the matching
+`skill://` workflow and the 4–8 `rules://` that apply, with the matched tokens and a confidence
+level. Composition tool results also carry the same guide automatically, so skipping the call still
+leaves a route in front of you.
 
 ## Programmatic use
 

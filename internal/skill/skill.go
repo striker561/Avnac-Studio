@@ -69,11 +69,16 @@ var ruleDomains = map[string]bool{
 	"ui":           true,
 	"history":      true,
 	"production":   true,
+	"vector":       true,
 }
 
 // MaxRules is the enforced ceiling on rule files. The library is meant to stay
 // small enough that an agent can hold the index of it in context.
-const MaxRules = 120
+//
+// The vector section (120-127) brought the library to 125, so the ceiling moved
+// to the next round number. Keep it a round number and bump it deliberately:
+// the count is a context budget, not a target.
+const MaxRules = 128
 
 // Skill is a task workflow loaded from <dir>/SKILL.md.
 type Skill struct {

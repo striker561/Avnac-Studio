@@ -37,6 +37,10 @@ type Params = {
   onUngroup: () => void;
   selectedIds: string[];
   onNudge: (dx: number, dy: number) => void;
+  /** True while the shortcuts panel is open; it captures single-key shortcuts. */
+  shortcutsOpen: boolean;
+  onInsertText: () => void;
+  onOpenImagePicker: () => void;
 };
 
 export function useSceneEditorShortcuts({
@@ -66,6 +70,9 @@ export function useSceneEditorShortcuts({
   onUngroup,
   selectedIds,
   onNudge,
+  shortcutsOpen,
+  onInsertText,
+  onOpenImagePicker,
 }: Params) {
   // Timestamp of the last Cmd+Shift+V handled in keydown, so the paste event
   // echo that some webviews fire afterwards doesn't paste a second copy.
@@ -74,6 +81,9 @@ export function useSceneEditorShortcuts({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!scene) return;
+      // The shortcuts panel handles its own keys (Esc closes it); inserting an
+      // element behind it would be surprising.
+      if (shortcutsOpen) return;
       if (shouldIgnoreEditorHotkeys(event.target, inlineTextEditing)) return;
 
       const mod = event.metaKey || event.ctrlKey;
@@ -166,6 +176,20 @@ export function useSceneEditorShortcuts({
         return;
       }
 
+      // Single-key insert shortcuts, matching the toolbar's tooltips.
+      if (!mod && !event.altKey && !event.shiftKey) {
+        if (event.key === "t" || event.key === "T") {
+          event.preventDefault();
+          onInsertText();
+          return;
+        }
+        if (event.key === "i" || event.key === "I") {
+          event.preventDefault();
+          onOpenImagePicker();
+          return;
+        }
+      }
+
       if (
         !mod &&
         !event.altKey &&
@@ -211,6 +235,9 @@ export function useSceneEditorShortcuts({
     onPasteInPlace,
     onUngroup,
     onNudge,
+    onInsertText,
+    onOpenImagePicker,
+    shortcutsOpen,
     redo,
     reorderPrimarySelection,
     scene,

@@ -34,6 +34,7 @@ import { useSceneEditorContextMenu } from "./use-scene-editor-context-menu";
 import { useSceneEditorDropActions } from "./use-scene-editor-drop-actions";
 import { useSceneEditorInteractions } from "./use-scene-editor-interactions";
 import { useSceneEditorShortcuts } from "./use-scene-editor-shortcuts";
+import { requestImagePicker } from "./insert-image-bridge";
 import { useSceneSelectionActions } from "./use-scene-selection-actions";
 import { ensureRembgBridge } from "@/lib/rembg-bridge";
 
@@ -60,6 +61,7 @@ export default function SceneEditorCanvas({
   const setSelectedIds = useSceneEditorStore((s) => s.setSelectedIds);
   const lockedIds = useSceneEditorStore((s) => s.lockedIds);
   const setTextContent = useSceneEditorStore((s) => s.setTextContent);
+  const insertText = useSceneEditorStore((s) => s.insertText);
   const zoomPercent = useSceneEditorStore((s) => s.zoomPercent);
   const setZoomPercent = useSceneEditorStore((s) => s.setZoomPercent);
   const canUndo = useSceneEditorStore((s) => s.canUndo);
@@ -484,6 +486,9 @@ export default function SceneEditorCanvas({
     onUngroup: actions.onUngroup,
     selectedIds,
     onNudge: actions.onNudge,
+    shortcutsOpen,
+    onInsertText: insertText,
+    onOpenImagePicker: requestImagePicker,
     onImageFilesPaste: (files) => {
       if (!scene) return;
       void dropActions.handleDropIntent(

@@ -40,6 +40,7 @@ import {
 } from "./image-pixel-utils";
 import type { BgValue, GradientStop } from "./editor-paint";
 import { anchorToCenter } from "./saraswati/transform/anchor";
+import { decodeSvgDataUrl } from "./avnac-vector/svg";
 
 // ─── Shared utilities ────────────────────────────────────────────────────────
 
@@ -600,6 +601,40 @@ function textToSvg(node: SaraswatiTextNode, svgCtx: SvgCtx): string {
   );
 }
 
+
+/** Inline an Avnac vector-board SVG data URL into the exported document. */
+function inlineVectorBoardSvg(src: string, width: number, height: number): string | null {
+  const svg = decodeSvgDataUrl(src);
+  if (!svg || !svg.includes('data-avnac-vector-board="1"')) return null;
+  const match = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(svg);
+  if (!match) return null;
+  const attrs = match[1] ?? "";
+  const inner = match[2] ?? "";
+  if (!inner.trim()) return null;
+  let vbX = 0;
+  let vbY = 0;
+  let vbW = width;
+  let vbH = height;
+  const viewBox = /viewBox="([^"]+)"/.exec(attrs);
+  if (viewBox) {
+    const parts = viewBox[1]!.trim().split(/[\s,]+/).map(Number);
+    if (parts.length === 4 && parts.every((n) => Number.isFinite(n)) && parts[2]! > 0 && parts[3]! > 0) {
+      vbX = parts[0]!;
+      vbY = parts[1]!;
+      vbW = parts[2]!;
+      vbH = parts[3]!;
+    }
+  }
+  const scale = Math.min(width / vbW, height / vbH);
+  if (!Number.isFinite(scale) || scale <= 0) return null;
+  const offsetX = (width - vbW * scale) / 2;
+  const offsetY = (height - vbH * scale) / 2;
+  const transform =
+    `translate(${r2(-width / 2 + offsetX)},${r2(-height / 2 + offsetY)}) ` +
+    `scale(${r2(scale)}) translate(${r2(-vbX)},${r2(-vbY)})`;
+  return `<g transform="${transform}">${inner}</g>`;
+}
+
 function imageToSvg(
   node: SaraswatiImageNode,
   svgCtx: SvgCtx,
@@ -626,6 +661,31 @@ function imageToSvg(
       node.cropY > 0 ||
       cropW < natural.width ||
       cropH < natural.height);
+
+  // Avnac vector boards are stored as SVG data URLs. Inline their real
+  // <path> elements instead of nesting an <image>, so "vector" survives the
+  // trip into the scene export (R10).
+  if (!isCropped && rx === 0) {
+    const inlined = inlineVectorBoardSvg(node.src, w, h);
+    if (inlined) {
+      return wrapGroup(
+        inlined,
+        svgTransform(
+          node.x,
+          node.y,
+          node.originX,
+          node.originY,
+          w,
+          h,
+          node.scaleX,
+          node.scaleY,
+          node.rotation,
+        ),
+        node.opacity,
+        filterAttr(node.shadow, node.blur, svgCtx),
+      );
+    }
+  }
 
   // Rounded-corner clip around the displayed node box.
   let outerClip = "";
@@ -757,15 +817,22 @@ async function buildSvgString(
   );
 }
 
+export async function buildSelectionSvg(
+  scene: SaraswatiScene,
+  selectedIds: string[],
+): Promise<string | null> {
+  const result = buildSelectionScene(scene, selectedIds);
+  if (!result) return null;
+  return buildSvgString(result.leafNodes, result.width, result.height);
+}
+
 export async function exportSelectionAsSvg(
   filename: string,
   scene: SaraswatiScene,
   selectedIds: string[],
 ): Promise<void> {
-  const result = buildSelectionScene(scene, selectedIds);
-  if (!result) return;
-
-  const svg = await buildSvgString(result.leafNodes, result.width, result.height);
+  const svg = await buildSelectionSvg(scene, selectedIds);
+  if (!svg) return;
 
   await exportTextFileNativeOrBrowser(filename, svg, {
     logLabel: "native selection SVG export",

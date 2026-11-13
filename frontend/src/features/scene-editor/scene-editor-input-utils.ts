@@ -17,6 +17,15 @@ export function shouldIgnoreEditorHotkeys(
   hasInlineTextEdit: boolean,
 ) {
   if (hasInlineTextEdit) return true;
+  // A full-screen editor modal owns the keyboard while it is open. The target
+  // still receives its own key events; only the scene editor's global hotkeys
+  // are suppressed.
+  if (
+    target instanceof HTMLElement &&
+    target.closest("[data-avnac-modal-keyboard]")
+  ) {
+    return true;
+  }
   return isTextEntryTarget(target);
 }
 

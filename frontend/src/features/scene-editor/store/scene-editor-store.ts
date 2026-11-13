@@ -164,7 +164,7 @@ type SceneEditorActions = {
   insertLine: () => void;
   insertArrow: () => void;
   insertText: () => void;
-  insertVectorBoard: () => void;
+  insertVectorBoard: (board?: import("./insert-store").VectorBoardInsertPayload) => void;
   undo: () => void;
   redo: () => void;
   setArtboard: (width?: number, height?: number, bg?: SaraswatiColor) => void;
@@ -671,7 +671,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
   insertLine: () => insertLine(asInsertContext(get())),
   insertArrow: () => insertArrow(asInsertContext(get())),
   insertText: () => insertText(asInsertContext(get())),
-  insertVectorBoard: () => insertVectorBoard(asInsertContext(get())),
+  insertVectorBoard: (board) => insertVectorBoard(asInsertContext(get()), board),
 
   undo: () => {
     closeHistoryBatches();

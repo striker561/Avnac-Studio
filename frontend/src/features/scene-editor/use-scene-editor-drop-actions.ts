@@ -1,8 +1,10 @@
 import type { SceneDropIntent } from "./scene-drop-intent";
 import type { SaraswatiImageNode } from "@/lib/saraswati";
-import { vectorDocHasRenderableStrokes } from "@/lib/avnac-vector-board-document";
-import { loadVectorBoardDocs } from "@/lib/avnac-vector-boards-storage";
-import { renderVectorBoardDocumentTransparent } from "@/components/editor/vector-boards/vector-board-workspace";
+import {
+  vectorBoardDocumentToSvgDataUrl,
+  vectorDocHasRenderableStrokes,
+} from "@/lib/avnac-vector";
+import { loadVectorBoardDoc } from "@/lib/avnac-vector-boards-storage";
 import { useCallback } from "react";
 import { useSceneEditorStore } from "./store";
 
@@ -131,19 +133,11 @@ export function useSceneEditorDropActions() {
           const { documentId } = useSceneEditorStore.getState();
           if (!documentId) return;
           try {
-            const docs = await loadVectorBoardDocs(documentId);
-            const doc = docs[intent.boardId];
+            const doc = await loadVectorBoardDoc(documentId, intent.boardId);
             if (!doc || !vectorDocHasRenderableStrokes(doc)) return;
-
-            const RENDER_W = 640;
-            const RENDER_H = 480;
-            const offscreen = document.createElement("canvas");
-            offscreen.width = RENDER_W;
-            offscreen.height = RENDER_H;
-            const ctx = offscreen.getContext("2d");
-            if (!ctx) return;
-            renderVectorBoardDocumentTransparent(ctx, doc, RENDER_W, RENDER_H);
-            const dataUrl = offscreen.toDataURL("image/png");
+            // R10: place real SVG paths, not a 640×480 bitmap. The scene image
+            // node keeps the board's fixed aspect and resolution independence.
+            const dataUrl = vectorBoardDocumentToSvgDataUrl(doc);
             await addImageAtPoint(dataUrl, point);
           } catch {
             // Silently drop on load/render errors.

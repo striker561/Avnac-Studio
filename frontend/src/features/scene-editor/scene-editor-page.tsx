@@ -26,14 +26,18 @@ import EditorLayersPanel from "@/components/editor/sidebar/editor-layers-panel";
 import EditorUploadsPanel from "@/components/editor/sidebar/editor-uploads-panel";
 import EditorVectorBoardPanel from "@/components/editor/vector-boards/editor-vector-board-panel";
 import VectorBoardWorkspace from "@/components/editor/vector-boards/vector-board-workspace";
+import { buildSelectionSvg } from "@/lib/avnac-selection-export";
 import {
   emptyVectorBoardDocument,
+  vectorBoardDocumentToSvgDataUrl,
   type VectorBoardDocument,
-} from "@/lib/avnac-vector-board-document";
+} from "@/lib/avnac-vector";
 import {
+  forgetVectorBoardDoc,
   loadVectorBoardDocs,
   loadVectorBoards,
   mergeVectorBoardDocsForMeta,
+  rememberVectorBoardDoc,
   saveVectorBoardDocs,
   saveVectorBoards,
   type AvnacVectorBoardMeta,
@@ -128,6 +132,19 @@ function _buildPageTabs(
 type Props = {
   documentId: string | null;
 };
+
+type SceneEditorDebugApi = {
+  getScene: () => ReturnType<typeof useSceneEditorStore.getState>["scene"];
+  getSelectedIds: () => string[];
+  buildSelectionSvg: () => Promise<string | null>;
+  documentId: string | null;
+};
+
+declare global {
+  interface Window {
+    __avnacSceneEditor?: SceneEditorDebugApi;
+  }
+}
 
 export default function SceneEditorPage({ documentId }: Props) {
   const documentName = useSceneEditorStore((s) => s.documentName);
@@ -375,22 +392,46 @@ export default function SceneEditorPage({ documentId }: Props) {
     setVectorWorkspaceId(null);
   }, []);
 
+  // Development-only inspection hook for Playwright and manual debugging.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const api: SceneEditorDebugApi = {
+      getScene: () => useSceneEditorStore.getState().scene,
+      getSelectedIds: () => useSceneEditorStore.getState().selectedIds,
+      buildSelectionSvg: async () => {
+        const state = useSceneEditorStore.getState();
+        if (!state.scene || state.selectedIds.length === 0) return null;
+        return buildSelectionSvg(state.scene, state.selectedIds);
+      },
+      documentId: documentId ?? null,
+    };
+    window.__avnacSceneEditor = api;
+    return () => {
+      if (window.__avnacSceneEditor === api) delete window.__avnacSceneEditor;
+    };
+  }, [documentId]);
+
   const onVectorBoardDocumentChange = useCallback(
     (boardId: string, doc: VectorBoardDocument) => {
+      if (documentId) rememberVectorBoardDoc(documentId, boardId, doc);
       setVectorBoardDocs((prev) => ({ ...prev, [boardId]: doc }));
     },
-    [],
+    [documentId],
   );
 
-  const deleteVectorBoard = useCallback((boardId: string) => {
-    setVectorWorkspaceId((cur) => (cur === boardId ? null : cur));
-    setVectorBoards((prev) => prev.filter((b) => b.id !== boardId));
-    setVectorBoardDocs((prev) => {
-      const next = { ...prev };
-      delete next[boardId];
-      return next;
-    });
-  }, []);
+  const deleteVectorBoard = useCallback(
+    (boardId: string) => {
+      if (documentId) forgetVectorBoardDoc(documentId, boardId);
+      setVectorWorkspaceId((cur) => (cur === boardId ? null : cur));
+      setVectorBoards((prev) => prev.filter((b) => b.id !== boardId));
+      setVectorBoardDocs((prev) => {
+        const next = { ...prev };
+        delete next[boardId];
+        return next;
+      });
+    },
+    [documentId],
+  );
 
   const vectorWorkspaceName = useMemo(() => {
     if (!vectorWorkspaceId) return "";
@@ -940,6 +981,7 @@ export default function SceneEditorPage({ documentId }: Props) {
             />
             <VectorBoardWorkspace
               open={vectorWorkspaceId != null}
+              boardId={vectorWorkspaceId ?? ""}
               boardName={vectorWorkspaceName}
               document={
                 vectorWorkspaceId
@@ -951,9 +993,36 @@ export default function SceneEditorPage({ documentId }: Props) {
                 if (!vectorWorkspaceId) return;
                 onVectorBoardDocumentChange(vectorWorkspaceId, doc);
               }}
-              onSave={closeVectorWorkspace}
-              onSaveAndPlace={() => {
-                insertVectorBoard();
+              onSave={(doc) => {
+                if (documentId && vectorWorkspaceId) {
+                  const nextDocs = {
+                    ...vectorBoardDocs,
+                    [vectorWorkspaceId]: doc,
+                  };
+                  setVectorBoardDocs(nextDocs);
+                  void saveVectorBoardDocs(documentId, nextDocs).catch((err) => {
+                    console.error("SceneEditor: vector board save failed", err);
+                  });
+                }
+                closeVectorWorkspace();
+              }}
+              onSaveAndPlace={(doc) => {
+                if (documentId && vectorWorkspaceId) {
+                  const nextDocs = {
+                    ...vectorBoardDocs,
+                    [vectorWorkspaceId]: doc,
+                  };
+                  setVectorBoardDocs(nextDocs);
+                  void saveVectorBoardDocs(documentId, nextDocs).catch((err) => {
+                    console.error("SceneEditor: vector board save failed", err);
+                  });
+                }
+                insertVectorBoard({
+                  src: vectorBoardDocumentToSvgDataUrl(doc),
+                  width: doc.size.width,
+                  height: doc.size.height,
+                  name: vectorWorkspaceName,
+                });
                 closeVectorWorkspace();
               }}
               onClose={closeVectorWorkspace}

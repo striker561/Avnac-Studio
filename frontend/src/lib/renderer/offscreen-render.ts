@@ -36,10 +36,18 @@ export async function renderSceneToCanvas(
 
   if (options.awaitFonts !== false) {
     try {
-      await ensureGoogleFontsForFamilies(collectSceneFontFamilies(scene));
-      // Font stylesheet load resolves before the @font-face glyphs register;
-      // document.fonts.ready settles once pending font loads finish.
-      await document.fonts.ready;
+      // Bound the wait: a stalled font CDN must not stall screenshots or
+      // exports. 1.5s covers a cold Google Fonts fetch on a normal connection;
+      // after that the render proceeds with whatever is available.
+      await Promise.race([
+        (async () => {
+          await ensureGoogleFontsForFamilies(collectSceneFontFamilies(scene));
+          // Font stylesheet load resolves before the @font-face glyphs
+          // register; document.fonts.ready settles pending loads.
+          await document.fonts.ready;
+        })(),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
     } catch {
       /* never block a render on font loading */
     }

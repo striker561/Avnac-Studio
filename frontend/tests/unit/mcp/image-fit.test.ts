@@ -1,9 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { computeImageCrop, normalizeImageFit } from "@/lib/mcp/image-fit";
+import { computeImageCrop, normalizeImageFit, imageNeedsNaturalSize } from "@/lib/mcp/image-fit";
 
 const landscape = { width: 1600, height: 900 }; // 16:9
 const portrait = { width: 900, height: 1600 };  // 9:16
+
+describe("imageNeedsNaturalSize", () => {
+  it("is false for plain stretched images", () => {
+    expect(imageNeedsNaturalSize({})).toBe(false);
+    expect(imageNeedsNaturalSize({ fit: "fill" })).toBe(false);
+  });
+
+  it("is true for cover crops and explicit source crops", () => {
+    expect(imageNeedsNaturalSize({ fit: "cover" })).toBe(true);
+    expect(imageNeedsNaturalSize({ fit: "COVER" })).toBe(true);
+    expect(
+      imageNeedsNaturalSize({
+        crop: { x: 0.1, y: 0.1, width: 0.5, height: 0.5 },
+      }),
+    ).toBe(true);
+  });
+});
 
 describe("normalizeImageFit", () => {
   it("defaults to fill, the pre-existing behaviour", () => {

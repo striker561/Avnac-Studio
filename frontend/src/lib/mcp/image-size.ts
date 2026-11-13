@@ -12,7 +12,7 @@ export type ImageSize = { width: number; height: number };
 const cache = new Map<string, ImageSize | null>();
 const pending = new Map<string, Promise<ImageSize | null>>();
 
-const DEFAULT_TIMEOUT_MS = 6000;
+const DEFAULT_TIMEOUT_MS = 2500;
 
 /** Return the cached size (or null for known failures) without loading. */
 export function getCachedImageSize(url: string): ImageSize | null | undefined {

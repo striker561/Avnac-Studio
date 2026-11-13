@@ -38,6 +38,19 @@ export function normalizeImageFit(value: unknown): ImageFit {
 }
 
 /**
+ * True only when placing an image needs its natural pixel size: a cover crop
+ * needs the source aspect, and an explicit crop needs the source rectangle.
+ * A plain image stretches to its box, so fetching dimensions would only add
+ * network latency.
+ */
+export function imageNeedsNaturalSize(el: {
+  fit?: unknown;
+  crop?: unknown;
+}): boolean {
+  return normalizeImageFit(el.fit) === "cover" || el.crop != null;
+}
+
+/**
  * Compute the source rectangle for an image placed into a target box.
  *
  * - no fit / `fill`: full source, stretched (backward compatible).

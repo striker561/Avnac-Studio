@@ -45,6 +45,7 @@ import {
   loadImageSize,
   loadImageSizes,
 } from "@/lib/mcp/image-size";
+import { imageNeedsNaturalSize } from "@/lib/mcp/image-fit";
 import { ensureGoogleFontsForFamilies } from "@/lib/load-google-font";
 import {
   buildCanvasSummary,
@@ -61,6 +62,7 @@ import {
   renderSceneToExportCanvas,
 } from "@/lib/mcp/canvas-export";
 import { planExport } from "@/lib/mcp/export";
+import { budgetFor, isOverBudget } from "@/lib/mcp/budgets";
 import { subscribeToMCPActions } from "@/lib/mcp/transport";
 
 type LooseRecord = Record<string, any>;
@@ -394,7 +396,7 @@ async function renameWorkspace(
  * whatever is loaded. Measuring against a fallback face is slightly off;
  * blocking the tool on a slow or offline font CDN is worse.
  */
-const MCP_FONT_WAIT_MS = 3000;
+const MCP_FONT_WAIT_MS = 1500;
 
 function collectElementFontFamilies(elements: unknown[]): string[] {
   const families = new Set<string>();
@@ -450,11 +452,16 @@ async function renderElements(
     new Promise((resolve) => setTimeout(resolve, MCP_FONT_WAIT_MS)),
   ]);
 
-  // Image fit needs the source dimensions; load them best-effort so a slow CDN
-  // degrades to the old full-source behaviour instead of blocking the render.
+  // Only fit=cover or an explicit crop needs the source dimensions. A plain
+  // image (the common case) must not wait on a CDN fetch just to be placed.
   const imageUrls = (elements as LooseRecord[])
-    .map((el) => (el?.type === "image" && typeof el.url === "string" ? el.url : ""))
-    .filter(Boolean);
+    .filter(
+      (el) =>
+        el?.type === "image" &&
+        typeof el.url === "string" &&
+        imageNeedsNaturalSize(el),
+    )
+    .map((el) => el.url as string);
   const imageSizes = imageUrls.length > 0 ? await loadImageSizes(imageUrls) : undefined;
 
   const { commands, created, skipped } = buildRenderElementsCommands(
@@ -1186,6 +1193,7 @@ export function useMCPActions(): void {
 
   useEffect(() => {
     return subscribeToMCPActions((data) => {
+      const startedAt = performance.now();
       void handleMCPAction(
         {
           navigate: (options: LooseRecord) => {
@@ -1193,7 +1201,14 @@ export function useMCPActions(): void {
           },
         },
         data,
-      );
+      ).finally(() => {
+        const elapsedMs = performance.now() - startedAt;
+        if (isOverBudget(data.action, elapsedMs)) {
+          console.warn(
+            `[MCP] ${data.action} took ${Math.round(elapsedMs)}ms, over its ${budgetFor(data.action)}ms budget`,
+          );
+        }
+      });
     });
   }, [navigate]);
 }

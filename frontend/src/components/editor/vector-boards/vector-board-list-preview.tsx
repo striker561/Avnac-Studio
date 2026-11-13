@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
-import type { VectorBoardDocument } from "@/lib/avnac-vector-board-document";
-import { renderVectorBoardDocumentPreview } from "./vector-board-workspace";
+import type { VectorBoardDocument } from "@/lib/avnac-vector";
+import { renderVectorBoardDocumentPreview } from "@/lib/avnac-vector";
 
 type Props = {
   doc: VectorBoardDocument;

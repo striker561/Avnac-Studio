@@ -10,6 +10,8 @@ import {
   type SaraswatiScene,
 } from "@/lib/saraswati";
 import { getRenderableNodeBounds } from "@/lib/editor/overlays";
+import type { AvnacDocumentV1 } from "@/lib/avnac-document";
+import { pageDisplayName } from "@/lib/avnac-multi-page-document";
 
 type LooseRecord = Record<string, any>;
 
@@ -128,6 +130,78 @@ export function collectCredits(scene: SaraswatiScene): CanvasCredit[] {
     });
   }
   return [...byPhoto.values()];
+}
+
+/** One page entry in get_canvas_summary. */
+export type CanvasPageEntry = {
+  index: number;
+  number: number;
+  name: string;
+  current: boolean;
+  nodeCount: number;
+  width: number;
+  height: number;
+};
+
+export type CanvasPageContext = {
+  pageCount: number;
+  page: {
+    index: number;
+    number: number;
+    name: string;
+    pageCount: number;
+  } | null;
+  pages: CanvasPageEntry[];
+};
+
+/**
+ * Page list for every read that returns canvas context.
+ *
+ * Agents need the active page name before mutating: a draft/test page and the
+ * real artboard are otherwise indistinguishable in a screenshot. Node counts
+ * come from each stored page so a plan can see which page is empty.
+ */
+export function buildPageContext(
+  pages: readonly AvnacDocumentV1[],
+  pageNames: readonly string[],
+  currentPage: number,
+  currentNodeCount?: number,
+): CanvasPageContext {
+  const safeCurrent = Math.min(
+    Math.max(0, Math.trunc(currentPage)),
+    Math.max(0, pages.length - 1),
+  );
+  const entries: CanvasPageEntry[] = pages.map((page, index) => {
+    const objects = (page as { fabric?: { objects?: unknown } }).fabric
+      ?.objects;
+    return {
+      index,
+      number: index + 1,
+      name: pageDisplayName(pageNames, index),
+      current: index === safeCurrent,
+      nodeCount:
+        index === safeCurrent && currentNodeCount !== undefined
+          ? Math.max(0, currentNodeCount)
+          : Array.isArray(objects)
+            ? objects.length
+            : 0,
+      width: page.artboard?.width ?? 0,
+      height: page.artboard?.height ?? 0,
+    };
+  });
+  const active = entries[safeCurrent] ?? null;
+  return {
+    pageCount: entries.length,
+    page: active
+      ? {
+          index: active.index,
+          number: active.number,
+          name: active.name,
+          pageCount: entries.length,
+        }
+      : null,
+    pages: entries,
+  };
 }
 
 /** Summarized artboard + node list for get_canvas_summary. */

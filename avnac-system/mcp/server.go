@@ -88,7 +88,10 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - For EDIT requests, write a diff-oriented brief (what changes, what stays). Start from the real canvas: if the target file is not currently open, call files op=list then files op=open — NEVER silently recreate an existing design in a new file.
 
 2. INSPECT / CANVAS SETUP:
-   - Call get_canvas_summary to see the active canvas. For a NEW design, call canvas op=create with width, height, backgroundColor, and a descriptive name.
+   - Call get_canvas_summary to see the active canvas, the document name, and every page. The summary names the current page — always confirm it before rendering.
+   - ONE PROJECT, MANY PAGES: canvas op=create starts a NEW project. Use it only when the user wants a separate deliverable or no suitable canvas is open. NEVER create a new canvas to draft, test, compare variants or run a check — put that work on a page inside the current project.
+   - To draft/test in the open project: canvas op=add-page (name="Test — <what>") adds a blank page and switches the editor to it, live. Compose there, call get_canvas_image to inspect, then canvas op=delete-page to remove a page you only used for testing (or keep it if it is useful). The real page is untouched.
+   - Switch pages with canvas op=go-page (page = 1-based number or name, or index = 0-based); rename with canvas op=rename-page; delete with canvas op=delete-page (never the last page). canvas op=clear only clears the current page.
    - canvas op=create already applies backgroundColor — do not call canvas op=background again with the same value.
    - To edit an existing file that is not open: files op=list → files op=open(fileId). To change its title: files op=rename(fileId, name).
 
@@ -105,6 +108,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Styling: hex colors, cornerRadius, blur, opacity, shadows (blur, offsetX, offsetY, color, opacity), and gradientStops.
 
 5. VERIFY AGAINST THE BRIEF:
+   - Confirm get_canvas_summary reports the page you meant to edit (page.name). If you are on a draft/test page, switch back with canvas op=go-page before reporting the real deliverable.
    - Call get_canvas_image and compare it to the design brief AND the user's original request, item by item: required content present and spelled correctly, dimensions, hierarchy, palette, style, no unintended placeholder text.
    - If something mismatches, fix it with elements op=modify (or arrange ops: align, distribute, group), take one more screenshot, then report an honest pass/fail per requirement. Explicitly flag any content you invented.
 `
@@ -120,7 +124,7 @@ func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, s
 	return &AvnacMCP{
 		server: mcp.NewServer(&mcp.Implementation{
 			Name:    "Avnac Studio",
-			Version: "1.0.0",
+			Version: "2.0.0",
 		}, &mcp.ServerOptions{
 			Instructions: instructions,
 		}),

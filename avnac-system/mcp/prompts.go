@@ -37,11 +37,19 @@ const defaultCanvasSize = "derive from the brief and state the size you choose"
 
 // designTools is the app-specific half of a design prompt: which tools exist.
 // It names capabilities only — no ordering, no duplicated workflow steps.
-const designTools = "Tools: `get_canvas_summary` to read the canvas, `canvas` op=create for size and background, " +
+const designTools = "Tools: `get_canvas_summary` to read the canvas and its pages, `canvas` op=create for a new project, " +
+	"`canvas` op=add-page (name) to draft/test/vary inside the open project, `canvas` ops go-page/rename-page/delete-page to manage pages, " +
 	"`elements` op=render to compose in one batch, `elements` op=measure to check text fit before drawing, " +
 	"`elements` op=modify and `arrange` ops align/group to fix, " +
 	"`get_canvas_image` to look at the result, `assets` op=unsplash for photography (credit the photographer, and pass `fit: \"cover\"`), " +
 	"`assets` ops fonts/stickers when you need the available set."
+
+// oneProjectRule is the page discipline every prompt repeats. The app can hold
+// many pages; creating a second canvas for a draft splits the user's project
+// and hides the work from the page rail they are watching.
+const oneProjectRule = "One project, many pages: never create another canvas for a draft, test, variation or check. " +
+	"When a canvas is already open, use `canvas` op=add-page with a descriptive name and switch to it — the app shows the active page live. " +
+	"Return to the real page with `canvas` op=go-page, and delete a page you only used for testing."
 
 // auditTools names the two reads an audit starts from.
 const auditTools = "Tools: `get_canvas_summary` for structure and text, `get_canvas_image` with annotated=true " +
@@ -50,7 +58,8 @@ const auditTools = "Tools: `get_canvas_summary` for structure and text, `get_can
 // verifyGate closes every prompt. It is the part the library cannot state,
 // because it is about looking at this app's render before reporting.
 const verifyGate = "## Before you report\n\n" +
-	"Call `get_canvas_image` and compare the render to the brief item by item: required copy present and spelled " +
+	"Confirm `get_canvas_summary` names the page you meant to edit; if you are on a draft/test page, return to the real page " +
+	"with `canvas` op=go-page. Call `get_canvas_image` and compare the render to the brief item by item: required copy present and spelled " +
 	"correctly, dimensions, hierarchy, palette, style, and no unintended placeholder text. Fix what mismatches with " +
 	"`elements` op=modify, look again, then report an honest pass/fail per requirement. Flag any content you invented."
 
@@ -106,6 +115,7 @@ func designGraphicPrompt(topic, dimensions, style string) string {
 	b.WriteString("Design: " + topic + "\n")
 	b.WriteString("Canvas: " + dimensions + " | Style: " + style + "\n\n")
 	b.WriteString(designTools + "\n\n")
+	b.WriteString(oneProjectRule + "\n\n")
 	promptWorkflow(&b, task)
 	b.WriteString("\n\n" + verifyGate)
 	return b.String()
@@ -126,8 +136,9 @@ func editCanvasPrompt(instruction string) string {
 	b.WriteString("You are the Avnac Studio AI Design Director.\n\n")
 	b.WriteString("Apply this change to the canvas that is already open: " + instruction + "\n\n")
 	b.WriteString("Start from the live canvas — inspect it, then change only what the instruction requires. " +
-		"Never recreate an existing design in a new file.\n\n")
+		"Never recreate an existing design in a new file, and never fork a variation into a new canvas.\n\n")
 	b.WriteString(designTools + "\n\n")
+	b.WriteString(oneProjectRule + "\n\n")
 	promptWorkflow(&b, task)
 	b.WriteString("\n\n" + verifyGate)
 	return b.String()
@@ -140,8 +151,8 @@ func designAuditPrompt() string {
 
 	var b strings.Builder
 	b.WriteString("You are the Avnac Studio AI Design Director.\n\n")
-	b.WriteString("Audit the canvas that is currently open. Judge it against the brief it was made for, " +
-		"not against personal taste; separate failures from preferences.\n\n")
+	b.WriteString("Audit the page that is currently active in the open project. Name the page and document in the report. " +
+		"Judge it against the brief it was made for, not against personal taste; separate failures from preferences.\n\n")
 	b.WriteString(auditTools + "\n\n")
 	promptWorkflow(&b, task)
 

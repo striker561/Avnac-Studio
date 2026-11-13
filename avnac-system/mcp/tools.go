@@ -1109,6 +1109,85 @@ func decodeRenameFileInput(raw map[string]any) (RenameFileInput, error) {
 	return out, nil
 }
 
+// truncatePageName bounds an agent-supplied page name the same way the
+// frontend does. Empty names are meaningful: the UI falls back to "Page N".
+func truncatePageName(name string) string {
+	name = strings.TrimSpace(name)
+	runes := []rune(name)
+	if len(runes) > 120 {
+		runes = runes[:120]
+	}
+	return string(runes)
+}
+
+// decodePageTarget pulls a page selector out of loose agent input. `index` is
+// 0-based (the form get_canvas_summary exposes); `page` is 1-based or a name.
+// Rename deliberately does not treat `name` as a target: there it is the new name.
+func decodePageTarget(raw map[string]any, allowName bool) (map[string]any, bool) {
+	if v, ok := raw["index"]; ok {
+		if n, ok := flexibleInt(v); ok {
+			return map[string]any{"index": n}, true
+		}
+	}
+	keys := []string{"page", "pageNumber", "pageName"}
+	if allowName {
+		keys = append(keys, "name", "title")
+	}
+	for _, key := range keys {
+		v, ok := raw[key]
+		if !ok || v == nil {
+			continue
+		}
+		if s, ok := scalarString(v); ok {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				return map[string]any{"page": s}, true
+			}
+		}
+	}
+	return nil, false
+}
+
+func decodeAddPageInput(raw map[string]any) map[string]any {
+	out := make(map[string]any, 1)
+	if name := truncatePageName(stringField(raw, "name", "pageName", "title")); name != "" {
+		out["name"] = name
+	}
+	return out
+}
+
+func decodeGoToPageInput(raw map[string]any) (map[string]any, error) {
+	target, ok := decodePageTarget(raw, true)
+	if !ok {
+		return nil, fmt.Errorf("page is required: a 1-based page number, a page name, or a 0-based index (from get_canvas_summary)")
+	}
+	return target, nil
+}
+
+func decodeRenamePageInput(raw map[string]any) (map[string]any, error) {
+	name := truncatePageName(stringField(raw, "name", "title"))
+	if name == "" {
+		return nil, fmt.Errorf("name is required (a non-empty page name, max 120 characters)")
+	}
+	out := map[string]any{"name": name}
+	if target, ok := decodePageTarget(raw, false); ok {
+		for key, value := range target {
+			out[key] = value
+		}
+	}
+	return out, nil
+}
+
+func decodeDeletePageInput(raw map[string]any) map[string]any {
+	out := make(map[string]any, 1)
+	if target, ok := decodePageTarget(raw, true); ok {
+		for key, value := range target {
+			out[key] = value
+		}
+	}
+	return out
+}
+
 func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 	// Every handler keeps its body and its frontend action name; only the
 	// published surface changes. Legacy names are collected here so the grouped
@@ -1120,6 +1199,80 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		legacy[t.Name] = h
 		defs[t.Name] = t
 	}
+	// Page handlers are published only as `canvas` ops, but they live in the
+	// same dispatch table as every other action so op aliases keep working.
+	addLegacy(&mcp.Tool{
+		Name: "add_page",
+		Description: "Add a named blank page to the open document and switch the editor to it live. " +
+			"Use this for drafts, tests, variations and explorations instead of creating a new canvas. " +
+			"The page inherits the current artboard size and starts blank.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"name": desc("Optional page name (max 120 chars), e.g. 'Test — poster exploration'. Defaults to the page number."),
+		}),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		data, err := m.emitSync(wailsCtx, "add_page", decodeAddPageInput(raw), 15*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name: "goto_page",
+		Description: "Switch the editor to another page in the open document. Page changes are visible in the app immediately. " +
+			"Accepts a 1-based page number, a page name, or a 0-based index from get_canvas_summary.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"page":  desc("1-based page number or page name."),
+			"index": desc("0-based page index from get_canvas_summary (alternative to page)."),
+		}),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		payload, err := decodeGoToPageInput(raw)
+		if err != nil {
+			return nil, nil, err
+		}
+		data, err := m.emitSync(wailsCtx, "goto_page", payload, 15*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name:        "rename_page",
+		Description: "Rename a page in the open document. Defaults to the active page when no page target is supplied.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"page":  desc("Optional target: 1-based page number or page name. Defaults to the current page."),
+			"index": desc("Optional 0-based page index (alternative to page)."),
+			"name":  desc("New page name (required, max 120 chars)."),
+		}, "name"),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		payload, err := decodeRenamePageInput(raw)
+		if err != nil {
+			return nil, nil, err
+		}
+		data, err := m.emitSync(wailsCtx, "rename_page", payload, 10*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name: "delete_page",
+		Description: "Delete a page from the open document. Defaults to the active page when no page target is supplied; " +
+			"never deletes the last remaining page. Use this to clean up a test page after verification.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"page":  desc("Optional target: 1-based page number or page name. Defaults to the current page."),
+			"index": desc("Optional 0-based page index (alternative to page)."),
+		}),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		data, err := m.emitSync(wailsCtx, "delete_page", decodeDeletePageInput(raw), 15*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
 	// measure_elements is published only as `elements` op=measure; the hidden
 	// registration keeps its handler in the same dispatch table as the rest.
 	addLegacy(&mcp.Tool{
@@ -2019,25 +2172,32 @@ func opDispatcher(group string, ops map[string]string, legacy map[string]toolHan
 func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
 	m.addOpTool(legacy, &mcp.Tool{
 		Name: "canvas",
-		Description: "Manage the artboard. op=create (width, height, name, backgroundColor) starts a new canvas and navigates to it; " +
-			"op=clear removes every object; op=background (backgroundColor|color) sets the page background; " +
-			"op=preset (presetId|preset) resizes to a standard preset (ig-square, ig-portrait, ig-story, hd, twitter-post, linkedin, youtube-thumb, a4-300, custom-4000). " +
-			"Returns the same payloads the old one-tool-per-action surface returned.",
+		Description: "Manage the project and its artboard. ONE PROJECT, MANY PAGES: op=create starts a NEW project — use it only when the user wants a separate deliverable or nothing suitable is open; NEVER create another canvas for a draft, test, variation or check. " +
+			"op=add-page (name) adds a named blank page to the OPEN project, switches the editor to it live, and returns its index/number; compose and verify there, then op=delete-page to clean up a test page or keep it. " +
+			"op=go-page (page: 1-based number or name; or index: 0-based) switches pages; op=rename-page (page?, name) renames; op=delete-page (page?, defaults current; never the last page). " +
+			"get_canvas_summary lists every page and the active one. op=clear removes every object on the current page; op=background sets the current page background; " +
+			"op=preset resizes to a standard preset (ig-square, ig-portrait, ig-story, hd, twitter-post, linkedin, youtube-thumb, a4-300, custom-4000).",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
-			"op":              desc("Operation: create, clear, background, preset."),
+			"op":              desc("Operation: create, add-page, go-page, rename-page, delete-page, clear, background, preset."),
 			"width":           desc("create: canvas width in pixels (100-16000)."),
 			"height":          desc("create: canvas height in pixels (100-16000)."),
-			"name":            desc("create: optional workspace name."),
+			"name":            desc("create: workspace name; add-page/rename-page: page name (max 120 chars)."),
+			"page":            desc("go-page/rename-page/delete-page: 1-based page number or page name. rename/delete default to the current page."),
+			"index":           desc("go-page/rename-page/delete-page: 0-based page index from get_canvas_summary."),
 			"backgroundColor": desc("create/background: background color hex."),
 			"color":           desc("Alias for backgroundColor."),
 			"presetId":        desc("preset: standard preset id."),
 			"preset":          desc("Alias for presetId."),
 		}, "op"),
 	}, map[string]string{
-		"create":     "create_canvas",
-		"clear":      "clear_canvas",
-		"background": "set_background",
-		"preset":     "apply_artboard_preset",
+		"create":      "create_canvas",
+		"add-page":    "add_page",
+		"go-page":     "goto_page",
+		"rename-page": "rename_page",
+		"delete-page": "delete_page",
+		"clear":       "clear_canvas",
+		"background":  "set_background",
+		"preset":      "apply_artboard_preset",
 	})
 
 	m.addOpTool(legacy, &mcp.Tool{

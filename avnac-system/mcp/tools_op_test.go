@@ -111,4 +111,32 @@ func TestPublishedToolSurface(t *testing.T) {
 			t.Errorf("missing published tool %q", name)
 		}
 	}
+
+	// Page ops live on `canvas`; if its description or schema loses them the
+	// surface still lists 12 tools but agents can no longer find the page path.
+	var canvasTool *sdkmcp.Tool
+	for _, tool := range res.Tools {
+		if tool.Name == "canvas" {
+			canvasTool = tool
+			break
+		}
+	}
+	if canvasTool == nil {
+		t.Fatal("canvas tool missing")
+	}
+	for _, op := range []string{"add-page", "go-page", "rename-page", "delete-page"} {
+		if !strings.Contains(canvasTool.Description, op) {
+			t.Errorf("canvas description is missing page op %q", op)
+		}
+	}
+	schema, ok := canvasTool.InputSchema.(map[string]any)
+	if !ok {
+		t.Fatalf("canvas InputSchema is %T, want its JSON object form", canvasTool.InputSchema)
+	}
+	properties, _ := schema["properties"].(map[string]any)
+	for _, field := range []string{"page", "index", "name"} {
+		if properties[field] == nil {
+			t.Errorf("canvas schema is missing the %q page property", field)
+		}
+	}
 }

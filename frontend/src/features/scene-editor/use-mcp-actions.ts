@@ -50,9 +50,16 @@ import { ensureGoogleFontsForFamilies } from "@/lib/load-google-font";
 import {
   buildCanvasSummary,
   buildObjectList,
+  buildPageContext,
   buildSelectionSummary,
   type TextBoxMeasurer,
 } from "@/lib/mcp/summaries";
+import {
+  pageNameFromPayload,
+  pageSelectorFromPayload,
+  resolvePageIndex,
+} from "@/lib/mcp/pages";
+import { pageDisplayName } from "@/lib/avnac-multi-page-document";
 import {
   annotateSceneCanvas,
   canvasToPngBase64,
@@ -156,6 +163,14 @@ export async function handleMCPAction(
         return await openWorkspace(deps, payload ?? {}, requestId);
       case "rename_workspace":
         return await renameWorkspace(payload ?? {}, requestId);
+      case "add_page":
+        return await addPageAction(payload ?? {}, requestId);
+      case "goto_page":
+        return await goToPageAction(payload ?? {}, requestId);
+      case "rename_page":
+        return await renamePageAction(payload ?? {}, requestId);
+      case "delete_page":
+        return await deletePageAction(payload ?? {}, requestId);
       case "render_elements":
         return await renderElements(payload ?? {}, requestId);
       case "modify_elements":
@@ -222,6 +237,7 @@ async function createCanvas(
   requestId: string | undefined,
 ): Promise<void> {
   const { width, height, backgroundColor, color, name } = payload;
+  const previousDocumentId = useSceneEditorStore.getState().documentId;
   const newId = crypto.randomUUID();
   const w = width || 1080;
   const h = height || 1080;
@@ -265,6 +281,12 @@ async function createCanvas(
           message: title
             ? `Canvas '${persistedName}' created and navigated to /scene`
             : "Canvas created and navigated to /scene",
+          ...(previousDocumentId
+            ? {
+                notice:
+                  "A canvas was already open. For a draft, test or variation, use canvas op=add-page inside that canvas instead of creating a new one.",
+              }
+            : {}),
         });
       }
     } else {
@@ -290,6 +312,12 @@ async function createCanvas(
           width: done.scene?.artboard.width ?? w,
           height: done.scene?.artboard.height ?? h,
           message: "Canvas created",
+          ...(previousDocumentId
+            ? {
+                notice:
+                  "A canvas was already open. For a draft, test or variation, use canvas op=add-page inside that canvas instead of creating a new one.",
+              }
+            : {}),
         });
       }
     }
@@ -383,6 +411,179 @@ async function renameWorkspace(
       id: fileId,
       name: newName,
       message: `File renamed to '${newName}'`,
+    });
+  } catch (err: any) {
+    respondError(requestId, err?.message || String(err));
+  }
+}
+
+// ─── pages (drafts, tests and variations inside the open project) ─────────────
+
+const PAGE_SCENE_ERROR =
+  "No active canvas scene. Open a project first (canvas op=create for a new one, " +
+  "or files op=list then files op=open), then use canvas op=add-page inside it.";
+
+function currentPageResponse(
+  requestId: string | undefined,
+  extra: LooseRecord = {},
+): void {
+  const store = useSceneEditorStore.getState();
+  const context = buildPageContext(
+    store.pages,
+    store.pageNames,
+    store.currentPage,
+  );
+  respond(requestId, {
+    success: true,
+    documentId: store.documentId,
+    documentName: store.documentName,
+    page: context.page,
+    pageCount: context.pageCount,
+    ...extra,
+  });
+}
+
+async function addPageAction(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const store = useSceneEditorStore.getState();
+  if (!store.documentId || !store.scene) {
+    respondError(requestId, PAGE_SCENE_ERROR);
+    return;
+  }
+  const name = pageNameFromPayload(payload.name ?? payload.pageName);
+  try {
+    await store.addPage(name);
+    const context = buildPageContext(
+      useSceneEditorStore.getState().pages,
+      useSceneEditorStore.getState().pageNames,
+      useSceneEditorStore.getState().currentPage,
+    );
+    currentPageResponse(requestId, {
+      message: `Added page '${context.page?.name ?? name}' and switched the editor to it.`,
+    });
+  } catch (err: any) {
+    respondError(requestId, err?.message || String(err));
+  }
+}
+
+async function goToPageAction(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const store = useSceneEditorStore.getState();
+  if (!store.documentId || !store.scene) {
+    respondError(requestId, PAGE_SCENE_ERROR);
+    return;
+  }
+  const selector = pageSelectorFromPayload(payload);
+  if (selector.target === undefined) {
+    respondError(
+      requestId,
+      "page is required: a 1-based page number, a page name, or a 0-based index (from get_canvas_summary).",
+    );
+    return;
+  }
+  const target = resolvePageIndex(
+    store.pages.length,
+    store.pageNames,
+    selector.target,
+    store.currentPage,
+  );
+  if (!target.ok) {
+    respondError(requestId, target.error);
+    return;
+  }
+  try {
+    await store.goToPage(target.index);
+    currentPageResponse(requestId, {
+      message: `Switched the editor to page '${target.name}'.`,
+    });
+  } catch (err: any) {
+    respondError(requestId, err?.message || String(err));
+  }
+}
+
+async function renamePageAction(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const store = useSceneEditorStore.getState();
+  if (!store.documentId || !store.scene) {
+    respondError(requestId, PAGE_SCENE_ERROR);
+    return;
+  }
+  const name = pageNameFromPayload(payload.name ?? payload.pageName);
+  if (!name) {
+    respondError(requestId, "name is required (a non-empty page name)");
+    return;
+  }
+  const selector = pageSelectorFromPayload(payload);
+  const target = resolvePageIndex(
+    store.pages.length,
+    store.pageNames,
+    selector.target,
+    store.currentPage,
+  );
+  if (!target.ok) {
+    respondError(requestId, target.error);
+    return;
+  }
+  try {
+    await store.renamePage(target.index, name);
+    currentPageResponse(requestId, {
+      message: `Renamed page ${target.index + 1} to '${name}'.`,
+    });
+  } catch (err: any) {
+    respondError(requestId, err?.message || String(err));
+  }
+}
+
+async function deletePageAction(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const store = useSceneEditorStore.getState();
+  if (!store.documentId || !store.scene) {
+    respondError(requestId, PAGE_SCENE_ERROR);
+    return;
+  }
+  if (store.pages.length <= 1) {
+    respondError(
+      requestId,
+      "Cannot delete the only page in the document. Clear it with canvas op=clear, or create another page first.",
+    );
+    return;
+  }
+  const selector = pageSelectorFromPayload(payload);
+  const target = resolvePageIndex(
+    store.pages.length,
+    store.pageNames,
+    selector.target,
+    store.currentPage,
+  );
+  if (!target.ok) {
+    respondError(requestId, target.error);
+    return;
+  }
+  const deletedName = pageDisplayName(store.pageNames, target.index);
+  try {
+    const removed = await store.deletePageAt(target.index);
+    if (!removed) {
+      respondError(
+        requestId,
+        "Cannot delete the page (it may be the last page or the document is not loaded).",
+      );
+      return;
+    }
+    currentPageResponse(requestId, {
+      deleted: {
+        index: target.index,
+        number: target.index + 1,
+        name: deletedName,
+      },
+      message: `Deleted page '${deletedName}'.`,
     });
   } catch (err: any) {
     respondError(requestId, err?.message || String(err));
@@ -621,7 +822,20 @@ function textInkMetrics(node: LooseRecord): TextInkMetrics | null {
 async function getCanvasSummary(requestId: string | undefined): Promise<void> {
   const scene = await requireScene(requestId);
   if (!scene) return;
-  respond(requestId, buildCanvasSummary(scene, measureSummaryText));
+  const store = useSceneEditorStore.getState();
+  respond(requestId, {
+    ...buildCanvasSummary(scene, measureSummaryText),
+    document: {
+      id: store.documentId,
+      name: store.documentName,
+    },
+    ...buildPageContext(
+      store.pages,
+      store.pageNames,
+      store.currentPage,
+      Math.max(0, Object.keys(scene.nodes).length - 1),
+    ),
+  });
 }
 
 async function getCanvasState(requestId: string | undefined): Promise<void> {

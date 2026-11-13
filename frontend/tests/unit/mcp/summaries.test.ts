@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCanvasSummary } from "@/lib/mcp/summaries";
+import { buildCanvasSummary, buildPageContext } from "@/lib/mcp/summaries";
 import type { SaraswatiScene } from "@/lib/saraswati";
 
 /**
@@ -73,5 +73,46 @@ describe("buildCanvasSummary text bounds", () => {
     const [node] = summary.nodes;
     // Rotated bounds come from the estimate, so they are not 1x1.
     expect(node.width).toBeGreaterThan(1);
+  });
+});
+
+describe("buildPageContext", () => {
+  const page = (objects: unknown[]) =>
+    ({
+      v: 1,
+      artboard: { width: 1080, height: 1350 },
+      bg: { type: "solid", color: "#fff" },
+      fabric: { objects },
+    }) as any;
+
+  it("names the active page and lists every page", () => {
+    const context = buildPageContext(
+      [page([{}, {}]), page([]), page([{}])],
+      ["Cover", "Test — layout", ""],
+      1,
+    );
+    expect(context.pageCount).toBe(3);
+    expect(context.page).toEqual({
+      index: 1,
+      number: 2,
+      name: "Test — layout",
+      pageCount: 3,
+    });
+    expect(context.pages.map((entry) => entry.nodeCount)).toEqual([2, 0, 1]);
+    expect(context.pages[2]).toMatchObject({ name: "Page 3", current: false });
+  });
+
+  it("clamps a stale current index to a real page", () => {
+    const context = buildPageContext([page([]), page([])], ["A", "B"], 99);
+    expect(context.page?.index).toBe(1);
+    expect(context.pages[1]?.current).toBe(true);
+  });
+
+  it("prefers the live node count for the active page", () => {
+    // The stored page snapshot lags the live scene until autosave; the
+    // summary must not report 0 nodes right after a render.
+    const context = buildPageContext([page([]), page([])], ["A", "B"], 0, 7);
+    expect(context.pages[0]?.nodeCount).toBe(7);
+    expect(context.pages[1]?.nodeCount).toBe(0);
   });
 });

@@ -14,6 +14,10 @@ export const MCP_BRIDGE_TIMEOUT_MS = 5000;
 
 export const MCP_OPERATION_BUDGETS_MS: Record<string, number> = {
   create_canvas: 600,
+  add_page: 1000,
+  goto_page: 1000,
+  rename_page: 500,
+  delete_page: 1000,
   apply_artboard_preset: 600,
   set_background: 400,
   clear_canvas: 500,

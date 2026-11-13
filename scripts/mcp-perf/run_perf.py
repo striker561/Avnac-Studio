@@ -14,6 +14,7 @@ app uses for overshoot warnings (frontend/src/lib/mcp/budgets.ts).
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
 import statistics
@@ -23,7 +24,10 @@ import urllib.request
 
 # Measured scenario -> MCP action whose budget applies.
 BUDGET_ACTIONS = {
-    "canvas.create": "create_canvas",
+    "canvas.add_page": "add_page",
+    "canvas.goto_page": "goto_page",
+    "canvas.rename_page": "rename_page",
+    "canvas.delete_page": "delete_page",
     "elements.render30": "render_elements",
     "elements.render_preview5": "render_elements",
     "elements.measure20": "measure_elements",
@@ -39,6 +43,12 @@ BUDGET_ACTIONS = {
 }
 
 TOKEN = os.path.join(os.environ.get("TEMP", "/tmp"), "avnac-token.txt")
+
+
+def read_token() -> str:
+    """Read the bearer token, tolerating a UTF-8 BOM (Windows editors add one)."""
+    with open(TOKEN, encoding="utf-8-sig") as handle:
+        return handle.read().strip()
 
 
 def init_session(url: str) -> str:
@@ -59,7 +69,7 @@ def init_session(url: str) -> str:
         url,
         data=body,
         headers={
-            "Authorization": f"Bearer {open(TOKEN).read().strip()}",
+            "Authorization": f"Bearer {read_token()}",
             "Content-Type": "application/json",
             "Accept": "application/json, text/event-stream",
         },
@@ -88,7 +98,7 @@ def rpc(url: str, session: str, method: str, params: dict | None = None):
         url,
         data=body,
         headers={
-            "Authorization": f"Bearer {open(TOKEN).read().strip()}",
+            "Authorization": f"Bearer {read_token()}",
             "Content-Type": "application/json",
             "Accept": "application/json, text/event-stream",
             "Mcp-Session-Id": session,
@@ -217,11 +227,77 @@ def main() -> int:
             "passed": budget is None or p95 <= budget,
         }
 
-    tool(url, session, "canvas", {"op": "create", "width": 1600, "height": 1200,
-                                  "name": "PERF TEST", "backgroundColor": "#101014"})
-    tool(url, session, "canvas", {"op": "clear"})
+    # This harness used to create a separate "PERF TEST" canvas. That is exactly
+    # the project-sprawl the page feature exists to prevent, so it now measures
+    # inside the open document and cleans its scratch page up on exit.
+    summary = tool(url, session, "get_canvas_summary", {})
+    if not summary.get("pages"):
+        raise RuntimeError(
+            "No open canvas. Open a project (or create one) before running the "
+            "perf harness; it measures pages inside the active document."
+        )
+
+    scratch = tool(url, session, "canvas", {
+        "op": "add-page", "name": "PERF TEST — page"})
+    scratch_page = scratch.get("page") or {}
+    scratch_index = scratch_page.get("index")
+    if scratch_index is None:
+        raise RuntimeError("add-page returned no page index")
+    scratch_number = scratch_page.get("number", scratch_index + 1)
+
+    def cleanup_perf_pages():
+        try:
+            pages = tool(url, session, "get_canvas_summary", {}).get("pages", [])
+        except Exception:
+            return
+        removable = [p for p in pages
+                     if str(p.get("name", "")).startswith("PERF TEST")]
+        for page in sorted(removable, key=lambda p: p.get("number", 0), reverse=True):
+            try:
+                tool(url, session, "canvas", {
+                    "op": "delete-page", "page": page["number"]})
+            except Exception:
+                pass
+
+    atexit.register(cleanup_perf_pages)
 
     clear = lambda: tool(url, session, "canvas", {"op": "clear"})
+    clear()
+
+    # --- page operations, measured on the scratch page ---------------------
+    page_add_samples = []
+    for i in range(args.repeats):
+        started = time.perf_counter()
+        tool(url, session, "canvas", {
+            "op": "add-page", "name": f"PERF TEST — add {i}"})
+        page_add_samples.append((time.perf_counter() - started) * 1000)
+    record("canvas.add_page", page_add_samples)
+
+    record("canvas.goto_page", timed_with_setup(
+        lambda: tool(url, session, "canvas", {
+            "op": "go-page", "index": scratch_index}),
+        lambda: tool(url, session, "canvas", {"op": "go-page", "index": 0}),
+        args.repeats))
+    tool(url, session, "canvas", {"op": "go-page", "index": scratch_index})
+
+    page_rename_samples = []
+    for i in range(args.repeats):
+        started = time.perf_counter()
+        tool(url, session, "canvas", {
+            "op": "rename-page", "page": scratch_number,
+            "name": f"PERF TEST — rename {i}"})
+        page_rename_samples.append((time.perf_counter() - started) * 1000)
+    record("canvas.rename_page", page_rename_samples)
+
+    def add_temp_page():
+        tool(url, session, "canvas", {
+            "op": "add-page", "name": "PERF TEST — delete"})
+
+    record("canvas.delete_page", timed_with_setup(
+        add_temp_page,
+        lambda: tool(url, session, "canvas", {
+            "op": "delete-page", "page": "PERF TEST — delete"}),
+        args.repeats))
 
     record("elements.render30", timed_with_setup(
         clear,

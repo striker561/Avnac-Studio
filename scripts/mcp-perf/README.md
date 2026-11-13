@@ -7,7 +7,8 @@ a call overshoots; a unit test keeps the two copies identical.
 
 ## Run it
 
-1. Start Avnac Studio and enable the MCP server (Settings → MCP server).
+1. Start Avnac Studio, enable the MCP server (Settings → MCP server), and **open a
+   project** so there is an active document.
 2. Copy the bearer token into `%TEMP%\avnac-token.txt` (or pass `--token-file`).
 3. Run:
 
@@ -15,8 +16,10 @@ a call overshoots; a unit test keeps the two copies identical.
 python scripts/mcp-perf/run_perf.py --url http://127.0.0.1:12345/ --out perf.json
 ```
 
-The script opens its own MCP session (no `--session` needed) and creates a
-scratch canvas named `PERF TEST`. It leaves that canvas in the file list.
+The script opens its own MCP session (no `--session` needed). It adds a named
+page called `PERF TEST — page` to the **open project**, measures there, and
+deletes every `PERF TEST` page on exit. It never creates a new canvas: a
+performance run must not leave a separate test project behind.
 
 Exit code is `0` only when every budgeted operation passes. The JSON report has
 p50/p95, per-sample timings, the action each scenario maps to, and the failed
@@ -26,6 +29,7 @@ list.
 
 | Scenario | MCP action budget |
 |---|---|
+| Add / switch / rename / delete a page | `add_page` / `goto_page` / `rename_page` / `delete_page` |
 | Render 30 shapes/text in one batch | `render_elements` |
 | Render 5 with `includePreview` | `render_elements` |
 | Measure 20 text specs | `measure_elements` |

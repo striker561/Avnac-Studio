@@ -15,43 +15,52 @@ The MCP server allows external AI agents and clients to interact with the Avnac 
 
 ## Available Tools
 
-The MCP server provides 27 tools for canvas automation. Tool names equal their emitted `mcp:action` action strings 1:1, except `open_canvas`/`rename_file`, which emit `open_workspace`/`rename_workspace` (the frontend handler also keys on those).
+The server publishes **12 tools**: six reads and six noun-shaped mutation tools whose verbs are
+`op` values. The 25 hidden registrations behind those ops keep their action names 1:1 with the
+frontend `mcp:action` strings, except `open_canvas`/`rename_file`, which emit
+`open_workspace`/`rename_workspace`.
 
-### 1. File Management (no canvas required)
-- `list_files`: Lists all saved canvas files (`id`, `name`, width, height, `updatedAt`) from workspace storage.
-- `open_canvas`: Opens a saved file by workspace id and makes it the active scene (emits `open_workspace`; pre-validates the id in Go).
-- `rename_file`: Renames a saved file (emits `rename_workspace`), also updating the live editor title when open.
+### Reads
+- `get_canvas_summary`: Semantic summary of the artboard and objects, plus `document`, the active
+  `page` (`index`, 1-based `number`, `name`) and every `pages` entry.
+- `get_canvas_state`: Full raw scene state.
+- `get_canvas_image`: PNG screenshot of the canvas or one object; `annotated` overlays bounds.
+- `list_objects` / `get_object_properties` / `get_selection`: Object-level inspection.
 
-### 2. Context & Inspection
-- `get_canvas_summary`: Token-efficient semantic summary of artboard + objects.
-- `list_objects`: Lists all objects with raw IDs.
-- `get_selection`: Returns the current selection.
-- `get_canvas_state`: Returns the full scene state.
-- `get_canvas_image`: Returns a visual PNG screenshot of the canvas (or one object).
-- `get_object_properties`: Returns detailed properties of a specific object.
-- `get_font_list`: Returns supported Google Fonts.
+### `canvas` — project, pages and artboard
+- `create`: Starts a **new project** (width, height, optional name/background). Not for drafts or
+  tests; it returns a `notice` when another canvas was already open.
+- `add-page`: Adds a named blank page to the **open project**, switches the editor to it live,
+  and returns `page` + `pageCount`. This is the draft/test/variation path.
+- `go-page`: Switches pages by 1-based `page` (number or name) or 0-based `index`.
+- `rename-page`: Renames a page (defaults to the current one).
+- `delete-page`: Deletes a page (defaults to the current one; never the last page).
+- `clear` / `background` / `preset`: Current-page background, clear, and standard sizes.
 
-### 3. Creation
-- `create_canvas`: Navigates to the editor and initializes a new artboard (width, height, optional name/background).
-- `render_elements`: Declaratively creates a batch of elements (`rect`, `ellipse`, `polygon`, `star`, `line`, `text`, `image`, `sticker`) in one call, bottom-to-top layering.
+### `elements`
+- `render` (batched, bottom-to-top), `modify`, `delete`, and `measure` (text layout without
+  drawing). Images support `fit`, `focalPoint` and `crop`; text is measured against its real font.
 
-### 4. Manipulation & Styling
-- `modify_elements`: Batch-updates element properties by objectId (fill, text controls, shadow, gradients, z-order `action`).
-- `delete_object`: Removes an object (or the current selection).
-- `set_background`: Changes the artboard background color.
-- `apply_artboard_preset`: Quickly resizes to standard sizes (IG, X, HD, A4).
+### `arrange`
+- `align` (including optical `cap-middle`), `distribute`, `group`, `ungroup`, `fit`, `select`.
 
-### 5. Layout & Organization
-- `select_objects`: Programmatically selects objects by ID.
-- `group_objects` / `ungroup_objects`: Manages object hierarchy.
-- `align_objects`: Aligns objects to the artboard or each other.
-- `distribute_objects`: Evenly spaces objects horizontally or vertically.
-- `fit_to_artboard`: Scales objects to fill the canvas area.
+### `files`
+- `list` (works with no canvas open), `open`, `rename`.
 
-### 6. Utilities & Assets
-- `clear_canvas`: Removes all objects.
-- `search_unsplash`: Searches Unsplash; returns compact records (id, alt, size, photographer, credit line, small/regular URLs) plus the remaining hourly quota in `rateLimit`. Responses are cached for two minutes so a repeated query does not spend quota twice. Placing a returned URL in `render_elements` files the required download report and stores the photo's credit on the node.
-- `export_png` / `export_object`: Export the canvas or a single object as an image.
+### `assets`
+- `unsplash` (compact records + quota; placement in `render` files the download report and stores
+  the credit), `fonts`, `stickers`.
+
+### `export`
+- `png` (artboard) and `object` (cropped PNG).
+
+### Page lifecycle
+
+`add_page` / `goto_page` / `rename_page` / `delete_page` are hidden action handlers behind the
+`canvas` ops. The first two go through the scene store's `applyPageTransition`, so the app shows
+the new active page in real time. `delete_page` calls `deletePageAt` (no native confirmation) so
+an MCP call never blocks on a dialog. Page names are stored in the multi-page envelope as
+`pageNames`, index-aligned with `pages`; empty entries display as `Page N`.
 
 ## Development
 

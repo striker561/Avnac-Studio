@@ -157,7 +157,7 @@ one-tool-per-action surface returned, and the legacy action name is accepted as 
 
 ### Reads (6)
 
-- `get_canvas_summary`: Token-efficient artboard + object summary. Returns a no-scene error when nothing is open — call `canvas` op=create, or `files` op=list + `files` op=open.
+- `get_canvas_summary`: Token-efficient artboard + object summary, plus `document`, the active `page` (`index`, 1-based `number`, `name`) and every `pages` entry (name, node count, size). Returns a no-scene error when nothing is open — call `canvas` op=create, or `files` op=list + `files` op=open.
 - `get_canvas_state`: Raw scene state.
 - `get_canvas_image`: PNG screenshot of the artboard, or `objectId` to crop to one object; `annotated=true` overlays boxes.
 - `list_objects`: Object ids and types on the canvas.
@@ -166,10 +166,14 @@ one-tool-per-action surface returned, and the legacy action name is accepted as 
 
 ### Mutations (6, `op`-based)
 
-**`canvas`** — artboard lifecycle:
-- `create` (`width`, `height`, `name`, `backgroundColor`/`color`) — starts a new canvas and navigates to it. The background is applied here; do not also call `background`.
-- `clear` — removes every object, returns `clearedCount`.
-- `background` (`backgroundColor`/`color`) — sets the page background.
+**`canvas`** — project, pages and artboard lifecycle:
+- `create` (`width`, `height`, `name`, `backgroundColor`/`color`) — starts a **new project** and navigates to it. Use it only for a new deliverable; for a draft/test/variation in the open project use `add-page`. The background is applied here; do not also call `background`.
+- `add-page` (`name`) — adds a named blank page to the **open project**, inherits the current artboard size, switches the editor to it live, and returns `page` (`index`, `number`, `name`) plus `pageCount`. This is the draft/test/exploration path; it never creates another file.
+- `go-page` (`page` = 1-based number or page name, or `index` = 0-based) — switches the editor to that page. The app shows the switch immediately. Names match exactly (case-insensitive) or by a unique substring.
+- `rename-page` (`page` optional, defaults current; `name` required) — renames a page; page tabs in the app also rename on double-click.
+- `delete-page` (`page` optional, defaults current) — deletes a page and never the last one. Use it to clean up a test page.
+- `clear` — removes every object **on the current page**, returns `clearedCount`.
+- `background` (`backgroundColor`/`color`) — sets the current page background.
 - `preset` (`presetId`/`preset`) — `ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`.
 
 **`elements`** — create or change elements:
@@ -197,6 +201,17 @@ one-tool-per-action surface returned, and the legacy action name is accepted as 
 **`export`** — output:
 - `png` (`multiplier`, `transparent`) — base64 PNG of the artboard.
 - `object` (`objectId`, `multiplier`) — PNG of one object or group. SVG object export is not supported over MCP yet.
+
+### Working in pages instead of new projects
+
+A canvas is a project; a project contains pages. `canvas` op=create is only for a genuinely new
+deliverable — never for a draft, test, visual check or alternative direction. In the open project,
+`canvas` op=add-page (for example `name: "Test — poster hierarchy"`) adds a blank page, switches
+the editor to it, and returns its page number. Compose and verify there, then `canvas`
+op=delete-page to remove a page you only used for testing, or keep and rename it if it is worth
+showing. `get_canvas_summary` always names the active page, and `canvas` op=go-page switches back
+before you report the real deliverable. `canvas` op=create now returns a `notice` when another
+canvas was already open, pointing at `add-page`.
 
 ### Errors
 

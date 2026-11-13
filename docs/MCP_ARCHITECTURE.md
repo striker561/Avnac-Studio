@@ -17,7 +17,7 @@ One loopback HTTP server publishes three MCP surfaces. They are deliberately sep
 
 | Surface | Protocol primitive | What it is | Cost model |
 |---|---|---|---|
-| Tools | `tools/list`, `tools/call` | 27 actions that read or mutate the open canvas | Called per action; each call has side effects |
+| Tools | `tools/list`, `tools/call` | 12 published tools over 31 actions that read or mutate the open canvas | Called per action; each call has side effects |
 | Prompts | `prompts/list`, `prompts/get` | 3 parameterised workflow starters | Fetched once, pasted into a conversation |
 | Resources | `resources/list`, `resources/read` | The whole design library: 154 read-only documents | Pulled on demand; no side effects |
 
@@ -37,7 +37,7 @@ scripted way to start a task, it is a prompt.**
 │                    │  builds *mcp.Server (go-sdk)                                                 │
 │                    │  instructions = DesignerInstructions + designResourceIndex()                  │
 │    startup ───────► MCPServer.Start(wailsCtx)                                                      │
-│                    ├── RegisterTools(wailsCtx)      27 handlers, 12 published tools        │
+│                    ├── RegisterTools(wailsCtx)      31 handlers, 12 published tools        │
 │                    ├── RegisterPrompts()            3 prompts                                      │
 │                    └── RegisterResources()          internal/skill ──► 154 MCP resources           │
 │                                                                                                    │
@@ -47,7 +47,7 @@ scripted way to start a task, it is a prompt.**
 │                                                                                                    │
 │  ┌──────────────── avnac-system/mcp (package mcp) ────────────────┐                                │
 │  │ server.go    lifecycle, listener, auth, routing, MCPState      │                                │
-│  │ tools.go     27 tool registrations, schemas, emitSync bridge   │                                │
+│  │ tools.go     31 action handlers, schemas, emitSync bridge      │                                │
 │  │ prompts.go   design-graphic / edit-canvas / design-audit       │                                │
 │  │ resources.go design library ──► resources, link rewriting      │                                │
 │  └───────────────────────────────┬───────────────────────────────┘                                │
@@ -74,7 +74,7 @@ scripted way to start a task, it is a prompt.**
 |---|---|
 | `app.go` | Constructs `AvnacMCP`, registers the config watcher, calls `Start` in `startup`, `Stop` in `shutdown` |
 | `avnac-system/mcp/server.go` | `AvnacMCP` struct, instructions, lifecycle (`Start`/`StartHTTP`/`Stop`), listener, bearer auth, HTTP routing, `MCPState` |
-| `avnac-system/mcp/tools.go` | Tool schemas and handlers, `emitSync`, flexible input decoding, response shaping |
+| `avnac-system/mcp/tools.go` | Tool schemas and handlers (including the hidden page actions behind `canvas` ops), `emitSync`, flexible input decoding, response shaping |
 | `avnac-system/mcp/prompts.go` | The three prompt templates and their arguments |
 | `avnac-system/mcp/resources.go` | Library → resources, URI schemes, link rewriting, instruction index |
 | `avnac-system/mcp/server_test.go` | Auth, routing, lifecycle, token regeneration |
@@ -241,12 +241,12 @@ mcp tools/call  ──► handler ──► emitSync(ctx, action, payload, timeo
 
 **The published surface is 12 tools**, not 27. Six reads keep one name per operation
 (`get_canvas_summary`, `get_canvas_state`, `get_canvas_image`, `list_objects`,
-`get_object_properties`, `get_selection`). The other 21 registrations are still built — their
+`get_object_properties`, `get_selection`). The other 25 registrations are still built — their
 handlers, schemas and frontend action names are unchanged — but they are collected into a
 `legacy` map instead of being published, and six noun-shaped tools dispatch to them by `op`:
-`canvas` (create/clear/background/preset), `elements` (render/modify/delete), `arrange` (align/
-distribute/group/ungroup/fit/select), `files` (list/open/rename), `assets` (unsplash/fonts/
-stickers) and `export` (png/object).
+`canvas` (create/add-page/go-page/rename-page/delete-page/clear/background/preset), `elements`
+(render/modify/delete/measure), `arrange` (align/distribute/group/ungroup/fit/select), `files`
+(list/open/rename), `assets` (unsplash/fonts/stickers) and `export` (png/object).
 
 `opDispatcher` lowercases the op, routes through the map, accepts the legacy action name as an
 alias, and forwards the arguments minus the op keys — so every existing decoder (including the
@@ -255,6 +255,15 @@ that lists the allowed values. This mirrors SpriteWare's noun+op design; see
 [MCP_TOOL_SURFACE.md](MCP_TOOL_SURFACE.md) for the comparison and the migration record. Reads stay
 granular on purpose: they return five different shapes, and a single `inspect` op would trade
 clarity for a smaller number.
+
+Page ops are the reason the noun+op design was extended rather than adding a `pages` tool. Pages
+belong to the canvas/document lifecycle, so `canvas` owns `add-page`, `go-page`, `rename-page` and
+`delete-page`; the hidden handlers emit `add_page`, `goto_page`, `rename_page` and `delete_page`
+to the frontend, mirroring the existing action-name convention. `get_canvas_summary` returns the
+active page and the page list, so no extra read tool is needed. `add_page` and `goto_page` go
+through the scene store's existing page transition and therefore switch the visible page in the
+editor; `delete_page` uses a non-interactive store action (`deletePageAt`) because an MCP call
+must never block on a native confirmation dialog.
 
 ---
 
@@ -564,6 +573,11 @@ Wails bindings the UI calls: `GetMCPInfo`, `RegenerateToken`, and the existing
   a skill, a reference, a rule and the index — the same path a client takes, minus the socket.
 - `go test ./internal/skill` — contract validation, routing table, plan assembly, rule lookup by
   number/ID/title, search ranking, section access.
+- `avnac-system/mcp/pages_test.go` — page selector/name decoding, the instruction guard that sends
+  drafts to pages, and the prompt guard that keeps `add-page` in the routed prompts.
+- `frontend/tests/unit/mcp/pages.test.ts`, `frontend/tests/unit/scene-editor/page-recipes.test.ts`
+  and `frontend/tests/unit/storage/avnac-multi-page-storage.test.ts` — name resolution, page-name
+  persistence, and add/delete/reorder of named pages.
 - `go build ./...` — the embed directives make a missing directory a build error rather than a
   runtime surprise.
 

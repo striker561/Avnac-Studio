@@ -11,7 +11,7 @@ Practical, real-world prompts for testing the Avnac Studio MCP server end to end
 3. Paste one prompt at a time, watch the canvas, and finish each prompt with a visual check (the agent should call `get_canvas_image` on its own — all prompts in Category A–C instruct it to).
 
 **Legend:**
-- ✅ — exercises the fully-working tool path (`canvas` op=create, `canvas` op=preset, `canvas` op=background, `elements` op=render, `elements` op=modify, `get_canvas_summary`, `get_object_properties`, `get_canvas_image`, `assets` op=unsplash, `assets` op=stickers, `assets` op=fonts, `canvas` op=clear, `elements` op=delete, `arrange` op=select).
+- ✅ — exercises the fully-working tool path (`canvas` op=create, `canvas` op=add-page/go-page/rename-page/delete-page, `canvas` op=preset, `canvas` op=background, `elements` op=render, `elements` op=modify, `get_canvas_summary`, `get_object_properties`, `get_canvas_image`, `assets` op=unsplash, `assets` op=stickers, `assets` op=fonts, `canvas` op=clear, `elements` op=delete, `arrange` op=select).
 - ⚠️ — probe: deliberately exercises tools/properties that are only partially wired up today. Each probe lists the expected observation so you can distinguish "server works" from "feature not implemented". See the [Known gaps](#known-gaps-appendix) appendix for the full list.
 
 ---
@@ -207,7 +207,29 @@ Expected: `## Workflow: critique`; the prompt requires `get_canvas_summary`, `ge
 
 ---
 
-## Category E — Probes for partially-wired tools ⚠️
+## Category E — Pages: drafts and tests inside the open project ✅
+
+These are the regression prompts for the page workflow. The failure they guard against is an
+agent creating a second **canvas** for a draft/test instead of a page in the open project.
+
+### P1. Draft on a named page, leave the real page untouched
+> You are working in an open project that already has a finished cover on page 1. Add a page named "Test — hierarchy options" and, on that page only, try a bolder version of the cover: a 1080x1350 deep-green background, a huge "SPRING" headline, and one cream subheadline. Screenshot it, then return to page 1 and delete the test page.
+
+Expected: `canvas` op=add-page (name echoed back), `canvas` op=go-page / delete-page; never `canvas` op=create. `get_canvas_summary` names the active page throughout. The app switches the visible page tab as the agent works.
+
+### P2. Switch and rename by name
+> Rename the current page to "Approved cover", then move to the page called "Test — hierarchy options", add one red rectangle at 100,100, and come back to "Approved cover".
+
+Expected: rename-page, go-page by name (case-insensitive), elements render, go-page back. An unknown name returns the list of pages rather than guessing.
+
+### P3. New-project guard
+> I already have a project open. Make a quick throwaway test of a dark background with three circles — do not touch my real page.
+
+Expected: the agent uses `canvas` op=add-page inside the open project and cleans it up, not `canvas` op=create. If it does call create, the response carries a `notice` pointing at add-page.
+
+---
+
+## Category F — Probes for partially-wired tools ⚠️
 
 Each probe states the expected observation on the current build. These are for verification and development, not demos — most will expose gaps, and that is the point.
 

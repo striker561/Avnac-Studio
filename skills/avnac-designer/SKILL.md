@@ -67,7 +67,7 @@ action name is accepted as an `op` value (e.g. `op: "render_elements"`), so olde
 
 | Tool | Ops | Key Arguments |
 |---|---|---|
-| `canvas` | `create`, `clear`, `background`, `preset` | create: `width`, `height`, `name`, `backgroundColor` (`color` alias); background: `backgroundColor`/`color`; preset: `presetId` (`ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`) |
+| `canvas` | `create`, `add-page`, `go-page`, `rename-page`, `delete-page`, `clear`, `background`, `preset` | create: `width`, `height`, `name`, `backgroundColor` (`color` alias); add-page/rename-page: `name`; go-page/rename-page/delete-page: `page` (1-based number or name) or `index` (0-based); background: `backgroundColor`/`color`; preset: `presetId` (`ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`) |
 | `elements` | `render`, `modify`, `delete`, `measure` | `elements[]` or a JSON-encoded string, `modifications[]`, `objectId`/`id`, `includePreview`; image elements: `fit`, `focalPoint`, `crop` |
 | `arrange` | `align`, `distribute`, `group`, `ungroup`, `fit`, `select` | align: `type` (incl. `cap-middle`); distribute: `direction`; group/select: `objectIds`; ungroup: `groupId`; fit: `padding` |
 | `files` | `list`, `open`, `rename` | `fileId` (`id`/`workspaceId` accepted), `name` |
@@ -79,6 +79,28 @@ Use `files` whenever the user references an existing file that is not currently 
 scene, call `files` op=list, locate the file by name, then `files` op=open. **Never recreate an
 existing design in a new file.** There is no duplicate or delete-file tool over MCP; the canvas
 title can be changed later with `files` op=rename.
+
+### One project, many pages — drafts, tests and variations
+
+`canvas` op=create starts a **new project**. Never use it to draft, test, compare variants or run
+a visual check: that splits the user's work into another file and hides it from the page rail they
+are watching.
+
+When a project is open, do exploration inside it:
+
+1. `canvas` op=add-page with a descriptive `name` (for example `"Test — poster hierarchy"`). The
+   page inherits the artboard size, starts blank, and becomes active. The app switches to it live.
+2. Render the draft/test with `elements` op=render and inspect it with `get_canvas_image`.
+3. Iterate on that page. The real page is untouched.
+4. When done, `canvas` op=delete-page (defaults to the current page) if the page was only a test,
+   or keep it and rename it (`canvas` op=rename-page) if it is worth showing. Return to the real
+   page with `canvas` op=go-page.
+
+`get_canvas_summary` returns `document`, the active `page` (`index`, 1-based `number`, `name`) and
+`pages` (with node counts), so always check `page.name` before editing. `canvas` op=go-page accepts
+a 1-based number, a page name, or a 0-based `index`; a unique substring of a name also works.
+Renaming: `canvas` op=rename-page (`page` optional, defaults current). Page tabs in the app can be
+double-clicked to rename too. You cannot delete the only page; use `canvas` op=clear instead.
 
 `assets` op=unsplash results include `rateLimit.remaining` — the app's Unsplash quota resets
 hourly, so reuse photos you already searched for instead of re-running a query. Placing a searched
@@ -158,13 +180,13 @@ Never start with tool calls. First reason about the image the user wants and tur
 1. **Extract known constraints**: dimensions, exact copy (headline/subhead/body text), brand or shop names, dates/addresses, palette, style keywords, imagery requirements.
 2. **Identify critical unknowns**: real text content, names, dates, addresses, size intent. If any critical info is missing, **ask the user up to 3 targeted questions and stop** — do not call tools yet. If nothing critical is missing, state your assumptions explicitly (e.g. *"Using the placeholder shop name 'KUMO RAMEN' — flag if you want the real one"*) and proceed.
 3. **Write a compact design plan**: layout zones with approximate coordinates, type hierarchy, palette, fonts, asset needs. This brief is the checklist the Verify phase audits against.
-4. **Edit requests**: write a diff-oriented brief (what changes, what stays) and always start from the real canvas. If the target file is not currently open, `get_canvas_summary` will report no active scene — then call `files` op=list, locate the file by name, and `files` op=open(fileId). **Never silently recreate an existing design in a new file**, and never present a recreation as an edit.
+4. **Edit requests**: write a diff-oriented brief (what changes, what stays) and always start from the real canvas. If the target file is not currently open, `get_canvas_summary` will report no active scene — then call `files` op=list, locate the file by name, and `files` op=open(fileId). **Never silently recreate an existing design in a new file**, and never present a recreation as an edit. If you want to try a risky alternative, put it on a named page in the same project (`canvas` op=add-page), not in a new canvas.
 
 ### Phase 1 — Inspect & Setup
 
-1. Call `get_canvas_summary` to understand the active canvas state, artboard dimensions, and pre-existing elements.
-2. For a **new** design: call `canvas` op=create with dimensions, a descriptive `name`, and `backgroundColor`. `canvas` op=create already applies the background — **do not call `canvas` op=background again with the same value**.
-3. To open an existing file: `files` op=list → `files` op=open(fileId). To retitle any file: `files` op=rename(fileId, name).
+1. Call `get_canvas_summary` to understand the active canvas state, artboard dimensions, pre-existing elements, the document name and the active page name.
+2. For a **new** design: if the user wants a separate deliverable (or no suitable project is open), call `canvas` op=create with dimensions, a descriptive `name`, and `backgroundColor`. If the project is already open and you are drafting/testing, call `canvas` op=add-page instead. `canvas` op=create already applies the background — **do not call `canvas` op=background again with the same value**.
+3. To open an existing file: `files` op=list → `files` op=open(fileId). To retitle any file: `files` op=rename(fileId, name). To switch page: `canvas` op=go-page(page or index).
 4. Avoid redundant inspection: `get_canvas_summary` and `list_objects` return overlapping data — call one (usually `get_canvas_summary`), not both, unless you specifically need raw IDs.
 
 ### Phase 2 — Atmosphere & Assets
@@ -185,7 +207,7 @@ Prefer the verified fonts `Poppins`, `Inter`, and `DM Serif Display`; other Goog
 
 ### Phase 4 — Verify Against the Brief
 
-Call `get_canvas_image` (one audit screenshot per milestone — not per element) and compare it against **the design brief and the user's original request**, item by item:
+First confirm `get_canvas_summary` reports the page you meant to edit — if it is a test page, return to the real page with `canvas` op=go-page. Then call `get_canvas_image` (one audit screenshot per milestone — not per element) and compare it against **the design brief and the user's original request**, item by item:
 
 - Required content present and spelled correctly (headline, subhead, dates, addresses, CTAs).
 - Dimensions and orientation match the request.

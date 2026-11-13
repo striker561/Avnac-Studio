@@ -30,7 +30,9 @@ instead and keep this one for the first hour of work.
    one ratio (1.25–1.5 step). Write the actual values down before placing text.
 7. **Draft fast and ugly on purpose.** Get all elements on the canvas at roughly correct size
    and position, in flat values, before any styling. Decisions made on a complete, rough
-   composition are better than decisions made on one polished corner.
+   composition are better than decisions made on one polished corner. If a project is already open
+   in Avnac, draft on a named page in **that** project (`canvas` op=add-page); do not start a
+   second project for an experiment or a test.
 8. **Do one refinement pass against the checks below**, then stop. Further passes without new
    information dig the same hole.
 

@@ -12,7 +12,10 @@ work is good, use `critique`; for fixing composition specifically, use `compose`
 
 ## Workflow
 1. **Snapshot before touching anything.** Version the file (`name_v02`) and keep the previous
-   export. Revisions are lossy in practice; being able to compare is the only defence.
+   export. Revisions are lossy in practice; being able to compare is the only defence. In the
+   Avnac app, put an experimental variant on a named page in the same project (`canvas`
+   op=add-page) rather than creating a second project; the active page is visible in the page rail
+   and `get_canvas_summary` names it.
 2. **Translate the request into a defect.** "Make it pop" → not enough contrast at level 1.
    "Make it cleaner" → too many elements/styles. "Make it more premium" → stock/photography,
    spacing, or finish. Write the translation down and confirm it in the reply.

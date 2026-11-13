@@ -89,7 +89,7 @@ Adopt mechanics 1–3 for *state-changing* verbs, keep reads granular.
 
 | Tool | `op` values | Notes |
 |---|---|---|
-| `canvas` | `create`, `clear`, `background`, `preset` | lifecycle; one call per setup |
+| `canvas` | `create`, `add-page`, `go-page`, `rename-page`, `delete-page`, `clear`, `background`, `preset` | lifecycle and pages; one call per setup |
 | `inspect` | `summary`, `state`, `objects`, `object`, `selection`, `image` | reads stay one op each; keeps `annotated`/`objectId` |
 | `elements` | `render`, `modify`, `delete` | **transactional batch**: ops apply as one undo step |
 | `arrange` | `align`, `distribute`, `group`, `ungroup`, `fit`, `select` | align gains `cap-middle` |
@@ -150,7 +150,10 @@ quietly regrow.
 | Batch `render_elements` + `modify_elements` + `delete_object` into `elements` with `ops[]` | shipped as `elements` op dispatch | biggest undo/round-trip win, contained change |
 | Batch `align` / `distribute` / `group` / `ungroup` / `fit` / `select` into `arrange` | shipped | same mechanic, slightly more surface |
 | Collapse `canvas` / `files` / `assets` / `export` | shipped | small benefit, real churn |
+| Extend `canvas` with page ops instead of a `pages` tool | shipped | drafts/tests belong in the open project; pages are document lifecycle, not a new noun |
 | Collapse `inspect` | deliberately not done | reads differ in shape; granular is better |
 
 Net target: **12 tools**, one transactional `elements` call per composition, and a documented
-ceiling that keeps the number honest.
+ceiling that keeps the number honest. The page feature (add/go/rename/delete) rides on `canvas`
+as ops, so the published count stayed at 12 while the surface gained the workflow that was
+missing: drafts and tests belong on named pages inside the existing project.

@@ -103,6 +103,10 @@ reference is out of date — fix the reference.
   primitives; do not fake a layout with a screenshot of a layout.
 - The MCP server exposes canvas tools, an Unsplash search, and export. The design decision comes
   from this library; the tools only execute it.
+- A project (canvas) holds many pages. Drafts, tests and variations belong on a named page inside
+  the open project — `canvas` op=add-page — never in a second project created for the experiment.
+  Check `get_canvas_summary` for the active page name, and switch back with `canvas` op=go-page
+  before delivering.
 - Layers render bottom to top, so build background first and foreground last.
 - Text is the most fragile element: check font size at final zoom, line-height, and whether the
   font is available in export before you commit to it.

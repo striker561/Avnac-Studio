@@ -14,6 +14,8 @@ Tests are arranged by **unit** (pure logic, fast) and **features** (cross-module
 | Page lifecycle + naming | `frontend/src/lib/avnac-multi-page-document.ts`, `store/paging/` | `frontend/tests/unit/scene-editor/page-recipes.test.ts`, `frontend/tests/unit/storage/` |
 | MCP page targeting | `frontend/src/lib/mcp/pages.ts` | `frontend/tests/unit/mcp/pages.test.ts` |
 | Vector board engine (v3) | `frontend/src/lib/avnac-vector/` | `frontend/tests/unit/vector/`, `frontend/tests/features/vector/` |
+| Vector IR + MCP vector tool | `internal/vector/`, `avnac-system/mcp/tools_vector.go` | `internal/vector/vector_test.go`, `avnac-system/mcp/tools_vector_test.go`, `avnac-system/mcp/vector_e2e_test.go` |
+| Vector knowledge + routing eval | `internal/skill/vector/`, `internal/skill/rules/120-127` | `internal/skill/vector_eval_test.go`, `avnac-system/mcp/vector_resources_test.go` |
 | Vector board editor UI | `frontend/src/components/editor/vector-boards/` | `frontend/tests/e2e/vector-board.e2e.ts` |
 | MCP server instructions/tools | `avnac-system/mcp/` | `avnac-system/mcp/*_test.go` |
 | Multi-page persistence | `frontend/src/lib/avnac-multi-page-storage.ts` | `frontend/tests/unit/storage/`, `frontend/tests/features/storage/` |
@@ -35,7 +37,7 @@ frontend/tests/
   features/
     storage/                        # multi-MiB workspace envelopes + Wails mocks
     saraswati/                      # render command + drag-frame budgets
-    vector/                         # vector engine perf budgets
+    vector/                         # vector engine perf budgets + MCP placement
   e2e/
     vector-board.e2e.ts             # Wails-browser Playwright suite
 ```

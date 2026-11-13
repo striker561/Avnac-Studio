@@ -112,9 +112,9 @@ It also ships a **graphic design knowledge and production library**, embedded in
 and routed programmatically:
 
 - [`internal/skill/SKILL.md`](../internal/skill/SKILL.md) — entry point, routing table and always-on gates.
-- `internal/skill/<task>/SKILL.md` — 21 task workflows (poster, logo, brand, color, typography, layout, print, export, ui, ...).
+- `internal/skill/<task>/SKILL.md` — 22 task workflows (poster, logo, brand, color, typography, layout, print, export, ui, ...).
 - [`internal/skill/references/`](../internal/skill/references/) — 14 compact lookup notes: thresholds, tables, format specs.
-- [`internal/skill/rules/`](../internal/skill/rules/) — 117 authoritative, applied design principles, grouped by domain.
+- [`internal/skill/rules/`](../internal/skill/rules/) — 125 authoritative, applied design principles, grouped by domain.
 
 [`internal/skill/skill.go`](../internal/skill/skill.go) embeds the markdown, parses it once, and
 routes work: `skill.Default()` then `lib.Plan(task, 0)` returns the matching task workflow plus
@@ -130,14 +130,14 @@ nothing still reads it on demand:
 | URI | Contents |
 |---|---|
 | `skill://avnac-design` | Entry point: routing table, always-on gates, how to read a rule |
-| `skill://<task>` | 21 task workflows — `skill://poster`, `skill://ui`, `skill://print`, ... |
-| `references://<subject>` | 14 lookup notes — `references://typography`, `references://color`, ... |
-| `rules://<id>` | 117 authoritative principles — `rules://24-typographic-hierarchy`, ... |
+| `skill://<task>` | 22 task workflows — `skill://poster`, `skill://ui`, `skill://print`, ... |
+| `references://<subject>` | 15 lookup notes — `references://typography`, `references://color`, ... |
+| `rules://<id>` | 125 authoritative principles — `rules://24-typographic-hierarchy`, ... |
 | `rules://index` | Every rule by domain, with counts |
 
 All are `text/markdown`. Relative links in the served markdown are rewritten into these URIs, so
 an agent reading `skill://poster` can follow `rules://34-composition-techniques` directly. The
-connect instructions carry a compact index (one line per tier) instead of all 117 rules;
+connect instructions carry a compact index (one line per tier) instead of all 125 rules;
 `rules://index` names the rest without spending context up front.
 
 Registration lives in [`avnac-system/mcp/resources.go`](../avnac-system/mcp/resources.go) and is
@@ -148,12 +148,24 @@ When connected, the MCP server also automatically transmits `Instructions` to th
 
 ---
 
-## 4. Key Tools (12 Tools)
+## 4. Key Tools (14 Tools)
 
-The published surface is noun-shaped. Six **read** tools keep one name per operation; six
-**mutation** tools map to a domain and take an `op`. Every op returns the same payload the old
+The published surface is noun-shaped. Six **read** tools keep one name per operation; seven
+**mutation** tools map to a domain and take an `op`; `guide` routes a brief to the knowledge library. Every op returns the same payload the old
 one-tool-per-action surface returned, and the legacy action name is accepted as an `op` value
 (e.g. `op: "render_elements"`), so older habits still work.
+
+### Routing
+
+`guide` (`task`, `limit`, `inline`) — pass the brief; returns the matching workflow (`skill://...`),
+4–8 rules (`rules://...`), the matched tokens and a confidence level. Call it before specialized
+work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI,
+vector drawing, critique — even when the user did not ask for guidance. `inline=true` returns the
+full workflow and rule text for clients that cannot read resources.
+
+The server also attaches a compact `guide` field to composition results (`canvas` op=create/add-page,
+`elements` op=render/measure/modify, `vector` op=draw) whenever the payload is a clear match. That
+way the library is used *during* the task even when the agent never calls `guide` explicitly.
 
 ### Reads (6)
 
@@ -164,7 +176,7 @@ one-tool-per-action surface returned, and the legacy action name is accepted as 
 - `get_object_properties`: Bounding box and styles of one object. Text nodes also return `metrics` — measured `ascent`, `descent`, `capHeight`, and absolute `baseline`, `capTop`, `capCenterY` — so an agent can align to the letters instead of the text box.
 - `get_selection`: Ids and properties of the current selection.
 
-### Mutations (6, `op`-based)
+### Mutations (7, `op`-based)
 
 **`canvas`** — project, pages and artboard lifecycle:
 - `create` (`width`, `height`, `name`, `backgroundColor`/`color`) — starts a **new project** and navigates to it. Use it only for a new deliverable; for a draft/test/variation in the open project use `add-page`. The background is applied here; do not also call `background`.
@@ -201,6 +213,21 @@ one-tool-per-action surface returned, and the legacy action name is accepted as 
 **`export`** — output:
 - `png` (`multiplier`, `transparent`) — base64 PNG of the artboard.
 - `object` (`objectId`, `multiplier`) — PNG of one object or group. SVG object export is not supported over MCP yet.
+
+**`vector`** — original vector artwork:
+- `draw` (`canvas`, `objects[]`, `layers[]`, `name`, `x`, `y`, `scale`) — resolves a scene-graph
+  IR into cubic paths, places it as an SVG element on the active page, and returns `boardId` +
+  `objectId`. Object types: `rect`, `ellipse`, `circle`, `capsule`, `polygon`, `star`, `line`,
+  `path`. Relations: `constraints` and `mirrorOf` + `axis`.
+- `update` (`boardId`, `operations[]`) — `resize`, `move`, `rotate`, `mirror`, `restyle`,
+  `reorder`, `delete`, `add`, applied in order and re-resolved once. This is the conversational
+  edit path: target objects by id instead of redrawing.
+- `read` (`boardId`) — the IR plus the resolved v3 vector-board document and per-object bounds.
+- `export` (`boardId`) — the self-contained SVG source in the text content.
+- `delete` / `list` — remove the placed element, or enumerate boards from this session.
+
+Read `skill://vector` before a complex drawing; the eight `rules://12x` files carry the geometry.
+The returned SVG is a real vector document: the scene exports its `<path>` elements, not a bitmap.
 
 ### Working in pages instead of new projects
 

@@ -1,5 +1,9 @@
 # MCP Test Prompt Suite
-> **Tool surface:** 12 tools — six reads plus `canvas`, `elements`, `arrange`, `files`, `assets` and `export` with `op` values. The old action names still work as op aliases (e.g. `op: "render_elements"`), and every prompt below is a user message, so it stays valid as written.
+> **Tool surface:** 14 tools — six reads plus `canvas`, `elements`, `arrange`, `files`, `assets`, `export` and `vector` with `op` values, and `guide` (route a brief to workflow + rules).
+>
+> Every design prompt below expects the agent to call `guide` with the brief (or receive the
+> automatic `guide` field on a composition result), read the returned `skill://` and `rules://`
+> resources, and cite at least one rule in its report. The old action names still work as op aliases (e.g. `op: "render_elements"`), and every prompt below is a user message, so it stays valid as written.
 
 
 Practical, real-world prompts for testing the Avnac Studio MCP server end to end. Written for connecting an MCP client (Cursor, Claude Desktop, MCPJam Inspector, Windsurf, etc.) to the server described in [MCP_GUIDE.md](./MCP_GUIDE.md) and pasting each prompt as a user message.
@@ -302,3 +306,33 @@ Status of advertised-but-not-fully-working surface, as of 2026-10-06 (re-verifie
 | `elements` op=modify `action` (bringToFront etc.) | Z-order changes | ❌ Ignored by frontend |
 | `elements` op=modify `scaleX`/`scaleY`, `locked`, `type` | Schema fields | ❌ Ignored by frontend |
 | `assets` op=unsplash | Works Go-side | Requires an Unsplash API key in Settings; empty query returns empty results |
+
+---
+
+## Vector drawing prompts
+
+These exercise the `vector` tool and `skill://vector`. A passing run places real SVG (not a
+bitmap), reports the rules it followed, and can be edited afterwards by board id.
+
+1. **Constructed icon.**
+   > Draw a 256×256 rocket icon as clean vectors: a capsule body, two mirrored fins, a circular
+   > window centred on the body, and a flame. Keep it editable by part.
+   Expect: `vector` op=draw with four to five objects, one `mirrorOf`, one `centered_on`;
+   no hand-placed mirrored copy; `get_canvas_image` shows the drawing.
+2. **Curve repair.**
+   > This leaf logo looks lumpy where the tip meets the body. Fix the Bézier handles and make the
+   > curve smooth at the join.
+   Expect: it reads `rules://125`, explains the magic triangle / node type fix, and either rebuilds
+   the path with `vector` or edits it with `vector` op=update.
+3. **Symmetry.**
+   > Build a radial mandala from a single petal repeated eight times, all exactly equal.
+   Expect: one petal object plus rotation, or eight objects derived from one; a symmetry audit.
+4. **Overlap cleanup.**
+   > These overlapping circles are showing seams when I export. Clean up the overlaps and give me
+   > one SVG.
+   Expect: `rules://126` (winding, overlap removal on export), `vector` op=export, and an SVG that
+   passes the audit.
+5. **Edit, don't redraw.**
+   > Make the rocket's fins smaller and move the window up a little.
+   Expect: `vector` op=update with `resize`/`move` on the existing `boardId`; the rest of the
+   drawing is untouched.

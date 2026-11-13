@@ -199,6 +199,18 @@ E2E covers every drawing tool, pen node editing (smooth/cusp/corner, refit
 delete, insert), Escape/Backspace, undo/redo, layers, zoom/pan, reload
 persistence, save-and-place, drag-to-canvas and SVG path export.
 
+## Programmatic drawing (MCP)
+
+The `vector` MCP tool drives this document model from an agent: it resolves a small scene-graph IR
+into cubic paths, emits a v3 document and places real SVG on the canvas. Geometry lives in
+`internal/vector/`; placement reuses the scene image-node/SVG-data-URL representation described
+above. See [vector-drawing.md](vector-drawing.md) for the IR, the tool ops and the knowledge base,
+and [vector-eval.md](vector-eval.md) for the tests that keep it honest. Boolean operations remain
+out of scope for the editor, and the IR does not add them: rule 126 documents the technique and the
+export audit covers the result.
+
+---
+
 ## Out of scope
 
 Boolean operations, offset/outline, live path effects, the auto node solver,

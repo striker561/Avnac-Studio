@@ -15,7 +15,7 @@ The MCP server allows external AI agents and clients to interact with the Avnac 
 
 ## Available Tools
 
-The server publishes **12 tools**: six reads and six noun-shaped mutation tools whose verbs are
+The server publishes **14 tools**: six reads, six noun-shaped mutation tools, `vector` and the `guide` router whose verbs are
 `op` values. The 25 hidden registrations behind those ops keep their action names 1:1 with the
 frontend `mcp:action` strings, except `open_canvas`/`rename_file`, which emit
 `open_workspace`/`rename_workspace`.
@@ -53,6 +53,24 @@ frontend `mcp:action` strings, except `open_canvas`/`rename_file`, which emit
 
 ### `export`
 - `png` (artboard) and `object` (cropped PNG).
+
+### `vector` — path drawing
+- `draw`: resolves a small scene-graph IR (`canvas`, `objects[]`, `layers[]`) with constraints
+  (`centered_on`, `left_of`, `right_of`, `above`, `below`, `inside`, `aligned_with`,
+  `equal_size`) and `mirrorOf`, then places the result as a vector SVG element and returns
+  `boardId` + `objectId`.
+- `update`: applies object-level operations (`resize`, `move`, `rotate`, `mirror`, `restyle`,
+  `reorder`, `delete`, `add`) to the stored IR and re-renders once.
+- `read` / `export` / `delete` / `list`: inspect the IR and v3 document, get the SVG source,
+  remove the placed element, or enumerate session boards.
+- Implementation: [`tools_vector.go`](tools_vector.go), with geometry in
+  [`internal/vector/`](../../internal/vector/). The placed node's `src` is an SVG data URL carrying
+  `data-avnac-vector-board="1"`, so the scene exporter inlines real `<path>` elements instead of a
+  bitmap. Drawing knowledge lives in `skill://vector` and `rules://120..127`.
+
+### `guide` — in-task routing
+- `task` (the brief) → the workflow (`skill://...`) and 4–8 rules (`rules://...`) that apply, with the matched tokens and a confidence level. `inline=true` returns the reading material itself.
+- Composition results (`canvas` create/add-page, `elements` render/measure/modify, `vector` draw) carry the same guide automatically when the payload is a clear match, so the route appears even when the agent skips the call.
 
 ### Page lifecycle
 

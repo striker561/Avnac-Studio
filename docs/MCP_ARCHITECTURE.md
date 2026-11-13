@@ -59,7 +59,7 @@ scripted way to start a task, it is a prompt.**
 │                                  │                                                                │
 │  ┌───────────────────────────────▼───────────────────────────────┐                                │
 │  │ internal/skill (embedded markdown, parsed once)                │                                │
-│  │ SKILL.md · 21 task skills · 14 references · 117 rules          │                                │
+│  │ SKILL.md · 22 task skills · 15 references · 125 rules          │                                │
 │  └────────────────────────────────────────────────────────────────┘                                │
 │                                                                                                    │
 │  React frontend                                                                                    │
@@ -82,8 +82,8 @@ scripted way to start a task, it is a prompt.**
 | `avnac-system/mcp/flexible_input_test.go` | Tolerant decoding of agent-supplied JSON |
 | `internal/skill/skill.go` | Embed, parse, validate, route, search, plan |
 | `internal/skill/rules/` | 117 rule documents plus the generated `README.md` index |
-| `internal/skill/<task>/SKILL.md` | 21 task workflows |
-| `internal/skill/references/` | 14 lookup notes |
+| `internal/skill/<task>/SKILL.md` | 22 task workflows |
+| `internal/skill/references/` | 15 lookup notes |
 | `frontend/src/features/scene-editor/use-mcp-actions.ts` | Dispatches `mcp:action` events into the scene store |
 | `frontend/src/lib/mcp/transport.ts` | Subscribes to the Wails event and calls `SubmitResponse` |
 | `frontend/src/lib/mcp/payload.ts` | Converts loosely typed agent input into engine values |
@@ -239,14 +239,28 @@ mcp tools/call  ──► handler ──► emitSync(ctx, action, payload, timeo
 - Image-returning tools attach a PNG content block alongside text, so the model can look at
   what it produced.
 
-**The published surface is 12 tools**, not 27. Six reads keep one name per operation
+**The published surface is 14 tools**, not 27. Six reads keep one name per operation
 (`get_canvas_summary`, `get_canvas_state`, `get_canvas_image`, `list_objects`,
 `get_object_properties`, `get_selection`). The other 25 registrations are still built — their
 handlers, schemas and frontend action names are unchanged — but they are collected into a
-`legacy` map instead of being published, and six noun-shaped tools dispatch to them by `op`:
-`canvas` (create/add-page/go-page/rename-page/delete-page/clear/background/preset), `elements`
-(render/modify/delete/measure), `arrange` (align/distribute/group/ungroup/fit/select), `files`
-(list/open/rename), `assets` (unsplash/fonts/stickers) and `export` (png/object).
+`legacy` map instead of being published. Seven noun-shaped tools dispatch by `op` (or, for
+`vector`, do their own work): `canvas` (create/add-page/go-page/rename-page/delete-page/clear/
+background/preset), `elements` (render/modify/delete/measure), `arrange`
+(align/distribute/group/ungroup/fit/select), `files` (list/open/rename), `assets`
+(unsplash/fonts/stickers), `export` (png/object) and `vector` (draw/update/read/export/delete/list).
+
+`guide` is the fourteenth: a read-only router from a brief to `skill://` + `rules://` with the
+matched tokens and a confidence level. It exists so the library is reached *during* a task, not only
+when a user explicitly asks for design guidance — the connect instructions tell agents to call it
+before specialized work, and composition results carry the same guide automatically when the
+payload is a clear match.
+
+`vector` is not an op on `elements`: vector artwork has its own document model (layers of strokes
+with node geometry and a v3 board schema), its own state across calls (a session board addressed by
+`boardId`) and its own output (SVG). Folding it into `elements` would put two document models behind
+one schema without sharing a transaction. The tool keeps the same pattern — one noun, verbs as
+`op` values — and stays inside the documented tool ceiling. The geometry lives in
+`internal/vector/` (pure, testable without a frontend); the tool only bridges it to the scene.
 
 `opDispatcher` lowercases the op, routes through the map, accepts the legacy action name as an
 alias, and forwards the arguments minus the op keys — so every existing decoder (including the
@@ -317,7 +331,7 @@ content — the `.md` files are the product.
 internal/skill/
 ├── SKILL.md               entry point: routing table, gates, how to read a rule
 ├── <task>/SKILL.md        21 workflows (poster, logo, brand, color, ...)
-├── references/*.md        14 lookup notes (thresholds, tables, formats)
+├── references/*.md        15 lookup notes (thresholds, tables, formats)
 ├── rules/NN-topic.md      117 principles, fixed 10-section shape
 └── rules/README.md        generated index by domain (rules://index)
 ```
@@ -415,7 +429,7 @@ must never take the canvas tools down.
 
 ### 8.6 The instruction index
 
-Instructions are paid for on every message, so the server does not enumerate 117 rules there.
+Instructions are paid for on every message, so the server does not enumerate 125 rules there.
 `designResourceIndex(lib)` appends a compact block computed from the live library:
 
 ```
@@ -423,14 +437,14 @@ Instructions are paid for on every message, so the server does not enumerate 117
 
 The design library is served as resources. Read the one the task needs rather than guessing:
 - `skill://avnac-design` — entry point: routing table, always-on gates, how to read a rule.
-- `skill://<task>` — 21 task workflows: analyze, brand, color, ... visualize.
-- `references://<subject>` — 14 lookup notes: accessibility, branding, ... web-and-ui.
-- `rules://index` — all 117 rules by domain, with links.
+- `skill://<task>` — 22 task workflows: analyze, brand, color, ... visualize.
+- `references://<subject>` — 15 lookup notes: accessibility, branding, ... web-and-ui.
+- `rules://index` — all 125 rules by domain, with links.
 - `rules://<id>` — one authoritative principle, e.g. `rules://24-typographic-hierarchy`.
 Start at `skill://avnac-design`, then the task skill, then the 4–8 rules it links.
 ```
 
-Counts come from the library, so they cannot drift from reality. The 117 rules collapse to two
+Counts come from the library, so they cannot drift from reality. The 125 rules collapse to two
 lines; `rules://index` carries the names.
 
 ### 8.7 Read sequence

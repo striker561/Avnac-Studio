@@ -3,7 +3,7 @@
 **Question:** Avnac exposes 27 tools; SpriteWare exposes 14 for a comparably deep editor. Is
 SpriteWare's op-based design better for Avnac, and what would adopting it cost?
 
-**Status:** implemented — Avnac now publishes 12 tools: six reads plus `canvas`, `elements`, `arrange`, `files`, `assets`, `export` with `op` dispatch. This document records the analysis and the decision.
+**Status:** implemented — Avnac now publishes 14 tools: six reads plus `canvas`, `elements`, `arrange`, `files`, `assets`, `export` and `vector` with `op` dispatch, and the `guide` router. This document records the analysis and the decision; §5 records why `vector` became the one addition after the collapse.
 
 **Short answer:** SpriteWare's count is low because its domain has a fixed noun model and it pushes
 *verbs* into an `op` field, not because it exposes less. Avnac should adopt the pattern selectively —
@@ -157,3 +157,31 @@ Net target: **12 tools**, one transactional `elements` call per composition, and
 ceiling that keeps the number honest. The page feature (add/go/rename/delete) rides on `canvas`
 as ops, so the published count stayed at 12 while the surface gained the workflow that was
 missing: drafts and tests belong on named pages inside the existing project.
+
+---
+
+## 5. Addendum: the one tool added after the collapse
+
+The collapse answered "how many tools does a deep editor need?" for *editing what is already
+there*. It did not cover creating geometry from scratch. `elements` composes a page from scene
+primitives; it has no path model, no nodes, no layers of strokes, and no document it can re-edit.
+Vector drawing needs all four, so it arrived as **`vector`** (op: `draw`, `update`, `read`,
+`export`, `delete`, `list`) rather than as a seventh `elements` op.
+
+The tests for the decision:
+
+| Question | Answer |
+|---|---|
+| Does it share `elements`' transaction? | No — it owns a board document and re-resolves before touching the scene |
+| Is it a new *noun*? | Yes — a vector board, exactly like SpriteWare's `sprite` vs `draw` |
+| Does it make the tool list unreadable? | 13 schemas, one of them longer; still well under the 24 ceiling |
+| Could it be an enum value later? | Only if `elements` grows a path model, which is a renderer change, not a schema one |
+
+What would have been wrong: adding `vector` *and* a `pages` tool, or splitting vector into
+`path`, `node` and `shape` tools. The single noun with six verbs keeps the surface honest while
+letting the drawing grow in documentation (object schema, constraints) instead of tool count.
+
+`guide` (the fourteenth tool) is the same rule applied to knowledge. It is not a design verb and it
+touches no scene state; it routes a brief to `skill://` and `rules://` URIs so an agent reads the
+library while it works. Without it, the library is only reachable when a user happens to ask for a
+skill — the failure mode this tool exists to remove.

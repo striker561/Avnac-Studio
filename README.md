@@ -188,15 +188,17 @@ claude mcp add --transport http avnac-studio http://127.0.0.1:<port-from-setting
 
 > Tip: open the connect URL in any browser (no token needed) to confirm the server is up before connecting a client.
 
-### What agents can do — 12 tools
+### What agents can do — 14 tools
 
-Six reads (`get_canvas_summary`, `get_canvas_state`, `get_canvas_image`, `list_objects`, `get_object_properties`, `get_selection`) and six noun-shaped tools whose verbs are `op` values:
+Six reads (`get_canvas_summary`, `get_canvas_state`, `get_canvas_image`, `list_objects`, `get_object_properties`, `get_selection`), seven noun-shaped tools whose verbs are `op` values, and `guide`, the in-task router for the knowledge library:
 
 - **`canvas`** — `create` (new project: size, background, name), `add-page` (named draft/test page in the open project), `go-page`, `rename-page`, `delete-page`, `clear`, `background`, `preset` (IG, HD, A4…)
 - **`elements`** — `render` rects, ellipses, polygons, stars, lines, text, images and stickers in one batch (images support `fit`/`focalPoint` crop); `modify`; `delete`; `measure` text layout before drawing
 - **`arrange`** — `align` (including optical `cap-middle`), `distribute`, `group`, `ungroup`, `fit`, `select`
 - **`files`** — `list`, `open`, `rename` (work even with no canvas open)
 - **`assets`** — `unsplash`, `fonts` (Google Fonts), `stickers`
+- **`vector`** — `draw` scene-graph IRs of paths, shapes, constraints and mirrors as real SVG; `update` by object id; `read`, `export`, `delete`, `list`
+- **`guide`** — route the brief to the matching workflow and rules (`skill://`, `rules://`), so the library is used during the task, not only on request
 - **`export`** — `png`, `object`
 
 A project is a document with many pages. Agents draft, test and compare variations on a named

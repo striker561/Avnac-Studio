@@ -15,12 +15,14 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	avnacconfig "Avnac/avnac-system/config"
 	avnacio "Avnac/avnac-system/io"
 	avnacsecrets "Avnac/avnac-system/secrets"
 	avnacserver "Avnac/avnac-system/server"
 	"Avnac/internal/skill"
+	"Avnac/internal/vector"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -61,6 +63,17 @@ type AvnacMCP struct {
 	pendingRequests map[string]chan any
 	mu              sync.Mutex
 
+	// vectorBoards holds the vector IRs created through the vector tool, keyed
+	// by board id. They are session state on purpose: the placed SVG is the
+	// durable artifact, while the IR supports conversational edits ("make the
+	// ears smaller") without regenerating the whole drawing.
+	vectorMu     sync.Mutex
+	vectorBoards map[string]*vector.Board
+	// vectorEmit is the frontend round trip used by vector draw/update/delete.
+	// It is a field so tests can substitute a recorder; production always uses
+	// emitSync.
+	vectorEmit func(ctx context.Context, action string, payload any, timeout time.Duration) (any, error)
+
 	// instructions is the connect text handed to every client: the design
 	// doctrine in DesignerInstructions plus the compact resource index. It is
 	// built once because the embedded library cannot change at runtime, and the
@@ -85,6 +98,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Parse the request and extract known constraints: dimensions, exact copy, brand or shop names, dates/addresses, palette, style, imagery.
    - Identify critical unknowns: real text content, names, dates, addresses, size intent. If any are missing, ask the user up to 3 targeted questions and STOP — do not call tools yet. If nothing critical is missing, state your assumptions explicitly and proceed.
    - Write a compact design plan: layout zones with approximate coordinates, type hierarchy, palette, fonts, asset needs. The later verification step checks the render against this brief.
+   - Route the brief through the guide tool BEFORE composing: guide(task=the brief) returns the workflow (skill://...) and the 4-8 rules that apply for any specialized work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI, vector drawing, critique — whether or not the user asked for guidance. Read them, then design from them. Composition tool results also carry a compact guide field, so the route appears even if you skip this call.
    - For EDIT requests, write a diff-oriented brief (what changes, what stays). Start from the real canvas: if the target file is not currently open, call files op=list then files op=open — NEVER silently recreate an existing design in a new file.
 
 2. INSPECT / CANVAS SETUP:
@@ -104,6 +118,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Call elements op=render once with all elements, layered bottom (background) to top (foreground).
    - Coordinates: top-left origin (0, 0). 'left' (or 'x') and 'top' (or 'y') in pixels.
    - Elements: 'rect', 'ellipse', 'polygon' (sides 3-8), 'star', 'line', 'text', 'image', 'sticker'.
+   - For original vector artwork (logo marks, icons, characters, badges, patterns), use the vector tool's op=draw with a small scene-graph IR instead of scene primitives: objects carry id/type/box/paint, plus constraints and mirrorOf. op=update edits the drawing by id afterwards. Read skill://vector first.
    - Typography: strong hierarchy (Headline 48-72px, Subhead 24-32px, Body 16-20px). Prefer Poppins, Inter, and DM Serif Display — other Google Fonts may fall back if not yet loaded; get_canvas_image now waits for fonts before rendering.
    - Styling: hex colors, cornerRadius, blur, opacity, shadows (blur, offsetX, offsetY, color, opacity), and gradientStops.
 
@@ -121,7 +136,7 @@ func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, s
 	if lib, err := skill.Default(); err == nil {
 		instructions += designResourceIndex(lib)
 	}
-	return &AvnacMCP{
+	server := &AvnacMCP{
 		server: mcp.NewServer(&mcp.Implementation{
 			Name:    "Avnac Studio",
 			Version: "2.0.0",
@@ -129,11 +144,17 @@ func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, s
 			Instructions: instructions,
 		}),
 		pendingRequests: make(map[string]chan any),
+		vectorBoards:    make(map[string]*vector.Board),
 		instructions:    instructions,
 		Unsplash:        unsplash,
 		Secrets:         secrets,
 		IO:              io,
 	}
+	// The vector tool's draw/update/delete need the same synchronous frontend
+	// round trip as the other mutation tools. Held as a field so tests can
+	// substitute a recorder.
+	server.vectorEmit = server.emitSync
+	return server
 }
 
 // Start registers tools and prompts. It does not bind any network resource;

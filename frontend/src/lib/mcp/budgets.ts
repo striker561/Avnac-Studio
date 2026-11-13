@@ -45,6 +45,9 @@ export const MCP_OPERATION_BUDGETS_MS: Record<string, number> = {
   fit_to_artboard: 500,
   select_objects: 250,
   get_selection: 250,
+  vector_draw: 1000,
+  vector_update: 600,
+  vector_delete: 300,
 };
 
 export function budgetFor(action: string): number | undefined {

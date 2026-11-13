@@ -67,8 +67,8 @@ func TestOpDispatcherRejectsUnknownAndMissingOps(t *testing.T) {
 	}
 }
 
-// TestPublishedToolSurface guards the 12-tool contract from a real client: six
-// reads plus six op-based tools. If a future change re-registers a legacy tool
+// TestPublishedToolSurface guards the 14-tool contract from a real client: six
+// reads, seven op-based tools and the guide router. If a future change re-registers a legacy tool
 // or adds one without updating this list, the eval surface and the docs drift
 // apart silently.
 func TestPublishedToolSurface(t *testing.T) {
@@ -99,12 +99,59 @@ func TestPublishedToolSurface(t *testing.T) {
 		got[tool.Name] = true
 	}
 	want := []string{
-		"canvas", "elements", "arrange", "files", "assets", "export",
+		"canvas", "elements", "arrange", "files", "assets", "export", "vector", "guide",
 		"get_canvas_summary", "get_canvas_state", "get_canvas_image",
 		"list_objects", "get_object_properties", "get_selection",
 	}
 	if len(got) != len(want) {
 		t.Errorf("published %d tools, want %d: %v", len(got), len(want), got)
+	}
+
+	// guide is how the library reaches an agent mid-task, so its description must
+	// say when to call it and that composition results carry it automatically.
+	var guideTool *sdkmcp.Tool
+	for _, tool := range res.Tools {
+		if tool.Name == "guide" {
+			guideTool = tool
+			break
+		}
+	}
+	if guideTool == nil {
+		t.Fatal("guide tool missing")
+	}
+	for _, phrase := range []string{"Call this at the start", "even when the user did not ask", "inline=true"} {
+		if !strings.Contains(guideTool.Description, phrase) {
+			t.Errorf("guide description is missing %q", phrase)
+		}
+	}
+
+	// The vector tool's discoverability lives in its description and schema: a
+	// client that sees the tool must also see that it is op-based and that it
+	// takes objects, operations and a boardId.
+	var vectorTool *sdkmcp.Tool
+	for _, tool := range res.Tools {
+		if tool.Name == "vector" {
+			vectorTool = tool
+			break
+		}
+	}
+	if vectorTool == nil {
+		t.Fatal("vector tool missing")
+	}
+	for _, op := range []string{"draw", "update", "read", "export", "delete", "list"} {
+		if !strings.Contains(vectorTool.Description, "op="+op) {
+			t.Errorf("vector description is missing op %q", op)
+		}
+	}
+	vectorSchema, ok := vectorTool.InputSchema.(map[string]any)
+	if !ok {
+		t.Fatalf("vector InputSchema is %T", vectorTool.InputSchema)
+	}
+	vectorProps, _ := vectorSchema["properties"].(map[string]any)
+	for _, field := range []string{"objects", "operations", "boardId", "canvas"} {
+		if vectorProps[field] == nil {
+			t.Errorf("vector schema is missing the %q property", field)
+		}
 	}
 	for _, name := range want {
 		if !got[name] {
@@ -113,7 +160,8 @@ func TestPublishedToolSurface(t *testing.T) {
 	}
 
 	// Page ops live on `canvas`; if its description or schema loses them the
-	// surface still lists 12 tools but agents can no longer find the page path.
+	// surface still lists the right number of tools but agents can no longer find
+	// the page path.
 	var canvasTool *sdkmcp.Tool
 	for _, tool := range res.Tools {
 		if tool.Name == "canvas" {

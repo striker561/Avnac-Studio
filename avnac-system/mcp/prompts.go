@@ -41,6 +41,7 @@ const designTools = "Tools: `get_canvas_summary` to read the canvas and its page
 	"`canvas` op=add-page (name) to draft/test/vary inside the open project, `canvas` ops go-page/rename-page/delete-page to manage pages, " +
 	"`elements` op=render to compose in one batch, `elements` op=measure to check text fit before drawing, " +
 	"`elements` op=modify and `arrange` ops align/group to fix, " +
+	"`vector` op=draw for original path artwork (logo mark, icon, character, pattern) and `vector` op=update to refine it by id, " +
 	"`get_canvas_image` to look at the result, `assets` op=unsplash for photography (credit the photographer, and pass `fit: \"cover\"`), " +
 	"`assets` ops fonts/stickers when you need the available set."
 
@@ -61,7 +62,7 @@ const verifyGate = "## Before you report\n\n" +
 	"Confirm `get_canvas_summary` names the page you meant to edit; if you are on a draft/test page, return to the real page " +
 	"with `canvas` op=go-page. Call `get_canvas_image` and compare the render to the brief item by item: required copy present and spelled " +
 	"correctly, dimensions, hierarchy, palette, style, and no unintended placeholder text. Fix what mismatches with " +
-	"`elements` op=modify, look again, then report an honest pass/fail per requirement. Flag any content you invented."
+	"`elements` op=modify (or `vector` op=update for a vector drawing), look again, then report an honest pass/fail per requirement. Flag any content you invented."
 
 // fallbackWorkflow is used only if the embedded library fails to load. It keeps
 // the prompt useful instead of empty; the server logs the load failure.

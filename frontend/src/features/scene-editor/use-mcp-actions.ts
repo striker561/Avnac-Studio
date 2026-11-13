@@ -33,7 +33,10 @@ import {
   buildFitToArtboardCommands,
   buildModifyElementsCommands,
   buildRenderElementsCommands,
+  buildVectorPlaceCommands,
+  buildVectorUpdateCommand,
   type TextMeasureRequest,
+  type VectorPlacePayload,
 } from "@/lib/mcp/commands";
 import {
   getSharedTextMeasure,
@@ -214,6 +217,12 @@ export async function handleMCPAction(
         return await exportImage(payload ?? {}, requestId);
       case "get_font_list":
         return await getFontList(requestId);
+      case "vector_draw":
+        return await vectorDraw(payload ?? {}, requestId);
+      case "vector_update":
+        return await vectorUpdate(payload ?? {}, requestId);
+      case "vector_delete":
+        return await vectorDelete(payload ?? {}, requestId);
       default:
         respondError(requestId, `Unknown action '${action}'`);
     }
@@ -1393,6 +1402,81 @@ async function exportImage(
   } catch (err: unknown) {
     respondError(requestId, (err as Error)?.message || "Export failed");
   }
+}
+
+// ─── vector drawing ──────────────────────────────────────────────────────────
+
+/**
+ * Place a drawing produced by the Go vector tool. The tool has already resolved
+ * the IR to SVG; this handler only inserts the image node and reports its id so
+ * later vector op=update calls can target it.
+ */
+async function vectorDraw(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const scene = await requireScene(requestId);
+  if (!scene) return;
+  const built = buildVectorPlaceCommands(scene, payload as VectorPlacePayload);
+  if ("error" in built) {
+    respondError(requestId, built.error);
+    return;
+  }
+  const store = useSceneEditorStore.getState();
+  store.applyCommands(built.commands);
+  store.setSelectedIds([built.created.id]);
+  respond(requestId, {
+    success: true,
+    objectId: built.created.id,
+    bounds: built.created.bounds,
+    message: `Placed ${built.created.name}`,
+  });
+}
+
+async function vectorUpdate(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const scene = await requireScene(requestId);
+  if (!scene) return;
+  const objectId = typeof payload?.objectId === "string" ? payload.objectId : "";
+  if (!objectId) {
+    respondError(requestId, "vector_update needs objectId");
+    return;
+  }
+  const built = buildVectorUpdateCommand(scene, objectId, {
+    src: String(payload?.src ?? ""),
+    name: typeof payload?.name === "string" ? payload.name : undefined,
+  });
+  if ("error" in built) {
+    respondError(requestId, built.error);
+    return;
+  }
+  useSceneEditorStore.getState().applyCommands([built.command]);
+  respond(requestId, { success: true, objectId });
+}
+
+async function vectorDelete(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const scene = await requireScene(requestId);
+  if (!scene) return;
+  const objectId = typeof payload?.objectId === "string" ? payload.objectId : "";
+  if (!objectId) {
+    respondError(requestId, "vector_delete needs objectId");
+    return;
+  }
+  if (!scene.nodes[objectId]) {
+    // The element may already have been removed by hand; forgetting the board
+    // is still the right outcome, so report success rather than an error.
+    respond(requestId, { success: true, objectId, deleted: false });
+    return;
+  }
+  const store = useSceneEditorStore.getState();
+  store.applyCommands([{ type: "DELETE_NODE", id: objectId }]);
+  store.setSelectedIds(store.selectedIds.filter((id) => id !== objectId));
+  respond(requestId, { success: true, objectId, deleted: true });
 }
 
 // ─── React wiring ─────────────────────────────────────────────────────────────

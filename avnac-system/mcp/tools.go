@@ -2100,6 +2100,8 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 	}
 
 	m.registerGroupedTools(legacy)
+	m.registerVectorTool(wailsCtx)
+	m.registerGuideTool()
 }
 
 // toolHandler is the decoded handler shape the op dispatcher calls. Every tool
@@ -2161,7 +2163,11 @@ func opDispatcher(group string, ops map[string]string, legacy map[string]toolHan
 			}
 			args[k] = v
 		}
-		return handler(ctx, req, args)
+		res, data, err := handler(ctx, req, args)
+		if err == nil && guideActions[action] {
+			attachGuide(data, args)
+		}
+		return res, data, err
 	}
 }
 

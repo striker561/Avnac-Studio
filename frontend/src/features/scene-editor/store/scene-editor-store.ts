@@ -9,7 +9,10 @@ import {
   buildMultiPageDocument,
   clampPageIndex,
   createEmptyPage,
+  normalizePageName,
+  normalizePageNames,
   parseAvnacImport,
+  pageDisplayName,
 } from "@/lib/avnac-multi-page-document";
 import type { EditorSidebarPanelId } from "@/components/editor/sidebar/editor-floating-sidebar";
 import {
@@ -128,6 +131,8 @@ type SceneEditorState = {
   };
   /** All pages in the document (Avnac-serialized, one per slot). */
   pages: AvnacDocumentV1[];
+  /** User-facing name per page; index-aligned with `pages`. Empty = "Page N". */
+  pageNames: string[];
   /** Index of the currently active page. */
   currentPage: number;
 };
@@ -206,9 +211,13 @@ type SceneEditorActions = {
   setPolygonSides: (id: string, sides: number, star?: boolean) => void;
   /** Navigate to a page by index. */
   goToPage: (index: number) => Promise<void>;
-  /** Add a blank page after the current page. */
-  addPage: () => Promise<void>;
-  /** Delete the current page (no-op if only one page). */
+  /** Add a blank page after the current page and switch to it. */
+  addPage: (name?: string) => Promise<void>;
+  /** Rename a page. Empty names fall back to "Page N". */
+  renamePage: (index: number, name: string) => Promise<void>;
+  /** Delete a page by index without a confirmation prompt. */
+  deletePageAt: (index: number) => Promise<boolean>;
+  /** Delete the current page after confirmation (no-op if only one page). */
   deletePage: () => Promise<void>;
   /** Import a page from a file and insert it after the current page. */
   importPage: (file: File) => Promise<void>;
@@ -282,6 +291,7 @@ const INITIAL: SceneEditorState = {
     commandsRepainted: 0,
   },
   pages: [],
+  pageNames: [],
   currentPage: 0,
 };
 
@@ -310,6 +320,7 @@ function scheduleAutosave(
   documentId: string,
   scene: SaraswatiScene,
   pages: AvnacDocumentV1[],
+  pageNames: string[],
   currentPage: number,
   set: (partial: Partial<SceneEditorState>) => void,
 ): void {
@@ -330,13 +341,16 @@ function scheduleAutosave(
       hasPendingChanges: true,
     });
     void Promise.all([
-      saveStoredPages(documentId, updatedPages, currentPage),
+      saveStoredPages(documentId, updatedPages, currentPage, pageNames),
       idbPutDocument(documentId, doc),
     ])
       .then(() => {
         if (requestId !== latestAutosaveRequestId) return;
         set({
           baseDocument: doc,
+          // Keep the in-memory page list in step with what was just written;
+          // summaries, exports and page history read this array.
+          pages: updatedPages,
           hasPendingChanges: false,
           saveState: "saved",
           saveError: null,
@@ -373,6 +387,7 @@ function resetSceneEngineBinding() {
 async function applyPageTransition(
   nextPages: AvnacDocumentV1[],
   nextCurrentPage: number,
+  nextPageNames: string[],
   documentId: string,
   trackHistory: boolean,
   set: (partial: Partial<SceneEditorState>) => void,
@@ -389,6 +404,7 @@ async function applyPageTransition(
 
   const targetDoc = nextPages[nextCurrentPage];
   if (!targetDoc) return;
+  const safePageNames = normalizePageNames(nextPageNames, nextPages.length);
 
   const { result: adapted, diagnostics } =
     fromAvnacDocumentWithDiagnostics(targetDoc);
@@ -415,16 +431,21 @@ async function applyPageTransition(
   if (trackHistory) {
     pageHistoryRef = pushPageHistory(
       pageHistoryRef,
-      { pages: nextPages, currentPage: nextCurrentPage },
+      {
+        pages: nextPages,
+        pageNames: safePageNames,
+        currentPage: nextCurrentPage,
+      },
       clonePageDoc,
       PAGE_HISTORY_LIMIT,
     );
   }
 
-  void saveStoredPages(documentId, nextPages, nextCurrentPage);
+  void saveStoredPages(documentId, nextPages, nextCurrentPage, safePageNames);
 
   set({
     pages: nextPages,
+    pageNames: safePageNames,
     currentPage: nextCurrentPage,
     scene: sceneEngineStore.getState().scene,
     canUndo: sceneEngineStore.getState().canUndo,
@@ -515,7 +536,11 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
         },
       );
       pageHistoryRef = createPageHistory<AvnacDocumentV1>(
-        { currentPage: stored.currentPage, pages: stored.pages },
+        {
+          currentPage: stored.currentPage,
+          pageNames: stored.pageNames,
+          pages: stored.pages,
+        },
         clonePageDoc,
       );
       set({
@@ -523,6 +548,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
         documentName: docName,
         baseDocument: activePage,
         pages: stored.pages,
+        pageNames: stored.pageNames,
         currentPage: stored.currentPage,
         scene: sceneEngineStore.getState().scene,
         adapterIssueCount: issues.length,
@@ -577,6 +603,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
         documentId,
         engineState.scene,
         get().pages,
+        get().pageNames,
         get().currentPage,
         set,
       );
@@ -608,6 +635,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
         documentId,
         engineState.scene,
         get().pages,
+        get().pageNames,
         get().currentPage,
         set,
       );
@@ -647,7 +675,8 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
   undo: () => {
     closeHistoryBatches();
-    const { canUndo: engineCanUndo, documentId, pages, currentPage } = get();
+    const { canUndo: engineCanUndo, documentId, pages, pageNames, currentPage } =
+      get();
     if (sceneEngineStore && engineCanUndo) {
       sceneEngineStore.undo();
       const engineState = sceneEngineStore.getState();
@@ -665,6 +694,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
           documentId,
           engineState.scene,
           pages,
+          pageNames,
           currentPage,
           set,
         );
@@ -678,6 +708,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     void applyPageTransition(
       prevPageState.pages,
       prevPageState.currentPage,
+      prevPageState.pageNames,
       documentId,
       false,
       set,
@@ -686,7 +717,8 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
   redo: () => {
     closeHistoryBatches();
-    const { canRedo: engineCanRedo, documentId, pages, currentPage } = get();
+    const { canRedo: engineCanRedo, documentId, pages, pageNames, currentPage } =
+      get();
     if (sceneEngineStore && engineCanRedo) {
       sceneEngineStore.redo();
       const engineState = sceneEngineStore.getState();
@@ -704,6 +736,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
           documentId,
           engineState.scene,
           pages,
+          pageNames,
           currentPage,
           set,
         );
@@ -717,6 +750,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     void applyPageTransition(
       nextPageState.pages,
       nextPageState.currentPage,
+      nextPageState.pageNames,
       documentId,
       false,
       set,
@@ -805,7 +839,8 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
   save: async () => {
     closeHistoryBatches();
-    const { documentId, scene, baseDocument, pages, currentPage } = get();
+    const { documentId, scene, baseDocument, pages, pageNames, currentPage } =
+      get();
     if (!documentId) return;
     const docToSave = scene ? toAvnacDocument(scene) : baseDocument;
     if (!docToSave) return;
@@ -821,10 +856,11 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     try {
       await Promise.all([
         idbPutDocument(documentId, docToSave),
-        saveStoredPages(documentId, updatedPages, currentPage),
+        saveStoredPages(documentId, updatedPages, currentPage, pageNames),
       ]);
       set({
         baseDocument: docToSave,
+        pages: updatedPages,
         hasPendingChanges: false,
         saveState: "saved",
         saveError: null,
@@ -840,7 +876,8 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
   flushAutosaveNow: async () => {
     closeHistoryBatches();
-    const { documentId, scene, baseDocument, pages, currentPage } = get();
+    const { documentId, scene, baseDocument, pages, pageNames, currentPage } =
+      get();
     if (!documentId) return;
     const docToSave = scene ? toAvnacDocument(scene) : baseDocument;
     if (!docToSave) return;
@@ -856,10 +893,11 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     try {
       await Promise.all([
         idbPutDocument(documentId, docToSave),
-        saveStoredPages(documentId, updatedPages, currentPage),
+        saveStoredPages(documentId, updatedPages, currentPage, pageNames),
       ]);
       set({
         baseDocument: docToSave,
+        pages: updatedPages,
         hasPendingChanges: false,
         saveState: "saved",
         saveError: null,
@@ -908,7 +946,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
   },
 
   goToPage: async (index: number) => {
-    const { pages, currentPage, documentId, scene } = get();
+    const { pages, pageNames, currentPage, documentId, scene } = get();
     if (!documentId || pages.length === 0) return;
     const targetIndex = clampPageIndex(pages.length, index);
     if (targetIndex === currentPage) return;
@@ -916,27 +954,123 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     const updatedPages = pages.map((p, i) =>
       i === currentPage ? currentDoc : p,
     );
-    await applyPageTransition(updatedPages, targetIndex, documentId, true, set);
+    await applyPageTransition(
+      updatedPages,
+      targetIndex,
+      pageNames,
+      documentId,
+      true,
+      set,
+    );
   },
 
-  addPage: async () => {
-    const { pages, currentPage, documentId, scene } = get();
+  addPage: async (name = "") => {
+    const { pages, pageNames, currentPage, documentId, scene } = get();
     if (!documentId) return;
     const currentDoc = scene ? toAvnacDocument(scene) : pages[currentPage]!;
     const updatedPages = pages.map((p, i) =>
       i === currentPage ? currentDoc : p,
     );
     const { nextState } = buildAddPageResult(
-      { currentPage, pages: updatedPages },
+      { currentPage, pageNames, pages: updatedPages },
       currentDoc,
+      name,
     );
     await applyPageTransition(
       nextState.pages,
       nextState.currentPage,
+      nextState.pageNames,
       documentId,
       true,
       set,
     );
+  },
+
+  renamePage: async (index: number, name: string) => {
+    const { pages, pageNames, currentPage, documentId, scene } = get();
+    if (!documentId || pages.length === 0) return;
+    const targetIndex = clampPageIndex(pages.length, index);
+    const currentDoc = scene ? toAvnacDocument(scene) : pages[currentPage]!;
+    const updatedPages = pages.map((page, pageIndex) =>
+      pageIndex === currentPage ? currentDoc : page,
+    );
+    const nextPageNames = pages.map((_, pageIndex) =>
+      pageIndex === targetIndex
+        ? normalizePageName(name)
+        : (pageNames[pageIndex] ?? ""),
+    );
+    // A pending autosave captured the old pageNames. If it fired after this
+    // save it would write the old name back; cancel it before persisting.
+    latestAutosaveRequestId += 1;
+    if (autosaveTimer !== null) {
+      clearTimeout(autosaveTimer);
+      autosaveTimer = null;
+    }
+    set({ pages: updatedPages, pageNames: nextPageNames });
+    await saveStoredPages(
+      documentId,
+      updatedPages,
+      currentPage,
+      nextPageNames,
+    );
+  },
+
+  deletePageAt: async (index: number) => {
+    const { pages, pageNames, currentPage, documentId, scene } = get();
+    if (!documentId || pages.length <= 1) return false;
+    const targetIndex = clampPageIndex(pages.length, index);
+    const currentDoc = scene ? toAvnacDocument(scene) : pages[currentPage]!;
+    const updatedPages = pages.map((p, i) =>
+      i === currentPage ? currentDoc : p,
+    );
+    const { nextState } = buildDeletePageResult(
+      { currentPage, pageNames, pages: updatedPages },
+      targetIndex,
+    );
+    if (targetIndex !== currentPage) {
+      // Deleting a background page must not reload the active page and throw
+      // away the live scene, selection or undo stack. Cancel a pending
+      // autosave so it cannot write the pre-delete page list back.
+      latestAutosaveRequestId += 1;
+      if (autosaveTimer !== null) {
+        clearTimeout(autosaveTimer);
+        autosaveTimer = null;
+      }
+      set({
+        pages: nextState.pages,
+        pageNames: nextState.pageNames,
+        currentPage: nextState.currentPage,
+        baseDocument: currentDoc,
+        hasPendingChanges: true,
+        saveState: "dirty",
+      });
+      pageHistoryRef = pushPageHistory(
+        pageHistoryRef,
+        {
+          pages: nextState.pages,
+          pageNames: nextState.pageNames,
+          currentPage: nextState.currentPage,
+        },
+        clonePageDoc,
+        PAGE_HISTORY_LIMIT,
+      );
+      await saveStoredPages(
+        documentId,
+        nextState.pages,
+        nextState.currentPage,
+        nextState.pageNames,
+      );
+      return true;
+    }
+    await applyPageTransition(
+      nextState.pages,
+      nextState.currentPage,
+      nextState.pageNames,
+      documentId,
+      true,
+      set,
+    );
+    return true;
   },
 
   deletePage: async () => {
@@ -947,18 +1081,11 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
       "Delete this page? This cannot be undone.",
     ).catch(() => false);
     if (!confirmed) return;
-    const { nextState } = buildDeletePageResult({ currentPage, pages });
-    await applyPageTransition(
-      nextState.pages,
-      nextState.currentPage,
-      documentId,
-      true,
-      set,
-    );
+    await get().deletePageAt(currentPage);
   },
 
   importPage: async (file: File) => {
-    const { pages, currentPage, documentId, scene } = get();
+    const { pages, pageNames, currentPage, documentId, scene } = get();
     if (!documentId) return;
     let raw: unknown;
     try {
@@ -968,27 +1095,39 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     }
     const imported = parseAvnacImport(raw);
     if (!imported) return;
+    const importedIndex =
+      imported.kind === "multi"
+        ? clampPageIndex(
+            imported.document.pages.length,
+            imported.document.currentPage,
+          )
+        : 0;
     const importedDoc =
       imported.kind === "single"
         ? imported.document
-        : imported.document.pages[
-            clampPageIndex(
-              imported.document.pages.length,
-              imported.document.currentPage,
-            )
-          ];
+        : imported.document.pages[importedIndex];
     if (!importedDoc) return;
+    const importedName =
+      imported.kind === "multi"
+        ? pageDisplayName(imported.document.pageNames, importedIndex)
+        : file.name
+            .replace(/\.(workspace|page)\.avnac$/i, "")
+            .replace(/\.avnac$/i, "")
+            .replace(/\.json$/i, "")
+            .trim();
     const currentDoc = scene ? toAvnacDocument(scene) : pages[currentPage]!;
     const updatedPages = pages.map((p, i) =>
       i === currentPage ? currentDoc : p,
     );
     const { nextState } = buildInsertImportedPageResult(
-      { currentPage, pages: updatedPages },
+      { currentPage, pageNames, pages: updatedPages },
       importedDoc,
+      importedName,
     );
     await applyPageTransition(
       nextState.pages,
       nextState.currentPage,
+      nextState.pageNames,
       documentId,
       true,
       set,
@@ -1011,23 +1150,44 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
       imported.kind === "multi" ? imported.document.pages : [imported.document];
     const newCurrentPage =
       imported.kind === "multi" ? imported.document.currentPage : 0;
+    const newPageNames =
+      imported.kind === "multi"
+        ? imported.document.pageNames
+        : [
+            file.name
+              .replace(/\.(workspace|page)\.avnac$/i, "")
+              .replace(/\.avnac$/i, "")
+              .replace(/\.json$/i, "")
+              .trim(),
+          ];
     // Full workspace replace — reset page history.
     pageHistoryRef = null;
-    await applyPageTransition(newPages, newCurrentPage, documentId, false, set);
+    await applyPageTransition(
+      newPages,
+      newCurrentPage,
+      newPageNames,
+      documentId,
+      false,
+      set,
+    );
     pageHistoryRef = createPageHistory<AvnacDocumentV1>(
-      { pages: newPages, currentPage: newCurrentPage },
+      {
+        pages: newPages,
+        pageNames: newPageNames,
+        currentPage: newCurrentPage,
+      },
       clonePageDoc,
     );
   },
 
   exportWorkspace: async () => {
-    const { pages, currentPage, documentName, scene } = get();
+    const { pages, pageNames, currentPage, documentName, scene } = get();
     const currentDoc = scene ? toAvnacDocument(scene) : pages[currentPage];
     if (!currentDoc) return;
     const allPages = pages.map((p, i) => (i === currentPage ? currentDoc : p));
     await exportJsonFile(
       `${safeAvnacFileBaseName(documentName)}.workspace.avnac`,
-      buildMultiPageDocument(allPages, currentPage),
+      buildMultiPageDocument(allPages, currentPage, pageNames),
     );
   },
 

@@ -52,6 +52,7 @@ import BottomFloatingToolbar from "./tools/bottom-floating-toolbar";
 import SceneSelectionBar from "./tools/scene-selection-bar";
 import { useLayerPanelTools } from "./tools/use-layer-panel-tools";
 import { useSceneEditorAiController } from "./use-scene-editor-ai-controller";
+import { pageDisplayName } from "@/lib/avnac-multi-page-document";
 import { useSceneEditorStore } from "./store";
 
 // ─── Toolbar presentation ───────────────────────────────────────────────────────────────────
@@ -115,10 +116,11 @@ function _actionChevronClass(open: boolean): string {
 function _buildPageTabs(
   pageCount: number,
   currentPage: number,
+  pageNames: readonly string[],
 ): { index: number; label: string; active: boolean }[] {
   return Array.from({ length: pageCount }, (_, i) => ({
     index: i,
-    label: `Page ${i + 1}`,
+    label: pageDisplayName(pageNames, i),
     active: i === currentPage,
   }));
 }
@@ -150,9 +152,11 @@ export default function SceneEditorPage({ documentId }: Props) {
   const setSidebarPanel = useSceneEditorStore((s) => s.setSidebarPanel);
   const insertVectorBoard = useSceneEditorStore((s) => s.insertVectorBoard);
   const pages = useSceneEditorStore((s) => s.pages);
+  const pageNames = useSceneEditorStore((s) => s.pageNames);
   const currentPage = useSceneEditorStore((s) => s.currentPage);
   const goToPage = useSceneEditorStore((s) => s.goToPage);
   const addPage = useSceneEditorStore((s) => s.addPage);
+  const renamePage = useSceneEditorStore((s) => s.renamePage);
   const deletePage = useSceneEditorStore((s) => s.deletePage);
   const importPage = useSceneEditorStore((s) => s.importPage);
   const importWorkspace = useSceneEditorStore((s) => s.importWorkspace);
@@ -172,7 +176,11 @@ export default function SceneEditorPage({ documentId }: Props) {
   const [pngExpanded, setPngExpanded] = useState(false);
   const [pngMult, setPngMult] = useState(2);
   const [pngTransparent, setPngTransparent] = useState(false);
+  const [renamingPage, setRenamingPage] = useState<number | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const skipRenameCommitRef = useRef(false);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const pageTabRailRef = useRef<HTMLDivElement>(null);
   const workspaceInputRef = useRef<HTMLInputElement>(null);
   const pageInputRef = useRef<HTMLInputElement>(null);
 
@@ -181,8 +189,29 @@ export default function SceneEditorPage({ documentId }: Props) {
   const canGoNext = currentPage < pageCount - 1;
   const canDelete = pageCount > 1;
   const pageTabs = useMemo(
-    () => _buildPageTabs(pageCount, currentPage),
-    [pageCount, currentPage],
+    () => _buildPageTabs(pageCount, currentPage, pageNames),
+    [pageCount, currentPage, pageNames],
+  );
+
+  // Keep the active page tab visible when MCP or the keyboard moves pages —
+  // a page the agent is working on must be discoverable in the app chrome.
+  useEffect(() => {
+    const active = pageTabRailRef.current?.querySelector<HTMLElement>(
+      '[data-page-active="true"]',
+    );
+    active?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [currentPage, pageCount]);
+
+  const commitPageRename = useCallback(
+    (index: number, value: string) => {
+      setRenamingPage(null);
+      if (skipRenameCommitRef.current) {
+        skipRenameCommitRef.current = false;
+        return;
+      }
+      void renamePage(index, value);
+    },
+    [renamePage],
   );
 
   // Close actions menu on outside click
@@ -524,22 +553,63 @@ export default function SceneEditorPage({ documentId }: Props) {
                 className={`${_tabRailFadeClass} right-0 rotate-180 rounded-r-full`}
               />
               <div className="overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className={_tabRailClass}>
-                  {pageTabs.map((tab) => (
-                    <button
-                      key={tab.index}
-                      type="button"
-                      className={[
-                        _pageTabButtonClass,
-                        _tabButtonStateClass(tab.active),
-                      ].join(" ")}
-                      onClick={() => void goToPage(tab.index)}
-                      aria-current={tab.active ? "page" : undefined}
-                      title={tab.label}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                <div ref={pageTabRailRef} className={_tabRailClass}>
+                  {pageTabs.map((tab) =>
+                    renamingPage === tab.index ? (
+                      <input
+                        key={`rename-${tab.index}`}
+                        autoFocus
+                        value={renameDraft}
+                        onChange={(event) => setRenameDraft(event.target.value)}
+                        onFocus={(event) => event.currentTarget.select()}
+                        onBlur={(event) =>
+                          commitPageRename(tab.index, event.currentTarget.value)
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                          } else if (event.key === "Escape") {
+                            event.preventDefault();
+                            skipRenameCommitRef.current = true;
+                            setRenamingPage(null);
+                          }
+                        }}
+                        className={[
+                          _pageTabButtonClass,
+                          "w-36 bg-white text-neutral-900 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.14)] outline-none",
+                        ].join(" ")}
+                        aria-label={`Rename page ${tab.index + 1}`}
+                        placeholder={`Page ${tab.index + 1}`}
+                        maxLength={120}
+                        spellCheck={false}
+                      />
+                    ) : (
+                      <button
+                        key={tab.index}
+                        type="button"
+                        className={[
+                          _pageTabButtonClass,
+                          _tabButtonStateClass(tab.active),
+                        ].join(" ")}
+                        onClick={() => void goToPage(tab.index)}
+                        onDoubleClick={() => {
+                          setRenameDraft(
+                            pageNames[tab.index]?.trim() ?? "",
+                          );
+                          skipRenameCommitRef.current = false;
+                          setRenamingPage(tab.index);
+                        }}
+                        aria-current={tab.active ? "page" : undefined}
+                        data-page-active={tab.active ? "true" : undefined}
+                        title={`${tab.label} — double-click to rename`}
+                      >
+                        <span className="max-w-[180px] truncate">
+                          {tab.label}
+                        </span>
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             </div>

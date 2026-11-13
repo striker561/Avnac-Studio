@@ -1,5 +1,6 @@
 export type IndexedPagesState<TDoc> = {
   currentPage: number;
+  pageNames: string[];
   pages: TDoc[];
 };
 
@@ -19,6 +20,7 @@ export function cloneIndexedPagesState<TDoc>(
 ): IndexedPagesState<TDoc> {
   return {
     currentPage: state.currentPage,
+    pageNames: [...state.pageNames],
     pages: state.pages.map((page) => cloneDoc(page)),
   };
 }

@@ -13,6 +13,8 @@ Tests are arranged by **unit** (pure logic, fast) and **features** (cross-module
 | Scene editor store | `frontend/src/features/scene-editor/store/` | `frontend/tests/unit/scene-editor/` |
 | Page lifecycle + naming | `frontend/src/lib/avnac-multi-page-document.ts`, `store/paging/` | `frontend/tests/unit/scene-editor/page-recipes.test.ts`, `frontend/tests/unit/storage/` |
 | MCP page targeting | `frontend/src/lib/mcp/pages.ts` | `frontend/tests/unit/mcp/pages.test.ts` |
+| Vector board engine (v3) | `frontend/src/lib/avnac-vector/` | `frontend/tests/unit/vector/`, `frontend/tests/features/vector/` |
+| Vector board editor UI | `frontend/src/components/editor/vector-boards/` | `frontend/tests/e2e/vector-board.e2e.ts` |
 | MCP server instructions/tools | `avnac-system/mcp/` | `avnac-system/mcp/*_test.go` |
 | Multi-page persistence | `frontend/src/lib/avnac-multi-page-storage.ts` | `frontend/tests/unit/storage/`, `frontend/tests/features/storage/` |
 | Remove background UI | `frontend/src/lib/use-remove-bg.ts` | `frontend/tests/unit/rembg/` |
@@ -33,6 +35,9 @@ frontend/tests/
   features/
     storage/                        # multi-MiB workspace envelopes + Wails mocks
     saraswati/                      # render command + drag-frame budgets
+    vector/                         # vector engine perf budgets
+  e2e/
+    vector-board.e2e.ts             # Wails-browser Playwright suite
 ```
 
 ## Commands
@@ -45,6 +50,10 @@ cd frontend && npm run test
 # Split suites (matches CI)
 cd frontend && npm run test:unit
 cd frontend && npm run test:features
+
+# End-to-end (needs the Wails browser dev server)
+wails dev -browser
+cd frontend && npm run test:e2e
 ```
 
 ## CI gates

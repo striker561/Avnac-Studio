@@ -5,6 +5,9 @@ dist/*
 dist-ssr
 *.local
 .env
+test-results/
+playwright-report/
+blob-report/
 .nitro
 .tanstack
 .wrangler

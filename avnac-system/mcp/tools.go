@@ -1276,6 +1276,9 @@ func decodeDeletePageInput(raw map[string]any) map[string]any {
 }
 
 func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
+	// Settings probes the editor through this context, so keep it: the settings
+	// route has no MCP request to borrow one from.
+	setEmitContext(m, wailsCtx)
 	// Every handler keeps its body and its frontend action name; only the
 	// published surface changes. Legacy names are collected here so the grouped
 	// tools (canvas, elements, arrange, files, assets, export) can dispatch to
@@ -2363,6 +2366,9 @@ func (m *AvnacMCP) addOpTool(
 	tool *mcp.Tool,
 	ops map[string]string,
 ) {
+	// The op → action table is only authoritative here, so record it for the
+	// settings panel while the dispatcher is built from the same map.
+	m.recordToolOps(tool.Name, ops)
 	handler := opDispatcher(tool.Name, ops, legacy)
 	mcp.AddTool(m.server, tool, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
 		return handler(ctx, req, raw)

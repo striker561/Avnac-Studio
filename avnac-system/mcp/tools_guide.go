@@ -41,6 +41,7 @@ var guideActions = map[string]bool{
 // dispatcher, because it is registered directly.
 
 func (m *AvnacMCP) registerGuideTool() {
+	m.recordToolOps("guide", map[string]string{"task": ""})
 	mcp.AddTool(m.server, &mcp.Tool{
 		Name: "guide",
 		Description: "Route a design task to Avnac's knowledge library and return the workflow and rules to read before composing. " +

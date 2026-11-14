@@ -67,6 +67,13 @@ type AvnacMCP struct {
 	// the real MCP protocol without a Wails runtime.
 	emitFn func(ctx context.Context, action string, payload any, timeout time.Duration) (any, error)
 
+	// surfaceMu guards the op table recorded at registration and the window
+	// context captured with it, so Settings can list the tool surface and probe
+	// the editor without an MCP request of its own.
+	surfaceMu  sync.Mutex
+	surfaceOps map[string][]ToolSurfaceOp
+	wailsCtx   context.Context
+
 	// vectorBoards holds the vector IRs created through the vector tool, keyed
 	// by board id. They are session state on purpose: the placed SVG is the
 	// durable artifact, while the IR supports conversational edits ("make the
@@ -158,6 +165,7 @@ func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, s
 		vectorBoards:     make(map[string]*vector.Board),
 		vectorPlacements: make(map[string]map[string]any),
 		vectorPlaced:     make(map[string]bool),
+		surfaceOps:       make(map[string][]ToolSurfaceOp),
 		instructions:     instructions,
 		Unsplash:         unsplash,
 		Secrets:          secrets,

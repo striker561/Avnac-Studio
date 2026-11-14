@@ -29,6 +29,7 @@ import (
 const vectorOpsHelp = "draw, update, read, export, delete, list, status, recover"
 
 func (m *AvnacMCP) registerVectorTool(wailsCtx context.Context) {
+	m.recordVectorOps()
 	mcp.AddTool(m.server, &mcp.Tool{
 		Name: "vector",
 		Description: "Draw and edit original vector artwork as editable cubic paths. " +

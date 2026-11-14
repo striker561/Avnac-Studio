@@ -200,6 +200,40 @@ export namespace avnacserver {
 
 export namespace mcp {
 	
+	export class ClientCheckReport {
+	    answered: boolean;
+	    clientId?: string;
+	    actionHandlerId?: string;
+	    revision: number;
+	    document?: string;
+	    actions: string[];
+	    missing: string[];
+	    expected: string[];
+	    latencyMs: number;
+	    stale: boolean;
+	    message: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ClientCheckReport(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.answered = source["answered"];
+	        this.clientId = source["clientId"];
+	        this.actionHandlerId = source["actionHandlerId"];
+	        this.revision = source["revision"];
+	        this.document = source["document"];
+	        this.actions = source["actions"];
+	        this.missing = source["missing"];
+	        this.expected = source["expected"];
+	        this.latencyMs = source["latencyMs"];
+	        this.stale = source["stale"];
+	        this.message = source["message"];
+	        this.error = source["error"];
+	    }
+	}
 	export class HTTPOptions {
 	    Port: number;
 	    Token: string;
@@ -235,6 +269,98 @@ export namespace mcp {
 	        this.sse_url = source["sse_url"];
 	        this.error = source["error"];
 	    }
+	}
+	export class ToolSurfaceOp {
+	    op: string;
+	    action?: string;
+	    client: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolSurfaceOp(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.op = source["op"];
+	        this.action = source["action"];
+	        this.client = source["client"];
+	    }
+	}
+	export class ToolSurfaceTool {
+	    name: string;
+	    description: string;
+	    ops?: ToolSurfaceOp[];
+	    action?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolSurfaceTool(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.ops = this.convertValues(source["ops"], ToolSurfaceOp);
+	        this.action = source["action"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ToolSurfaceReport {
+	    tools: ToolSurfaceTool[];
+	    toolCount: number;
+	    opCount: number;
+	    generatedAt: string;
+	    fingerprint: string;
+	    clientActions: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolSurfaceReport(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.tools = this.convertValues(source["tools"], ToolSurfaceTool);
+	        this.toolCount = source["toolCount"];
+	        this.opCount = source["opCount"];
+	        this.generatedAt = source["generatedAt"];
+	        this.fingerprint = source["fingerprint"];
+	        this.clientActions = source["clientActions"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

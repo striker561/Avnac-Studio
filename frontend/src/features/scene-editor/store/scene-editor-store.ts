@@ -77,9 +77,22 @@ import {
   type SceneEditorInsertContext,
 } from "./insert-store";
 
+let revisionCounter = 0;
+const nextRevision = () => ++revisionCounter;
+
+/** Session snapshot used by canvas op=snapshot / op=restore. */
+export type SceneSnapshot = {
+  pages: AvnacDocumentV1[];
+  pageNames: string[];
+  currentPage: number;
+  revision: number;
+};
+
 type SceneEditorState = {
   documentId: string | null;
   documentName: string;
+  /** Monotonic document revision, bumped only when visible state changes. */
+  revision: number;
   /** Latest serializer snapshot corresponding to scene state. */
   baseDocument: AvnacDocumentV1 | null;
   /** Live scene — updated by every applied command. */
@@ -212,7 +225,10 @@ type SceneEditorActions = {
   /** Navigate to a page by index. */
   goToPage: (index: number) => Promise<void>;
   /** Add a blank page after the current page and switch to it. */
-  addPage: (name?: string) => Promise<void>;
+  addPage: (
+    name?: string,
+    options?: { width?: number; height?: number; backgroundColor?: string },
+  ) => Promise<void>;
   /** Rename a page. Empty names fall back to "Page N". */
   renamePage: (index: number, name: string) => Promise<void>;
   /** Delete a page by index without a confirmation prompt. */
@@ -233,6 +249,10 @@ type SceneEditorActions = {
   setDocumentName: (name: string) => void;
   /** Persist the current documentName to IDB. */
   commitDocumentName: () => Promise<void>;
+  /** Capture all pages and the live page for canvas op=snapshot. */
+  captureSnapshot: () => SceneSnapshot | null;
+  /** Replace all pages from a captured snapshot. Returns false when invalid. */
+  restoreSnapshot: (snapshot: SceneSnapshot) => Promise<boolean>;
   /** Persist the current scene snapshot back to IDB via serializer. */
   save: () => Promise<void>;
   flushAutosaveNow: () => Promise<void>;
@@ -252,6 +272,7 @@ setSaraswatiInteractionScale(initialSnapIntensity);
 const INITIAL: SceneEditorState = {
   documentId: null,
   documentName: "Untitled",
+  revision: 0,
   baseDocument: null,
   scene: null,
   adapterIssueCount: 0,
@@ -447,6 +468,7 @@ async function applyPageTransition(
     pages: nextPages,
     pageNames: safePageNames,
     currentPage: nextCurrentPage,
+    revision: nextRevision(),
     scene: sceneEngineStore.getState().scene,
     canUndo: sceneEngineStore.getState().canUndo,
     canRedo: sceneEngineStore.getState().canRedo,
@@ -478,6 +500,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
   load: async (id: string, opts?: { w?: number; h?: number; name?: string }) => {
     const snapIntensity = get().snapIntensity;
+    revisionCounter = 0;
     set({ ...INITIAL, snapIntensity, isLoading: true, documentId: id });
     resetSceneEngineBinding();
     pageHistoryRef = null;
@@ -546,6 +569,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
       set({
         isLoading: false,
         documentName: docName,
+        revision: nextRevision(),
         baseDocument: activePage,
         pages: stored.pages,
         pageNames: stored.pageNames,
@@ -572,6 +596,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
 
   applyCommands: (commands: SaraswatiCommand[]) => {
     if (!sceneEngineStore || commands.length === 0) return;
+    const beforeScene = get().scene;
     for (const cmd of commands) {
       sceneEngineStore.dispatch(cmd);
     }
@@ -593,6 +618,9 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
       scene: engineState.scene,
       canUndo: engineState.canUndo,
       canRedo: engineState.canRedo,
+      ...(engineState.scene !== beforeScene
+        ? { revision: nextRevision() }
+        : {}),
     };
     if (openHistoryBatchDepth === 0) {
       patch.baseDocument = toAvnacDocument(engineState.scene);
@@ -678,6 +706,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     const { canUndo: engineCanUndo, documentId, pages, pageNames, currentPage } =
       get();
     if (sceneEngineStore && engineCanUndo) {
+      const beforeScene = get().scene;
       sceneEngineStore.undo();
       const engineState = sceneEngineStore.getState();
       set({
@@ -688,6 +717,9 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
         hasPendingChanges: true,
         saveState: "dirty",
         saveError: null,
+        ...(engineState.scene !== beforeScene
+          ? { revision: nextRevision() }
+          : {}),
       });
       if (documentId)
         scheduleAutosave(
@@ -720,6 +752,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     const { canRedo: engineCanRedo, documentId, pages, pageNames, currentPage } =
       get();
     if (sceneEngineStore && engineCanRedo) {
+      const beforeScene = get().scene;
       sceneEngineStore.redo();
       const engineState = sceneEngineStore.getState();
       set({
@@ -730,6 +763,9 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
         hasPendingChanges: true,
         saveState: "dirty",
         saveError: null,
+        ...(engineState.scene !== beforeScene
+          ? { revision: nextRevision() }
+          : {}),
       });
       if (documentId)
         scheduleAutosave(
@@ -837,6 +873,39 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     get().applyCommands([{ type: "SET_POLYGON_SIDES", id, sides, star }]);
   },
 
+  captureSnapshot: () => {
+    const { documentId, scene, pages, pageNames, currentPage } = get();
+    if (!documentId) return null;
+    const currentDoc = scene ? toAvnacDocument(scene) : pages[currentPage];
+    if (!currentDoc) return null;
+    const updatedPages = pages.map((page, index) =>
+      index === currentPage ? currentDoc : page,
+    );
+    return {
+      pages: updatedPages.map(clonePageDoc),
+      pageNames: normalizePageNames(pageNames, updatedPages.length),
+      currentPage: clampPageIndex(updatedPages.length, currentPage),
+      revision: get().revision,
+    };
+  },
+
+  restoreSnapshot: async (snapshot: SceneSnapshot) => {
+    const { documentId } = get();
+    if (!documentId || !snapshot || snapshot.pages.length === 0) return false;
+    const pages = snapshot.pages.map(clonePageDoc);
+    const currentPage = clampPageIndex(pages.length, snapshot.currentPage);
+    const pageNames = normalizePageNames(snapshot.pageNames, pages.length);
+    await applyPageTransition(
+      pages,
+      currentPage,
+      pageNames,
+      documentId,
+      true,
+      set,
+    );
+    return true;
+  },
+
   save: async () => {
     closeHistoryBatches();
     const { documentId, scene, baseDocument, pages, pageNames, currentPage } =
@@ -937,6 +1006,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
   reset: () => {
     resetSceneEngineBinding();
     pageHistoryRef = null;
+    revisionCounter = 0;
     set({
       ...INITIAL,
       snapIntensity: get().snapIntensity,
@@ -964,7 +1034,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
     );
   },
 
-  addPage: async (name = "") => {
+  addPage: async (name = "", options) => {
     const { pages, pageNames, currentPage, documentId, scene } = get();
     if (!documentId) return;
     const currentDoc = scene ? toAvnacDocument(scene) : pages[currentPage]!;
@@ -975,6 +1045,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
       { currentPage, pageNames, pages: updatedPages },
       currentDoc,
       name,
+      options,
     );
     await applyPageTransition(
       nextState.pages,
@@ -1006,7 +1077,11 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
       clearTimeout(autosaveTimer);
       autosaveTimer = null;
     }
-    set({ pages: updatedPages, pageNames: nextPageNames });
+    set({
+      pages: updatedPages,
+      pageNames: nextPageNames,
+      revision: nextRevision(),
+    });
     await saveStoredPages(
       documentId,
       updatedPages,
@@ -1040,6 +1115,7 @@ export const useSceneEditorStore = create<SceneEditorStore>()((set, get) => ({
         pages: nextState.pages,
         pageNames: nextState.pageNames,
         currentPage: nextState.currentPage,
+        revision: nextRevision(),
         baseDocument: currentDoc,
         hasPendingChanges: true,
         saveState: "dirty",

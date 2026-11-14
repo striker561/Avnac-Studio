@@ -5,6 +5,7 @@ import {
   buildDeletePageResult,
   buildInsertImportedPageResult,
 } from "@/features/scene-editor/store/paging/page-recipes";
+import { createEmptyPage } from "@/lib/avnac-multi-page-document";
 
 function doc(label: string): AvnacDocumentV1 {
   return {
@@ -66,6 +67,29 @@ describe("page recipes with page names", () => {
     };
     const { nextState } = buildDeletePageResult(prev, 0);
     expect(nextState).toBe(prev);
+  });
+
+  it("creates a page with an explicit size and background", () => {
+    const { nextState } = buildAddPageResult(
+      { currentPage: 0, pageNames: ["Cover"], pages: [doc("one")] },
+      doc("one"),
+      "Poster",
+      { width: 1200, height: 1600, backgroundColor: "#F4ECDD" },
+    );
+    const page = nextState.pages[1]!;
+    expect(page.artboard).toMatchObject({ width: 1200, height: 1600 });
+    expect(page.bg).toEqual({ type: "solid", color: "#F4ECDD" });
+    expect(page.fabric.objects).toEqual([]);
+  });
+
+  it("falls back to the current artboard size for invalid page dimensions", () => {
+    const page = createEmptyPage(doc("one"), {
+      width: 10,
+      height: 99999,
+      backgroundColor: "#173B2C",
+    });
+    expect(page.artboard).toMatchObject({ width: 1080, height: 1080 });
+    expect(page.bg).toEqual({ type: "solid", color: "#173B2C" });
   });
 
   it("names an imported page while inserting it", () => {

@@ -27,6 +27,7 @@ import EditorUploadsPanel from "@/components/editor/sidebar/editor-uploads-panel
 import EditorVectorBoardPanel from "@/components/editor/vector-boards/editor-vector-board-panel";
 import VectorBoardWorkspace from "@/components/editor/vector-boards/vector-board-workspace";
 import { buildSelectionSvg } from "@/lib/avnac-selection-export";
+import { getLastMCPResponse, handleMCPAction } from "./use-mcp-actions";
 import {
   emptyVectorBoardDocument,
   vectorBoardDocumentToSvgDataUrl,
@@ -137,6 +138,24 @@ type SceneEditorDebugApi = {
   getScene: () => ReturnType<typeof useSceneEditorStore.getState>["scene"];
   getSelectedIds: () => string[];
   buildSelectionSvg: () => Promise<string | null>;
+  getState: () => {
+    documentId: string | null;
+    revision: number;
+    pageNames: string[];
+    currentPage: number;
+    pageCount: number;
+    artboard: { width: number; height: number } | null;
+    background: unknown;
+    canUndo: boolean;
+    canRedo: boolean;
+    nodeCount: number;
+    pages: Array<{ width: number; height: number; nodeCount: number }>;
+  };
+  dispatchMCPAction: (
+    action: string,
+    payload?: Record<string, unknown>,
+  ) => Promise<void>;
+  getLastMCPResponse: () => Record<string, unknown> | null;
   documentId: string | null;
 };
 
@@ -403,6 +422,39 @@ export default function SceneEditorPage({ documentId }: Props) {
         if (!state.scene || state.selectedIds.length === 0) return null;
         return buildSelectionSvg(state.scene, state.selectedIds);
       },
+      getState: () => {
+        const state = useSceneEditorStore.getState();
+        return {
+          documentId: state.documentId,
+          revision: state.revision,
+          pageNames: [...state.pageNames],
+          currentPage: state.currentPage,
+          pageCount: state.pages.length,
+          artboard: state.scene
+            ? {
+                width: state.scene.artboard.width,
+                height: state.scene.artboard.height,
+              }
+            : null,
+          background: state.scene?.artboard.bg ?? null,
+          canUndo: state.canUndo,
+          canRedo: state.canRedo,
+          nodeCount: state.scene
+            ? Object.keys(state.scene.nodes).length - 1
+            : 0,
+          pages: state.pages.map((page) => ({
+            width: page.artboard?.width ?? 0,
+            height: page.artboard?.height ?? 0,
+            nodeCount: Array.isArray(page.fabric?.objects)
+              ? page.fabric.objects.length
+              : 0,
+          })),
+        };
+      },
+      dispatchMCPAction: async (action, payload) => {
+        await handleMCPAction({}, { action, payload });
+      },
+      getLastMCPResponse: () => getLastMCPResponse(),
       documentId: documentId ?? null,
     };
     window.__avnacSceneEditor = api;

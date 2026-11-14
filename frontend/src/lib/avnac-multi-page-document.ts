@@ -141,7 +141,22 @@ export function parseAvnacImport(raw: unknown): ParsedAvnacImport | null {
   return null;
 }
 
-export function createEmptyPage(from?: AvnacDocumentV1): AvnacDocumentV1 {
+export type EmptyPageOptions = {
+  width?: number;
+  height?: number;
+  backgroundColor?: string;
+};
+
+function pageDimension(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 100 || n > 16000) return null;
+  return Math.round(n);
+}
+
+export function createEmptyPage(
+  from?: AvnacDocumentV1,
+  options?: EmptyPageOptions,
+): AvnacDocumentV1 {
   const base = from
     ? cloneDoc(from)
     : {
@@ -151,11 +166,21 @@ export function createEmptyPage(from?: AvnacDocumentV1): AvnacDocumentV1 {
         fabric: { objects: [] },
       };
 
+  const width = pageDimension(options?.width) ?? base.artboard.width;
+  const height = pageDimension(options?.height) ?? base.artboard.height;
+  const requestedBackground =
+    typeof options?.backgroundColor === "string" &&
+    options.backgroundColor.trim().length > 0
+      ? options.backgroundColor.trim()
+      : "#ffffff";
+
   return {
     ...base,
-    // A new page keeps the artboard size from the current page, but starts
-    // with the default background — not the previous page's fill.
-    bg: { type: "solid", color: "#ffffff" } as AvnacDocumentV1["bg"],
+    // A page keeps the current artboard size unless a caller explicitly asks
+    // for another one. The background starts fresh rather than inheriting the
+    // previous page's fill.
+    artboard: { ...base.artboard, width, height },
+    bg: { type: "solid", color: requestedBackground } as AvnacDocumentV1["bg"],
     fabric: { objects: [] },
   };
 }

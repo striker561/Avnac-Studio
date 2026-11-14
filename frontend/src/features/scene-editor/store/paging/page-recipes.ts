@@ -37,8 +37,9 @@ export function buildAddPageResult(
   prev: PageState,
   currentDoc: AvnacDocumentV1,
   name = "",
+  options?: { width?: number; height?: number; backgroundColor?: string },
 ): PageUpdateResult {
-  const nextPage = createEmptyPage(currentDoc);
+  const nextPage = createEmptyPage(currentDoc, options);
   const nextIndex = prev.currentPage + 1;
   const pages = [...prev.pages];
   pages.splice(nextIndex, 0, nextPage);

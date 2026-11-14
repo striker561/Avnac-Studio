@@ -90,16 +90,17 @@ export function useSceneEditorShortcuts({
       if (mod) {
         if (event.key === "z" || event.key === "Z") {
           event.preventDefault();
-          if (event.shiftKey) {
-            if (canRedo) redo();
-          } else if (canUndo) {
-            undo();
-          }
+          // The store owns both object-level and page-level history. The
+          // canUndo/canRedo flags describe the object engine only, so gating
+          // here made Cmd+Z a no-op after add-page/delete-page even though the
+          // page history had a valid entry.
+          if (event.shiftKey) redo();
+          else undo();
           return;
         }
         if (event.key === "y" || event.key === "Y") {
           event.preventDefault();
-          if (canRedo) redo();
+          redo();
           return;
         }
         if (event.key === "d" || event.key === "D") {

@@ -97,6 +97,8 @@ describe("buildPageContext", () => {
       number: 2,
       name: "Test — layout",
       pageCount: 3,
+      width: 1080,
+      height: 1350,
     });
     expect(context.pages.map((entry) => entry.nodeCount)).toEqual([2, 0, 1]);
     expect(context.pages[2]).toMatchObject({ name: "Page 3", current: false });

@@ -150,6 +150,8 @@ export type CanvasPageContext = {
     number: number;
     name: string;
     pageCount: number;
+    width: number;
+    height: number;
   } | null;
   pages: CanvasPageEntry[];
 };
@@ -198,6 +200,8 @@ export function buildPageContext(
           number: active.number,
           name: active.name,
           pageCount: entries.length,
+          width: active.width,
+          height: active.height,
         }
       : null,
     pages: entries,

@@ -218,7 +218,7 @@ func designResourceIndex(lib *skill.Library) string {
 		len(lib.ReferenceNames()), strings.Join(lib.ReferenceNames(), ", ")))
 	sb.WriteString(fmt.Sprintf("- `%s` — all %d rules by domain, with links.\n", designRuleIndexURI, len(lib.RuleIDs())))
 	sb.WriteString("- `rules://<id>` — one authoritative principle, e.g. `rules://24-typographic-hierarchy`, `rules://82-bleed-trim-and-safe-areas`.\n")
-	sb.WriteString("- `guide` (tool) — pass the brief; returns the routed `skill://` and `rules://` URIs with confidence. Call it before specialized work; composition tool results carry the same guide automatically.\n")
+	sb.WriteString("- `guide` (tool) — pass the brief; returns the routed `skill://` and `rules://` URIs with confidence. Call it before specialized work; composition tool results carry the same guide automatically. The URIs it returns are where reading starts, not where it stops: matching is lexical, so open `" + designEntryURI + "`, `" + designRuleIndexURI + "` or any other `rules://` chapter whenever the work moves past the route.\n")
 	sb.WriteString("Start at `" + designEntryURI + "`, then the task skill, then the 4–8 rules it links. Cite the rule you followed when you report a design decision.\n")
 	return sb.String()
 }

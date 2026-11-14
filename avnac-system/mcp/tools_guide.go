@@ -48,7 +48,9 @@ func (m *AvnacMCP) registerGuideTool() {
 			"Call this at the start of ANY task that needs specialized design instructions — poster, flyer, social graphic, logo, icon, illustration, layout, typography, color, palette, branding, print, packaging, photography, UI, data visualization, critique, or vector path drawing — " +
 			"even when the user did not ask for guidance and even when you think you know the answer. Design decisions you cannot cite are guesses; the library carries the thresholds and failure modes. " +
 			"It returns skill:// and rules:// resource URIs, the matched task tokens and a confidence level. Set inline=true to get the full workflow and rule text as markdown when the client cannot read resources. " +
-			"Composition tool results (canvas create/add-page, elements render/measure/modify, vector draw) also carry a compact guide automatically when the payload is a clear match.",
+			"Composition tool results (canvas create/add-page, elements render/measure/modify, vector draw) also carry a compact guide automatically when the payload is a clear match. " +
+			"Matching is lexical — words are compared, not meaning — so a low or empty match means the brief's words did not overlap the library, not that it has nothing on the subject. " +
+			"A route is where to start, not a reading limit: every skill://, rules:// and references:// URI stays readable, so open " + designEntryURI + ", " + designRuleIndexURI + " or any other rule by URI once the work moves to a subject the route did not name.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
 			"task":        desc("The task or brief in the user's words: what is being designed, for whom, and in what format."),
 			"brief":       desc("Alias for task."),
@@ -165,7 +167,8 @@ func guidePayload(g *skill.Guide) map[string]any {
 		"references":    references,
 		"matchedTokens": g.Matched,
 		"note": "Read the workflow, then these rules, before the next design decision. " +
-			"When you report the result, name the rule you followed.",
+			"When you report the result, name the rule you followed. This route is a starting point: " +
+			"matching is lexical, so read other rules:// or references:// resources by URI once the work moves past it.",
 	}
 }
 

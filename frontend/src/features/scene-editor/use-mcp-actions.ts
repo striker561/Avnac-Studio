@@ -79,7 +79,8 @@ import { planExport } from "@/lib/mcp/export";
 import { buildPageSvg, buildSelectionSvg } from "@/lib/avnac-selection-export";
 import { validateScene } from "@/lib/mcp/validate";
 import { budgetFor, isOverBudget } from "@/lib/mcp/budgets";
-import { getMCPActionHandlerId, subscribeToMCPActions } from "@/lib/mcp/transport";
+import { MCP_IMPLEMENTED_ACTIONS } from "@/lib/mcp/actions";
+import { getMCPActionHandlerId, getMCPClientId, subscribeToMCPActions } from "@/lib/mcp/transport";
 
 type LooseRecord = Record<string, any>;
 
@@ -93,12 +94,10 @@ interface MCPDeps {
 /**
  * Identifies this browser client in every MCP response. When a stale tab or a
  * second client answers an action, the mismatch is visible in the reply instead
- * of looking like a random ID failure.
+ * of looking like a random ID failure. The id lives in transport.ts so the
+ * Settings panel can compare it with the client that actually answered.
  */
-const MCP_CLIENT_ID =
-  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : "client-" + Math.random().toString(36).slice(2);
+const MCP_CLIENT_ID = getMCPClientId();
 
 const SNAPSHOT_LIMIT = 20;
 const SNAPSHOTS = new Map<string, SceneSnapshot>();
@@ -966,6 +965,8 @@ function clientStatusAction(requestId: string | undefined): void {
     clientId: MCP_CLIENT_ID,
     actionHandlerId: getMCPActionHandlerId(),
     revision: store.revision,
+    // The action table Settings checks this window against.
+    actions: MCP_IMPLEMENTED_ACTIONS,
     document: {
       id: store.documentId,
       name: store.documentName,

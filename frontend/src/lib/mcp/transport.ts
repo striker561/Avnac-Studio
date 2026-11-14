@@ -17,6 +17,22 @@ import type { MCPActionEnvelope } from "@/lib/mcp/payload";
 export type { MCPActionEnvelope };
 
 /**
+ * Identifies this page in every MCP reply. Two pages can be subscribed at once
+ * (a second window, or the same app open in a browser tab that reconnects after
+ * a restart), and whichever answers carries its own id, so the mismatch is
+ * visible instead of looking like a random ID failure.
+ */
+export const MCP_CLIENT_ID =
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : "client-" + Math.random().toString(36).slice(2);
+
+/** This page's client id, used by Settings to spot a second responder. */
+export function getMCPClientId(): string {
+  return MCP_CLIENT_ID;
+}
+
+/**
  * Subscribe to "mcp:action" events. Returns an unsubscribe function that is
  * safe to call at any time (before or after the listener attaches).
  */

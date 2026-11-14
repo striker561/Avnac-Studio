@@ -119,6 +119,17 @@ the restored state. Snapshots are session-scoped.
 
 The MCP server is constructed in `app.go` and registered in `App.startup`. The HTTP listener itself starts when the `mcp_enabled` config value is set (Settings toggle or `config.json`) and stops when it is cleared.
 
+### Settings → MCP tool surface
+
+The settings page reads the published surface with `AvnacMCP.ToolSurface()` (a real client session over
+an in-memory transport, so the list cannot drift from what an agent sees) and asks the open editor
+window what it can dispatch with `AvnacMCP.CheckClient()`. Every `mcp:action` is answered by whichever
+page is listening, and a page running an older bundle answers `Unknown action '<action>'` for anything
+added since it loaded — including a browser tab that reconnects to the asset server after a restart. The
+panel compares the two lists, names the missing actions, and reports the `clientId` that answered so a
+second responder is visible. `MCP_IMPLEMENTED_ACTIONS` in `use-mcp-actions.ts` is the frontend half of
+that contract, and `tools_surface_test.go` fails when it drifts from the Go expectation.
+
 If you add new tools in `tools.go`, make sure to update the corresponding handler in `frontend/src/features/scene-editor/use-mcp-actions.ts` (add a dispatcher case plus a named action function), and keep payload → command conversion in `frontend/src/lib/mcp/commands.ts` so it stays unit-testable.
 
 Reliability tests:

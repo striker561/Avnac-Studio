@@ -26,7 +26,7 @@ import (
 // so losing the session does not lose the drawing — only the ability to edit it
 // by id.
 
-const vectorOpsHelp = "draw, update, read, export, delete, list"
+const vectorOpsHelp = "draw, update, read, export, delete, list, status, recover"
 
 func (m *AvnacMCP) registerVectorTool(wailsCtx context.Context) {
 	mcp.AddTool(m.server, &mcp.Tool{
@@ -36,7 +36,8 @@ func (m *AvnacMCP) registerVectorTool(wailsCtx context.Context) {
 			"and places it on the active page as real SVG; objects are rect, ellipse, circle, capsule, polygon, star, line, path. " +
 			"Use it for logos, icons, characters, badges, patterns and diagram figures — anything that should scale cleanly and be editable by object id. " +
 			"op=update (boardId, operations[]) edits the stored drawing by id (resize, move, rotate, mirror, restyle, reorder, delete, add) without redrawing the scene; " +
-			"op=read returns the IR and v3 document; op=export returns the SVG source; op=delete removes the placed element; op=list lists boards from this session. " +
+			"op=read returns the IR and v3 document; op=export returns the SVG source and optionally writes filePath; op=delete removes the placed element; op=list lists boards from this session. " +
+			"op=status checks whether a board's deterministic node is actually placed; op=recover adopts an already-painted node or retries the exact placement after a lost response. " +
 			"Relations: constraints [{relation: centered_on|left_of|right_of|above|below|inside|aligned_with|equal_size, target}] and mirrorOf+axis. " +
 			"Read skill://vector and rules://125-bezier-curves-and-path-construction before complex work.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -49,9 +50,14 @@ func (m *AvnacMCP) registerVectorTool(wailsCtx context.Context) {
 			"x":          desc("draw: page position (top-left, page pixels) for the placed element. Defaults to the page centre."),
 			"y":          desc("draw: page position (top-left, page pixels) for the placed element."),
 			"scale":      desc("draw: display scale for the placed element. 0/omitted fits the board within 640 px."),
-			"boardId":    desc("update/read/export/delete: id returned by draw."),
+			"boardId":    desc("update/read/export/delete/status/recover: id returned by draw."),
 			"operations": desc("update: array of {op, target, ...}, or a JSON-encoded string. Ops: resize, move, rotate, mirror, restyle, reorder, delete, add."),
 			"includeSVG": desc("read/update: include the full SVG text in the response (off by default; it can be large)."),
+			"filePath":   desc("export: optional path to write the SVG to; a missing .svg extension is added."),
+			"objectId":   desc("draw: optional deterministic node id. Defaults to the board id so op=recover can find it."),
+			"documentId": desc("draw/update/delete: optional active-document guard."),
+			"page":       desc("draw/update/delete: optional active page name/number guard."),
+			"index":      desc("draw/update/delete: optional 0-based active page guard."),
 		}, "op"),
 	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
 		return m.handleVectorTool(wailsCtx, raw)
@@ -75,6 +81,10 @@ func (m *AvnacMCP) handleVectorTool(wailsCtx context.Context, raw map[string]any
 		return m.vectorDelete(wailsCtx, raw)
 	case "list":
 		return m.vectorList()
+	case "status":
+		return m.vectorStatus(wailsCtx, raw)
+	case "recover":
+		return m.vectorRecover(wailsCtx, raw)
 	default:
 		return nil, nil, fmt.Errorf("unknown vector op %q; expected one of %s", op, vectorOpsHelp)
 	}
@@ -167,13 +177,22 @@ func (m *AvnacMCP) vectorDraw(wailsCtx context.Context, raw map[string]any) (*mc
 	if board.Name == "" {
 		board.Name = "Vector drawing"
 	}
+	// Deterministic node id: the board id is known before the frontend call, so
+	// a lost/raced response can be recovered without guessing which node was
+	// painted. A caller-supplied objectId is preserved.
+	objectID := stringField(raw, "objectId", "id")
+	if objectID == "" {
+		objectID = boardID
+	}
+	board.NodeID = objectID
 
 	placement := map[string]any{
-		"boardId": boardID,
-		"name":    board.Name,
-		"src":     board.Result.DataURL,
-		"width":   board.Result.Doc.Size.Width,
-		"height":  board.Result.Doc.Size.Height,
+		"boardId":  boardID,
+		"objectId": objectID,
+		"name":     board.Name,
+		"src":      board.Result.DataURL,
+		"width":    board.Result.Doc.Size.Width,
+		"height":   board.Result.Doc.Size.Height,
 	}
 	// Only forward coordinates the caller actually gave: zero is a valid
 	// top-left position, so filling it in would override the editor's centring.
@@ -189,32 +208,44 @@ func (m *AvnacMCP) vectorDraw(wailsCtx context.Context, raw map[string]any) (*mc
 			}
 		}
 	}
-	resp, err := m.emitVectorAction(wailsCtx, "vector_draw", placement)
-	if err != nil {
-		return nil, nil, err
-	}
-	board.NodeID = stringField(resp, "objectId", "nodeId", "id")
-	if board.NodeID == "" {
-		return nil, nil, fmt.Errorf("vector_draw: the editor did not return the placed object id")
+	// Optional page/document guard is forwarded with the placement.
+	for _, key := range []string{"page", "index", "pageIndex", "documentId"} {
+		if value, ok := raw[key]; ok && value != nil {
+			placement[key] = value
+		}
 	}
 
+	// Register before emitting. If the bridge fails after painting, the board
+	// still exists and op=recover can verify and retry the exact same node id.
 	m.vectorMu.Lock()
 	m.vectorBoards[boardID] = board
+	m.vectorPlacements[boardID] = placement
+	m.vectorPlaced[boardID] = false
 	m.vectorMu.Unlock()
 
-	data := map[string]any{
-		"boardId":  boardID,
-		"objectId": board.NodeID,
-		"name":     board.Name,
-		"canvas":   map[string]any{"width": board.Result.Doc.Size.Width, "height": board.Result.Doc.Size.Height},
-		"objects":  len(board.Result.Objects),
-		"layers":   len(board.Result.Doc.Layers),
-		"segments": totalSegments(board.Result.Doc),
-		"bytes":    len(board.Result.SVG),
-		"bounds":   boundsMap(board.Result.Bounds),
-		"message": fmt.Sprintf("Drew %q: %d objects on a %.0fx%.0f board, placed as %s. Edit it with vector op=update boardId=%s.",
-			board.Name, len(board.Result.Objects), board.Result.Doc.Size.Width, board.Result.Doc.Size.Height, board.NodeID, boardID),
+	resp, err := m.emitVectorAction(wailsCtx, "vector_draw", placement)
+	if err != nil {
+		data := m.vectorBoardData(board, false)
+		data["error"] = err.Error()
+		data["recoverable"] = true
+		data["message"] = fmt.Sprintf("The vector board %s was created but placement was not acknowledged. Call vector op=recover with that boardId; if the drawing is already visible it will be adopted instead of duplicated.", boardID)
+		return &mcp.CallToolResult{
+			IsError: true,
+			Content: []mcp.Content{&mcp.TextContent{Text: data["message"].(string)}},
+		}, data, nil
 	}
+	nodeID := stringField(resp, "objectId", "nodeId", "id")
+	if nodeID == "" {
+		nodeID = objectID
+	}
+	m.vectorMu.Lock()
+	board.NodeID = nodeID
+	m.vectorPlaced[boardID] = true
+	m.vectorMu.Unlock()
+
+	data := m.vectorBoardData(board, true)
+	data["message"] = fmt.Sprintf("Drew %q: %d objects on a %.0fx%.0f board, placed as %s. Edit it with vector op=update boardId=%s.",
+		board.Name, len(board.Result.Objects), board.Result.Doc.Size.Width, board.Result.Doc.Size.Height, nodeID, boardID)
 	if len(board.Result.Warnings) > 0 {
 		data["warnings"] = board.Result.Warnings
 	}
@@ -224,10 +255,110 @@ func (m *AvnacMCP) vectorDraw(wailsCtx context.Context, raw map[string]any) (*mc
 	return nil, data, nil
 }
 
+func (m *AvnacMCP) vectorBoardData(board *vector.Board, placed bool) map[string]any {
+	data := map[string]any{
+		"boardId":     board.ID,
+		"objectId":    board.NodeID,
+		"name":        board.Name,
+		"placed":      placed,
+		"recoverable": !placed,
+		"canvas":      map[string]any{"width": board.Result.Doc.Size.Width, "height": board.Result.Doc.Size.Height},
+		"objects":     len(board.Result.Objects),
+		"layers":      len(board.Result.Doc.Layers),
+		"segments":    totalSegments(board.Result.Doc),
+		"bytes":       len(board.Result.SVG),
+		"bounds":      boundsMap(board.Result.Bounds),
+	}
+	if len(board.Result.Warnings) > 0 {
+		data["warnings"] = board.Result.Warnings
+	}
+	return data
+}
+
+// verifyVectorPlacement checks whether the deterministic node id exists. A
+// successful check repairs the in-memory flag after a lost response.
+func (m *AvnacMCP) verifyVectorPlacement(ctx context.Context, board *vector.Board) bool {
+	m.vectorMu.Lock()
+	placed := m.vectorPlaced[board.ID]
+	nodeID := board.NodeID
+	m.vectorMu.Unlock()
+	if placed {
+		return true
+	}
+	if nodeID == "" || m.vectorEmit == nil {
+		return false
+	}
+	resp, err := m.vectorEmit(ctx, "get_object_properties", map[string]any{"objectId": nodeID}, 5*time.Second)
+	if err != nil {
+		return false
+	}
+	obj, _ := resp.(map[string]any)
+	if obj == nil || obj["error"] != nil || obj["node"] == nil {
+		return false
+	}
+	m.vectorMu.Lock()
+	m.vectorPlaced[board.ID] = true
+	m.vectorMu.Unlock()
+	return true
+}
+
+func (m *AvnacMCP) vectorStatus(wailsCtx context.Context, raw map[string]any) (*mcp.CallToolResult, any, error) {
+	board, err := m.mustBoard(raw)
+	if err != nil {
+		return nil, nil, err
+	}
+	placed := m.verifyVectorPlacement(wailsCtx, board)
+	data := m.vectorBoardData(board, placed)
+	data["message"] = fmt.Sprintf("Board %s is %s.", board.ID, map[bool]string{true: "placed", false: "not placed"}[placed])
+	return nil, data, nil
+}
+
+func (m *AvnacMCP) vectorRecover(wailsCtx context.Context, raw map[string]any) (*mcp.CallToolResult, any, error) {
+	board, err := m.mustBoard(raw)
+	if err != nil {
+		return nil, nil, err
+	}
+	if m.verifyVectorPlacement(wailsCtx, board) {
+		data := m.vectorBoardData(board, true)
+		data["message"] = "Drawing is already placed; adopted the existing node."
+		return nil, data, nil
+	}
+	m.vectorMu.Lock()
+	placement := m.vectorPlacements[board.ID]
+	objectID := board.NodeID
+	m.vectorMu.Unlock()
+	if placement == nil {
+		return nil, nil, fmt.Errorf("vector_recover: no placement payload for %q", board.ID)
+	}
+	if objectID == "" {
+		objectID = board.ID
+		board.NodeID = objectID
+	}
+	placement["objectId"] = objectID
+	resp, err := m.emitVectorAction(wailsCtx, "vector_draw", placement)
+	if err != nil {
+		return nil, nil, err
+	}
+	nodeID := stringField(resp, "objectId", "nodeId", "id")
+	if nodeID == "" {
+		nodeID = objectID
+	}
+	m.vectorMu.Lock()
+	board.NodeID = nodeID
+	m.vectorPlaced[board.ID] = true
+	m.vectorMu.Unlock()
+	data := m.vectorBoardData(board, true)
+	data["message"] = "Placement recovered and adopted."
+	return nil, data, nil
+}
+
 func (m *AvnacMCP) vectorUpdate(wailsCtx context.Context, raw map[string]any) (*mcp.CallToolResult, any, error) {
 	board, err := m.mustBoard(raw)
 	if err != nil {
 		return nil, nil, err
+	}
+	if !m.verifyVectorPlacement(wailsCtx, board) {
+		return nil, nil, fmt.Errorf("vector_update: board %q is not placed; call vector op=recover boardId=%s", board.ID, board.ID)
 	}
 	ops, err := decodeVectorOperations(raw)
 	if err != nil {
@@ -314,17 +445,25 @@ func (m *AvnacMCP) vectorExport(raw map[string]any) (*mcp.CallToolResult, any, e
 	if issues := vector.AuditSVG(svg); len(issues) > 0 {
 		return nil, nil, fmt.Errorf("exported SVG failed validation: %s", strings.Join(issues, "; "))
 	}
-	result := &mcp.CallToolResult{
-		Content: []mcp.Content{&mcp.TextContent{Text: svg}},
-	}
-	return result, map[string]any{
+	data := map[string]any{
 		"boardId": board.ID,
 		"name":    name,
 		"width":   size.Width,
 		"height":  size.Height,
 		"bytes":   len(svg),
 		"message": "SVG is in the text content. It is self-contained and carries the Avnac vector-board marker.",
-	}, nil
+	}
+	if filePath := stringField(raw, "filePath", "path", "filename"); filePath != "" {
+		written, err := writeSVGFile(filePath, svg)
+		if err != nil {
+			return nil, nil, err
+		}
+		data["filePath"] = written
+	}
+	result := &mcp.CallToolResult{
+		Content: []mcp.Content{&mcp.TextContent{Text: svg}},
+	}
+	return result, data, nil
 }
 
 func (m *AvnacMCP) vectorDelete(wailsCtx context.Context, raw map[string]any) (*mcp.CallToolResult, any, error) {
@@ -332,8 +471,18 @@ func (m *AvnacMCP) vectorDelete(wailsCtx context.Context, raw map[string]any) (*
 	if err != nil {
 		return nil, nil, err
 	}
-	if board.NodeID == "" {
-		return nil, nil, fmt.Errorf("vector_delete: %q was not placed on the scene", board.ID)
+	if !m.verifyVectorPlacement(wailsCtx, board) {
+		m.vectorMu.Lock()
+		delete(m.vectorBoards, board.ID)
+		delete(m.vectorPlacements, board.ID)
+		delete(m.vectorPlaced, board.ID)
+		m.vectorMu.Unlock()
+		return nil, map[string]any{
+			"boardId":  board.ID,
+			"objectId": board.NodeID,
+			"deleted":  false,
+			"message":  "The drawing was not placed; forgot the board.",
+		}, nil
 	}
 	if _, err := m.emitVectorAction(wailsCtx, "vector_delete", map[string]any{
 		"boardId":  board.ID,
@@ -343,6 +492,8 @@ func (m *AvnacMCP) vectorDelete(wailsCtx context.Context, raw map[string]any) (*
 	}
 	m.vectorMu.Lock()
 	delete(m.vectorBoards, board.ID)
+	delete(m.vectorPlacements, board.ID)
+	delete(m.vectorPlaced, board.ID)
 	m.vectorMu.Unlock()
 	return nil, map[string]any{
 		"boardId":  board.ID,
@@ -360,8 +511,10 @@ func (m *AvnacMCP) vectorList() (*mcp.CallToolResult, any, error) {
 	}
 	m.vectorMu.Lock()
 	rows := make([]row, 0, len(m.vectorBoards))
-	for _, b := range m.vectorBoards {
+	placedByID := make(map[string]bool, len(m.vectorBoards))
+	for id, b := range m.vectorBoards {
 		rows = append(rows, row{b.ID, b.Name, b.NodeID, len(b.Result.Objects), b.CreatedAt, b.UpdatedAt})
+		placedByID[id] = m.vectorPlaced[id]
 	}
 	m.vectorMu.Unlock()
 	sort.Slice(rows, func(i, j int) bool { return rows[i].created.Before(rows[j].created) })
@@ -369,11 +522,13 @@ func (m *AvnacMCP) vectorList() (*mcp.CallToolResult, any, error) {
 	items := make([]map[string]any, 0, len(rows))
 	for _, b := range rows {
 		items = append(items, map[string]any{
-			"boardId":   b.id,
-			"name":      b.name,
-			"objectId":  b.nodeID,
-			"objects":   b.objects,
-			"updatedAt": b.updated.Format(time.RFC3339),
+			"boardId":     b.id,
+			"name":        b.name,
+			"objectId":    b.nodeID,
+			"placed":      placedByID[b.id],
+			"recoverable": !placedByID[b.id],
+			"objects":     b.objects,
+			"updatedAt":   b.updated.Format(time.RFC3339),
 		})
 	}
 	return nil, map[string]any{"boards": items, "count": len(items)}, nil

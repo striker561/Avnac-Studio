@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -27,6 +29,11 @@ func fakeVectorFrontend(calls *[]vectorCall, nodeID string, failWith error) func
 		}
 		if action == "vector_draw" {
 			return map[string]any{"objectId": nodeID, "success": true}, nil
+		}
+		if action == "get_object_properties" && nodeID != "" {
+			return map[string]any{
+				"node": map[string]any{"id": nodeID, "type": "image"},
+			}, nil
 		}
 		return map[string]any{"success": true}, nil
 	}
@@ -215,16 +222,104 @@ func TestVectorToolErrors(t *testing.T) {
 	}
 }
 
-func TestVectorToolDrawFailureDoesNotStoreBoard(t *testing.T) {
+func TestVectorToolDrawFailureLeavesRecoverableBoard(t *testing.T) {
 	m := NewAvnacMCP(nil, nil, nil)
 	m.vectorEmit = fakeVectorFrontend(&[]vectorCall{}, "", errors.New("no active canvas scene"))
-	_, _, err := m.handleVectorTool(context.Background(), drawPayload())
-	if err == nil {
-		t.Fatal("draw succeeded without a scene")
+	result, data, err := m.handleVectorTool(context.Background(), drawPayload())
+	if err != nil {
+		t.Fatalf("draw returned a transport error instead of recoverable data: %v", err)
 	}
-	_, data, _ := m.handleVectorTool(context.Background(), map[string]any{"op": "list"})
-	if data.(map[string]any)["count"] != 0 {
-		t.Error("a failed placement left a board in the session")
+	if result == nil || !result.IsError {
+		t.Fatal("draw should report a tool error when placement is not acknowledged")
+	}
+	if data.(map[string]any)["boardId"] == "" {
+		t.Fatal("failed draw did not return a boardId")
+	}
+	if data.(map[string]any)["recoverable"] != true {
+		t.Error("failed draw did not mark itself recoverable")
+	}
+	_, list, _ := m.handleVectorTool(context.Background(), map[string]any{"op": "list"})
+	boards := list.(map[string]any)["boards"].([]map[string]any)
+	if len(boards) != 1 || boards[0]["placed"] != false {
+		t.Errorf("recoverable boards = %+v, want one unplaced board", boards)
+	}
+}
+
+func TestVectorStatusRecoverAndFileExport(t *testing.T) {
+	m := NewAvnacMCP(nil, nil, nil)
+	placed := false
+	drawCalls := 0
+	m.vectorEmit = func(_ context.Context, action string, payload any, _ time.Duration) (any, error) {
+		p, _ := payload.(map[string]any)
+		switch action {
+		case "vector_draw":
+			drawCalls++
+			if drawCalls == 1 {
+				return nil, errors.New("bridge lost the response")
+			}
+			placed = true
+			return map[string]any{"objectId": p["objectId"], "success": true}, nil
+		case "get_object_properties":
+			if placed {
+				return map[string]any{"node": map[string]any{"id": p["objectId"], "type": "image"}}, nil
+			}
+			return nil, errors.New("object not found")
+		default:
+			return map[string]any{"success": true}, nil
+		}
+	}
+
+	result, data, err := m.handleVectorTool(context.Background(), drawPayload())
+	if err != nil {
+		t.Fatalf("draw transport error: %v", err)
+	}
+	if result == nil || !result.IsError {
+		t.Fatal("first placement should report a recoverable tool error")
+	}
+	boardID, _ := data.(map[string]any)["boardId"].(string)
+	if boardID == "" {
+		t.Fatal("missing boardId after failed placement")
+	}
+	if data.(map[string]any)["placed"] != false {
+		t.Error("failed placement was marked placed")
+	}
+
+	_, status, err := m.handleVectorTool(context.Background(), map[string]any{"op": "status", "boardId": boardID})
+	if err != nil {
+		t.Fatalf("status: %v", err)
+	}
+	if status.(map[string]any)["placed"] != false {
+		t.Error("status claimed an unplaced board is placed")
+	}
+
+	_, recovered, err := m.handleVectorTool(context.Background(), map[string]any{"op": "recover", "boardId": boardID})
+	if err != nil {
+		t.Fatalf("recover: %v", err)
+	}
+	if recovered.(map[string]any)["placed"] != true || drawCalls != 2 {
+		t.Errorf("recover = %+v, drawCalls=%d; want placed and a retry", recovered, drawCalls)
+	}
+
+	path := filepath.Join(t.TempDir(), "rocket")
+	exportResult, exportData, err := m.handleVectorTool(context.Background(), map[string]any{
+		"op": "export", "boardId": boardID, "filePath": path,
+	})
+	if err != nil {
+		t.Fatalf("export: %v", err)
+	}
+	if exportResult == nil || len(exportResult.Content) == 0 {
+		t.Fatal("export returned no SVG content")
+	}
+	written, _ := exportData.(map[string]any)["filePath"].(string)
+	if !strings.HasSuffix(strings.ToLower(written), ".svg") {
+		t.Fatalf("written path = %q, want an .svg file", written)
+	}
+	body, err := os.ReadFile(written)
+	if err != nil {
+		t.Fatalf("read exported SVG: %v", err)
+	}
+	if !strings.Contains(string(body), "<svg") {
+		t.Error("written SVG is incomplete")
 	}
 }
 
@@ -278,16 +373,21 @@ func TestVectorDrawPlacementDefaults(t *testing.T) {
 	}
 }
 
-func TestVectorDrawRequiresPlacementID(t *testing.T) {
+func TestVectorDrawUsesDeterministicFallbackNodeID(t *testing.T) {
 	m := NewAvnacMCP(nil, nil, nil)
 	m.vectorEmit = func(context.Context, string, any, time.Duration) (any, error) {
 		return map[string]any{"success": true}, nil
 	}
-	if _, _, err := m.handleVectorTool(context.Background(), drawPayload()); err == nil {
-		t.Fatal("draw without an objectId succeeded")
+	_, data, err := m.handleVectorTool(context.Background(), drawPayload())
+	if err != nil {
+		t.Fatalf("draw: %v", err)
 	}
-	_, data, _ := m.handleVectorTool(context.Background(), map[string]any{"op": "list"})
-	if data.(map[string]any)["count"] != 0 {
-		t.Error("a response without an object id still stored a board")
+	boardID := data.(map[string]any)["boardId"]
+	if boardID == "" || data.(map[string]any)["objectId"] != boardID {
+		t.Fatalf("fallback objectId = %v, want boardId %v", data.(map[string]any)["objectId"], boardID)
+	}
+	_, list, _ := m.handleVectorTool(context.Background(), map[string]any{"op": "list"})
+	if list.(map[string]any)["count"] != 1 {
+		t.Error("a successful placement did not store the board")
 	}
 }

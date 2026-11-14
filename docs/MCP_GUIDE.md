@@ -180,17 +180,22 @@ way the library is used *during* the task even when the agent never calls `guide
 
 **`canvas`** — project, pages and artboard lifecycle:
 - `create` (`width`, `height`, `name`, `backgroundColor`/`color`) — starts a **new project** and navigates to it. Use it only for a new deliverable; for a draft/test/variation in the open project use `add-page`. The background is applied here; do not also call `background`.
-- `add-page` (`name`) — adds a named blank page to the **open project**, inherits the current artboard size, switches the editor to it live, and returns `page` (`index`, `number`, `name`) plus `pageCount`. This is the draft/test/exploration path; it never creates another file.
+- `add-page` (`name`, optional `width`, `height`, `backgroundColor`) — adds a named blank page to the **open project**, inherits the current artboard size unless explicit dimensions are given, switches the editor to it live, and returns `page` (`index`, `number`, `name`, `width`, `height`) plus `pageCount`. This is the draft/test/exploration path; it never creates another file.
 - `go-page` (`page` = 1-based number or page name, or `index` = 0-based) — switches the editor to that page. The app shows the switch immediately. Names match exactly (case-insensitive) or by a unique substring.
 - `rename-page` (`page` optional, defaults current; `name` required) — renames a page; page tabs in the app also rename on double-click.
 - `delete-page` (`page` optional, defaults current) — deletes a page and never the last one. Use it to clean up a test page.
+- `resize` (`width`, `height`, optional `backgroundColor`, optional page guard) — resizes the active sheet in place. Use this instead of creating a second project when only the dimensions are wrong.
+- `snapshot` / `restore` (`token`) — capture every page, then return to that checkpoint. Tokens are session-scoped.
+- `undo` / `redo` — object-level and page-level history.
+- `status` — connected `clientId`, `actionHandlerId`, `revision`, active document/page, undo state and implemented capabilities. Call this first when an action looks stale.
+- `validate` — structured audit for out-of-bounds objects, low contrast, tiny type, thin strokes, duplicate names, near tangencies and unloaded fonts.
 - `clear` — removes every object **on the current page**, returns `clearedCount`.
 - `background` (`backgroundColor`/`color`) — sets the current page background.
 - `preset` (`presetId`/`preset`) — `ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`.
 
 **`elements`** — create or change elements:
 - `render` (`elements[]` or a JSON-encoded string, `includePreview`) — one declarative batch, bottom to top. Images take `fit` (`fill` default, or `cover`), `focalPoint` (`{x,y}`, normalized 0–1) and `crop` (`{x,y,width,height}`, normalized source rect that wins over fit); without them the photo keeps the old stretch behaviour. Types: `rect`, `ellipse`, `circle`, `polygon`, `star`, `line`, `text`, `image`, `sticker`. Text supports `textAlign`, `fontWeight`, `fontStyle`, `lineHeight`, `underline`; lines use `stroke`/`strokeWidth`. When `modify` changes a text `fontSize`, pass `width` too — the auto-measured width is kept and larger type re-wraps. Elements that cannot be built are reported in `skipped` by index and type; a batch that creates nothing fails (`isError: true`).
-- `modify` (`modifications[]` or a JSON-encoded string, `includePreview`) — updates by `objectId`, including text controls.
+- `modify` (`modifications[]` or a JSON-encoded string, `includePreview`) — updates by `objectId`/`id`, `targetName`/`objectName`, or a unique `name`; returns `modified` entries with `before`, `after` and `changedFields`. Use `newName` to rename a name-targeted object. Image nodes accept `url`/`src` to replace the source without changing node identity. Unresolved targets are returned as `issues`, and a batch that changes nothing fails.
 - `delete` (`objectId`/`id`; omit to delete the current selection).\n- `measure` (`elements[]`) — returns width, height, line count, line breaks, `capHeight`/`ascent` and (with `x`/`y`) absolute `baseline`/`capTop`/`capCenterY` for proposed elements **without drawing**. Use it to check wrapping or fit a headline before rendering; for images it returns natural dimensions.
 
 **`arrange`** — the current selection:
@@ -207,23 +212,26 @@ way the library is used *during* the task even when the agent never calls `guide
 
 **`assets`** — external assets:
 - `unsplash` (`query`, `page`, `perPage`) — compact photo records plus remaining hourly quota. Identical queries are served from a two-minute cache. Placement through `elements` op=render is what fires Unsplash download tracking and stores the credit, which `get_canvas_summary` then lists.
-- `fonts` — supported Google Fonts. Prefer `Poppins`, `Inter`, `DM Serif Display` for reliable rendering.
+- `fonts` (`families`/`check`) — supported Google Fonts plus a `loaded` map for the requested families. Prefer `Poppins`, `Inter`, `DM Serif Display` for reliable rendering.
 - `stickers` — built-in sticker names.
 
 **`export`** — output:
 - `png` (`multiplier`, `transparent`) — base64 PNG of the artboard.
-- `object` (`objectId`, `multiplier`) — PNG of one object or group. SVG object export is not supported over MCP yet.
+- `object` (`objectId`, `multiplier`, `format`) — PNG or SVG of one object or group.
+- `svg` (`objectId`/`objectIds`/`scope`, optional `filePath`) — editable SVG of the full page (authored artboard size, not cropped to content) or a selection; optionally writes the file and returns its path.
 
 **`vector`** — original vector artwork:
 - `draw` (`canvas`, `objects[]`, `layers[]`, `name`, `x`, `y`, `scale`) — resolves a scene-graph
   IR into cubic paths, places it as an SVG element on the active page, and returns `boardId` +
-  `objectId`. Object types: `rect`, `ellipse`, `circle`, `capsule`, `polygon`, `star`, `line`,
-  `path`. Relations: `constraints` and `mirrorOf` + `axis`.
+  `objectId`. The board id is the deterministic default node id, so a lost response is recoverable.
+  Object types: `rect`, `ellipse`, `circle`, `capsule`, `polygon`, `star`, `line`, `path`.
+  Relations: `constraints` and `mirrorOf` + `axis`.
 - `update` (`boardId`, `operations[]`) — `resize`, `move`, `rotate`, `mirror`, `restyle`,
   `reorder`, `delete`, `add`, applied in order and re-resolved once. This is the conversational
   edit path: target objects by id instead of redrawing.
 - `read` (`boardId`) — the IR plus the resolved v3 vector-board document and per-object bounds.
-- `export` (`boardId`) — the self-contained SVG source in the text content.
+- `export` (`boardId`, optional `filePath`) — the self-contained SVG source in the text content, optionally written to disk.
+- `status` / `recover` — check whether the deterministic node is placed; adopt an already-painted drawing or retry the exact placement after a lost response. Never redraw blindly.
 - `delete` / `list` — remove the placed element, or enumerate boards from this session.
 
 Read `skill://vector` before a complex drawing; the eight `rules://12x` files carry the geometry.
@@ -234,11 +242,12 @@ The returned SVG is a real vector document: the scene exports its `<path>` eleme
 A canvas is a project; a project contains pages. `canvas` op=create is only for a genuinely new
 deliverable — never for a draft, test, visual check or alternative direction. In the open project,
 `canvas` op=add-page (for example `name: "Test — poster hierarchy"`) adds a blank page, switches
-the editor to it, and returns its page number. Compose and verify there, then `canvas`
-op=delete-page to remove a page you only used for testing, or keep and rename it if it is worth
-showing. `get_canvas_summary` always names the active page, and `canvas` op=go-page switches back
-before you report the real deliverable. `canvas` op=create now returns a `notice` when another
-canvas was already open, pointing at `add-page`.
+the editor to it, and returns its page number. Pass width/height/backgroundColor when the new page
+needs a different sheet. Compose and verify there, then `canvas` op=delete-page to remove a page
+you only used for testing, or keep and rename it if it is worth showing. If only the size is wrong,
+use `canvas` op=resize instead of creating a new canvas. `get_canvas_summary` always names the
+active page, and `canvas` op=go-page switches back before you report the real deliverable.
+`canvas` op=create returns a `notice` when another canvas was already open, pointing at `add-page`.
 
 ### Errors
 

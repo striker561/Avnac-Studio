@@ -16,30 +16,52 @@ The MCP server allows external AI agents and clients to interact with the Avnac 
 ## Available Tools
 
 The server publishes **14 tools**: six reads, six noun-shaped mutation tools, `vector` and the `guide` router whose verbs are
-`op` values. The 25 hidden registrations behind those ops keep their action names 1:1 with the
+`op` values. The hidden registrations behind those ops keep their action names 1:1 with the
 frontend `mcp:action` strings, except `open_canvas`/`rename_file`, which emit
-`open_workspace`/`rename_workspace`.
+`open_workspace`/`rename_workspace`. Every scene response carries `clientId`,
+`actionHandlerId` and a monotonic `revision`, so a stale tab or mismatched handler is visible
+instead of looking like a random ID failure.
 
 ### Reads
 - `get_canvas_summary`: Semantic summary of the artboard and objects, plus `document`, the active
-  `page` (`index`, 1-based `number`, `name`) and every `pages` entry.
+  `page` (`index`, 1-based `number`, `name`, `width`, `height`) and every `pages` entry. Also
+  reports `clientId`, `actionHandlerId` and `revision`.
 - `get_canvas_state`: Full raw scene state.
 - `get_canvas_image`: PNG screenshot of the canvas or one object; `annotated` overlays bounds.
 - `list_objects` / `get_object_properties` / `get_selection`: Object-level inspection.
+  `get_object_properties` now resolves by `objectId`/`id` or a unique `name`/`targetName`.
 
 ### `canvas` — project, pages and artboard
 - `create`: Starts a **new project** (width, height, optional name/background). Not for drafts or
   tests; it returns a `notice` when another canvas was already open.
 - `add-page`: Adds a named blank page to the **open project**, switches the editor to it live,
-  and returns `page` + `pageCount`. This is the draft/test/variation path.
+  and returns `page` + `pageCount`. Optional `width`, `height` and `backgroundColor` let a
+  3:4 page live inside a project whose other pages have a different size. This is the
+  draft/test/variation path.
 - `go-page`: Switches pages by 1-based `page` (number or name) or 0-based `index`.
 - `rename-page`: Renames a page (defaults to the current one).
 - `delete-page`: Deletes a page (defaults to the current one; never the last page).
+- `resize`: Resizes the active artboard in place (width, height, optional background) instead of
+  creating a second project.
+- `snapshot` / `restore`: Capture all pages and return a session token, then restore them.
+- `undo` / `redo`: Move through object-level **and** page-level history.
+- `status`: Report the connected client, action handler, revision, active document/page, undo
+  state and implemented capabilities.
+- `validate`: Audit out-of-bounds objects, text contrast, tiny type, thin strokes, duplicate
+  names, near tangencies and unloaded fonts.
 - `clear` / `background` / `preset`: Current-page background, clear, and standard sizes.
 
 ### `elements`
 - `render` (batched, bottom-to-top), `modify`, `delete`, and `measure` (text layout without
   drawing). Images support `fit`, `focalPoint` and `crop`; text is measured against its real font.
+- `modify` resolves targets by `objectId`/`id`, `targetName`/`objectName`, or a unique `name`
+  and returns per-object `before`/`after` snapshots plus `changedFields`. Use `newName` to
+  rename a name-targeted object.
+- Image nodes accept `url`/`src` in `modify` to replace the source without changing node identity,
+  z-order or selection.
+- Render/modify/delete accept `documentId`, `page` and `index` guards. A moved editor or wrong
+  page fails instead of silently editing the wrong context.
+- A batch that resolves nothing now fails with the per-spec `issues` (not `modifiedCount: 0`).
 
 ### `arrange`
 - `align` (including optical `cap-middle`), `distribute`, `group`, `ungroup`, `fit`, `select`.
@@ -50,9 +72,13 @@ frontend `mcp:action` strings, except `open_canvas`/`rename_file`, which emit
 ### `assets`
 - `unsplash` (compact records + quota; placement in `render` files the download report and stores
   the credit), `fonts`, `stickers`.
+- `fonts` accepts `families`/`check` and returns a `loaded` map, so an agent can distinguish
+  "listed by Google Fonts" from "rendered by this client".
 
 ### `export`
-- `png` (artboard) and `object` (cropped PNG).
+- `png` (artboard), `object` (cropped PNG or SVG), and `svg` (full page or selection).
+- `svg` returns editable SVG markup and can write `filePath` directly; a missing `.svg` extension
+  is added. The page exporter uses the authored artboard dimensions rather than cropping to content.
 
 ### `vector` — path drawing
 - `draw`: resolves a small scene-graph IR (`canvas`, `objects[]`, `layers[]`) with constraints
@@ -61,8 +87,12 @@ frontend `mcp:action` strings, except `open_canvas`/`rename_file`, which emit
   `boardId` + `objectId`.
 - `update`: applies object-level operations (`resize`, `move`, `rotate`, `mirror`, `restyle`,
   `reorder`, `delete`, `add`) to the stored IR and re-renders once.
-- `read` / `export` / `delete` / `list`: inspect the IR and v3 document, get the SVG source,
-  remove the placed element, or enumerate session boards.
+- `read` / `export` / `delete` / `list`: inspect the IR and v3 document, get the SVG source
+  (optionally writing `filePath`), remove the placed element, or enumerate session boards.
+- `status` / `recover`: check whether the deterministic node id is actually placed, adopt a
+  drawing that painted despite a lost response, or retry the exact placement without duplication.
+- `draw` registers the board before the frontend call and uses the board id as the default node id,
+  so a failed response is recoverable rather than orphaned.
 - Implementation: [`tools_vector.go`](tools_vector.go), with geometry in
   [`internal/vector/`](../../internal/vector/). The placed node's `src` is an SVG data URL carrying
   `data-avnac-vector-board="1"`, so the scene exporter inlines real `<path>` elements instead of a
@@ -80,8 +110,22 @@ the new active page in real time. `delete_page` calls `deletePageAt` (no native 
 an MCP call never blocks on a dialog. Page names are stored in the multi-page envelope as
 `pageNames`, index-aligned with `pages`; empty entries display as `Page N`.
 
+Custom pages carry their own artboard dimensions. `canvas op=resize` edits the active page in
+place, while `snapshot`/`restore` replace the whole page set and reset the page-history entry to
+the restored state. Snapshots are session-scoped.
+
+
 ## Development
 
 The MCP server is constructed in `app.go` and registered in `App.startup`. The HTTP listener itself starts when the `mcp_enabled` config value is set (Settings toggle or `config.json`) and stops when it is cleared.
 
 If you add new tools in `tools.go`, make sure to update the corresponding handler in `frontend/src/features/scene-editor/use-mcp-actions.ts` (add a dispatcher case plus a named action function), and keep payload → command conversion in `frontend/src/lib/mcp/commands.ts` so it stays unit-testable.
+
+Reliability tests:
+- Go: `go test ./avnac-system/mcp` covers decoders, recoverable vector placement, status/recover,
+  SVG file export, and the protocol-level `TestCanvasLifecycleProtocol` exercises the real MCP tool
+  surface with `emitFn` substituted for Wails.
+- Frontend: `npm run test:unit` covers modify targeting/before-after, page sizing, revision,
+  snapshots, page SVG export and validation.
+- E2E: `npm run test:e2e` drives the real Wails browser server for custom pages, resize,
+  snapshot/restore, name-targeted modify, vector draw/update/delete, and page undo/redo.

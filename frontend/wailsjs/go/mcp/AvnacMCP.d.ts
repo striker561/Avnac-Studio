@@ -4,11 +4,15 @@ import {mcp} from '../models';
 import {context} from '../models';
 import {avnacconfig} from '../models';
 
+export function CheckClient():Promise<mcp.ClientCheckReport>;
+
 export function GetMCPInfo():Promise<mcp.MCPState>;
 
 export function RegenerateToken():Promise<void>;
 
 export function RegisterPrompts():Promise<void>;
+
+export function RegisterResources():Promise<void>;
 
 export function RegisterTools(arg1:context.Context):Promise<void>;
 
@@ -19,5 +23,7 @@ export function StartHTTP(arg1:mcp.HTTPOptions):Promise<void>;
 export function Stop(arg1:context.Context):Promise<void>;
 
 export function SubmitResponse(arg1:string,arg2:any):Promise<void>;
+
+export function ToolSurface():Promise<mcp.ToolSurfaceReport>;
 
 export function UpdateConfig(arg1:avnacconfig.AppConfig):Promise<void>;

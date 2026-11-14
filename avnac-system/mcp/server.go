@@ -15,11 +15,14 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	avnacconfig "Avnac/avnac-system/config"
 	avnacio "Avnac/avnac-system/io"
 	avnacsecrets "Avnac/avnac-system/secrets"
 	avnacserver "Avnac/avnac-system/server"
+	"Avnac/internal/skill"
+	"Avnac/internal/vector"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -59,6 +62,36 @@ type AvnacMCP struct {
 
 	pendingRequests map[string]chan any
 	mu              sync.Mutex
+	// emitFn is the generic frontend round trip used by scene tools. Nil in
+	// production (emitSync owns the Wails call); tests substitute it to drive
+	// the real MCP protocol without a Wails runtime.
+	emitFn func(ctx context.Context, action string, payload any, timeout time.Duration) (any, error)
+
+	// surfaceMu guards the op table recorded at registration and the window
+	// context captured with it, so Settings can list the tool surface and probe
+	// the editor without an MCP request of its own.
+	surfaceMu  sync.Mutex
+	surfaceOps map[string][]ToolSurfaceOp
+	wailsCtx   context.Context
+
+	// vectorBoards holds the vector IRs created through the vector tool, keyed
+	// by board id. They are session state on purpose: the placed SVG is the
+	// durable artifact, while the IR supports conversational edits ("make the
+	// ears smaller") without regenerating the whole drawing.
+	vectorMu         sync.Mutex
+	vectorBoards     map[string]*vector.Board
+	vectorPlacements map[string]map[string]any
+	vectorPlaced     map[string]bool
+	// vectorEmit is the frontend round trip used by vector draw/update/delete.
+	// It is a field so tests can substitute a recorder; production always uses
+	// emitSync.
+	vectorEmit func(ctx context.Context, action string, payload any, timeout time.Duration) (any, error)
+
+	// instructions is the connect text handed to every client: the design
+	// doctrine in DesignerInstructions plus the compact resource index. It is
+	// built once because the embedded library cannot change at runtime, and the
+	// server/discover probe echoes the same text.
+	instructions string
 
 	// startMu serializes StartHTTP/StopHTTP/UpdateConfig.
 	startMu sync.Mutex
@@ -78,43 +111,71 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Parse the request and extract known constraints: dimensions, exact copy, brand or shop names, dates/addresses, palette, style, imagery.
    - Identify critical unknowns: real text content, names, dates, addresses, size intent. If any are missing, ask the user up to 3 targeted questions and STOP — do not call tools yet. If nothing critical is missing, state your assumptions explicitly and proceed.
    - Write a compact design plan: layout zones with approximate coordinates, type hierarchy, palette, fonts, asset needs. The later verification step checks the render against this brief.
-   - For EDIT requests, write a diff-oriented brief (what changes, what stays). Start from the real canvas: if the target file is not currently open, call list_files then open_canvas — NEVER silently recreate an existing design in a new file.
+   - Route the brief through the guide tool BEFORE composing: guide(task=the brief) returns the workflow (skill://...) and the 4-8 rules that apply for any specialized work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI, vector drawing, critique — whether or not the user asked for guidance. Read them, then design from them. Composition tool results also carry a compact guide field, so the route appears even if you skip this call. A route is a starting point, not a reading limit: the task will move to subjects the first route did not name, and every skill://, rules:// and references:// URI stays readable — open the ones the work needs by URI, starting at skill://avnac-design or rules://index.
+   - For EDIT requests, write a diff-oriented brief (what changes, what stays). Start from the real canvas: if the target file is not currently open, call files op=list then files op=open — NEVER silently recreate an existing design in a new file.
 
 2. INSPECT / CANVAS SETUP:
-   - Call get_canvas_summary to see the active canvas. For a NEW design, call create_canvas with width, height, backgroundColor, and a descriptive name.
-   - create_canvas already applies backgroundColor — do not call set_background again with the same value.
-   - To edit an existing file that is not open: list_files → open_canvas(fileId). To change its title: rename_file(fileId, name).
+   - Call get_canvas_summary to see the active canvas, the document name, and every page. The summary names the current page — always confirm it before rendering.
+   - ONE PROJECT, MANY PAGES: canvas op=create starts a NEW project. Use it only when the user wants a separate deliverable or no suitable canvas is open. NEVER create a new canvas to draft, test, compare variants or run a check — put that work on a page inside the current project.
+   - To draft/test in the open project: canvas op=add-page (name="Test — <what>") adds a blank page and switches the editor to it, live. Compose there, call get_canvas_image to inspect, then canvas op=delete-page to remove a page you only used for testing (or keep it if it is useful). The real page is untouched.
+   - Switch pages with canvas op=go-page (page = 1-based number or name, or index = 0-based); rename with canvas op=rename-page; delete with canvas op=delete-page (never the last page). canvas op=clear only clears the current page.
+   - If the open canvas has the wrong sheet size, use canvas op=resize (or add-page width/height) instead of creating another project. canvas op=add-page accepts optional width/height/backgroundColor for a differently sized page.
+   - canvas op=create already applies backgroundColor — do not call canvas op=background again with the same value.
+   - If an action is unexpectedly unknown, an object ID is missing, or a response looks stale, call canvas op=status first. It reports clientId, actionHandlerId, revision, active page and implemented capabilities.
+   - Use canvas op=snapshot before a risky page-wide experiment and canvas op=restore(token) to return; canvas op=undo/redo also cover page history.
+   - To edit an existing file that is not open: files op=list → files op=open(fileId). To change its title: files op=rename(fileId, name).
 
 3. ASSETS:
-   - Call search_unsplash for photography when relevant, and get_font_list if unsure which fonts to use.
-   - Every search spends the app's Unsplash hourly quota, and each result carries the remaining budget in rateLimit: reuse photos you already have instead of re-running a query. Place a photo by passing its regular URL as an image element's url in render_elements — that is when Unsplash download tracking fires.
+   - Call assets op=unsplash for photography when relevant, and assets op=fonts if unsure which fonts to use.
+   - Every search spends the app's Unsplash hourly quota, and each result carries the remaining budget in rateLimit: reuse photos you already have instead of re-running a query. Place a photo by passing its regular URL as an image element's url in elements op=render — that is when Unsplash download tracking fires.
    - Unsplash requires the photographer and Unsplash to be credited wherever a photo is used. Placement stores that credit on the image and get_canvas_summary lists it under credits. Always name the photographers in your final message, and when the design is for publication add a small credit line (e.g. "Photo: Ada / Unsplash") to the layout.
 
 4. DECLARATIVE COMPOSITION:
-   - Call render_elements once with all elements, layered bottom (background) to top (foreground).
+   - Call elements op=render once with all elements, layered bottom (background) to top (foreground).
    - Coordinates: top-left origin (0, 0). 'left' (or 'x') and 'top' (or 'y') in pixels.
    - Elements: 'rect', 'ellipse', 'polygon' (sides 3-8), 'star', 'line', 'text', 'image', 'sticker'.
+   - For original vector artwork (logo marks, icons, characters, badges, patterns), use the vector tool's op=draw with a small scene-graph IR instead of scene primitives: objects carry id/type/box/paint, plus constraints and mirrorOf. op=update edits the drawing by id afterwards. Read skill://vector first.
    - Typography: strong hierarchy (Headline 48-72px, Subhead 24-32px, Body 16-20px). Prefer Poppins, Inter, and DM Serif Display — other Google Fonts may fall back if not yet loaded; get_canvas_image now waits for fonts before rendering.
    - Styling: hex colors, cornerRadius, blur, opacity, shadows (blur, offsetX, offsetY, color, opacity), and gradientStops.
 
 5. VERIFY AGAINST THE BRIEF:
+   - Confirm get_canvas_summary reports the page you meant to edit (page.name). If you are on a draft/test page, switch back with canvas op=go-page before reporting the real deliverable.
    - Call get_canvas_image and compare it to the design brief AND the user's original request, item by item: required content present and spelled correctly, dimensions, hierarchy, palette, style, no unintended placeholder text.
-   - If something mismatches, fix it with modify_elements (or align_objects / group_objects), take one more screenshot, then report an honest pass/fail per requirement. Explicitly flag any content you invented.
+   - If something mismatches, fix it with elements op=modify (or arrange ops: align, distribute, group), take one more screenshot, then report an honest pass/fail per requirement. Explicitly flag any content you invented.
+   - elements op=modify resolves objectId/id or a unique name, returns before/after snapshots and changed fields, and fails with per-spec issues instead of a silent modifiedCount:0. For an image plate, pass url/src to replace its source without changing identity.
+   - If vector op=draw returns a recoverable error, do not redraw. Call vector op=status, then vector op=recover with the boardId; the deterministic node id lets it adopt an already-painted drawing instead of duplicating it.
 `
 
 func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, secrets *avnacsecrets.SecretsManager) *AvnacMCP {
-	return &AvnacMCP{
+	// The design library's index rides on the connect instructions so an agent
+	// knows the resources exist before its first tool call. The embedded data is
+	// static, so this costs one parse at construction.
+	instructions := DesignerInstructions
+	if lib, err := skill.Default(); err == nil {
+		instructions += designResourceIndex(lib)
+	}
+	server := &AvnacMCP{
 		server: mcp.NewServer(&mcp.Implementation{
 			Name:    "Avnac Studio",
-			Version: "1.0.0",
+			Version: "2.0.0",
 		}, &mcp.ServerOptions{
-			Instructions: DesignerInstructions,
+			Instructions: instructions,
 		}),
-		pendingRequests: make(map[string]chan any),
-		Unsplash:        unsplash,
-		Secrets:         secrets,
-		IO:              io,
+		pendingRequests:  make(map[string]chan any),
+		vectorBoards:     make(map[string]*vector.Board),
+		vectorPlacements: make(map[string]map[string]any),
+		vectorPlaced:     make(map[string]bool),
+		surfaceOps:       make(map[string][]ToolSurfaceOp),
+		instructions:     instructions,
+		Unsplash:         unsplash,
+		Secrets:          secrets,
+		IO:               io,
 	}
+	// The vector tool's draw/update/delete need the same synchronous frontend
+	// round trip as the other mutation tools. Held as a field so tests can
+	// substitute a recorder.
+	server.vectorEmit = server.emitSync
+	return server
 }
 
 // Start registers tools and prompts. It does not bind any network resource;
@@ -123,6 +184,11 @@ func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, s
 func (m *AvnacMCP) Start(wailsCtx context.Context) {
 	m.RegisterTools(wailsCtx)
 	m.RegisterPrompts()
+	// Resources are the design library. A failure degrades the guidance, not
+	// the canvas tools, so it is logged rather than fatal.
+	if err := m.RegisterResources(); err != nil {
+		log.Printf("mcp: design resources unavailable: %v", err)
+	}
 }
 
 // HTTPOptions controls StartHTTP. Token is the required bearer token; when
@@ -280,12 +346,16 @@ func (m *AvnacMCP) buildHandler(streamable, sse http.Handler) http.Handler {
 								"prompts": map[string]any{
 									"listChanged": true,
 								},
+								"resources": map[string]any{
+									"subscribe":   false,
+									"listChanged": true,
+								},
 							},
 							"serverInfo": map[string]string{
 								"name":    "Avnac Studio",
 								"version": "1.0.0",
 							},
-							"instructions": DesignerInstructions,
+							"instructions": m.instructions,
 						},
 					}
 					_ = json.NewEncoder(w).Encode(resp)

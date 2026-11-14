@@ -8,6 +8,7 @@ type Row = {
 };
 
 const ROWS: Row[] = [
+  { keys: "T / I", action: "Add text / image" },
   { keys: "Cmd/Ctrl + Z", action: "Undo" },
   { keys: "Cmd/Ctrl + Shift + Z / Y", action: "Redo" },
   { keys: "Cmd/Ctrl + D", action: "Duplicate selection" },

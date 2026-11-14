@@ -113,8 +113,10 @@ In short: Avnac Studio starts fast, uses very little memory, ships as a light ex
 ### Multi-page workspaces
 
 - Build documents across multiple pages in a single workspace
+- Name pages, switch between them, and double-click a tab to rename
 - Per-page state is stored independently in native storage
 - Import and export individual pages or entire workspaces as portable files
+- AI agents draft and test on named pages in the open project instead of starting a new file
 
 <!-- screenshot: multi-page workspace with page tabs -->
 <img width="1907" height="1120" alt="image" src="https://github.com/user-attachments/assets/b0a5c42a-7a47-4beb-87e6-001bb1c273e5" />
@@ -186,16 +188,25 @@ claude mcp add --transport http avnac-studio http://127.0.0.1:<port-from-setting
 
 > Tip: open the connect URL in any browser (no token needed) to confirm the server is up before connecting a client.
 
-### What agents can do — 27 tools
+### What agents can do — 14 tools
 
-- **Files** — `list_files`, `open_canvas`, `rename_file` (work even with no canvas open)
-- **Canvas setup** — `create_canvas` (size, background, name), `apply_artboard_preset` (IG, HD, A4…), `set_background`, `clear_canvas`, `get_canvas_summary`
-- **Create & edit** — `render_elements` creates rects, ellipses, polygons, stars, lines, text, images, and stickers in one call (solid or gradient paints); `modify_elements`, `delete_object`, `group_objects` / `ungroup_objects`
-- **Layout** — `align_objects`, `distribute_objects`, `fit_to_artboard`
-- **Assets** — `search_unsplash`, `list_stickers`, `get_font_list` (Google Fonts)
-- **Verify & export** — `get_canvas_image` (screenshot so the agent can visually check its own work), `get_object_properties`, `export_png`, `export_object`
+Six reads (`get_canvas_summary`, `get_canvas_state`, `get_canvas_image`, `list_objects`, `get_object_properties`, `get_selection`), seven noun-shaped tools whose verbs are `op` values, and `guide`, the in-task router for the knowledge library:
 
-Three ready-made workflows ship as MCP prompts: **`design-graphic`** (write a brief → render → screenshot audit → verify against the request), **`edit-canvas`** (diff-oriented edits on the open design), and **`design-audit`** (critique + fix the most impactful issues).
+- **`canvas`** — `create` (new project: size, background, name), `add-page` (named draft/test page in the open project), `go-page`, `rename-page`, `delete-page`, `clear`, `background`, `preset` (IG, HD, A4…)
+- **`elements`** — `render` rects, ellipses, polygons, stars, lines, text, images and stickers in one batch (images support `fit`/`focalPoint` crop); `modify`; `delete`; `measure` text layout before drawing
+- **`arrange`** — `align` (including optical `cap-middle`), `distribute`, `group`, `ungroup`, `fit`, `select`
+- **`files`** — `list`, `open`, `rename` (work even with no canvas open)
+- **`assets`** — `unsplash`, `fonts` (Google Fonts), `stickers`
+- **`vector`** — `draw` scene-graph IRs of paths, shapes, constraints and mirrors as real SVG; `update` by object id; `read`, `export`, `delete`, `list`
+- **`guide`** — route the brief to the matching workflow and rules (`skill://`, `rules://`), so the library is used during the task, not only on request
+- **`export`** — `png`, `object`
+
+A project is a document with many pages. Agents draft, test and compare variations on a named
+page in the open project (`canvas` op=add-page) instead of creating a separate file, and
+`get_canvas_summary` names the active page so they always know which one they are editing. Page
+switches are visible in the app immediately.
+
+Three ready-made workflows ship as MCP prompts: **`design-graphic`** (routes the brief to the matching design-library workflow — poster, logo, create — then verifies the render), **`edit-canvas`** (diff-oriented edits on the open design), and **`design-audit`** (critique workflow + verdict). The prompt text is generated from the same embedded library the resources serve, so the two cannot drift.
 
 ### Try it
 

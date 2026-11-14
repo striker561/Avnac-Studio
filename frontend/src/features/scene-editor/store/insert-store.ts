@@ -348,11 +348,53 @@ export function insertImage(context: SceneEditorInsertContext) {
   });
 }
 
-export function insertVectorBoard(context: SceneEditorInsertContext) {
+export type VectorBoardInsertPayload = {
+  src: string;
+  width: number;
+  height: number;
+  name?: string;
+};
+
+export function insertVectorBoard(
+  context: SceneEditorInsertContext,
+  board?: VectorBoardInsertPayload,
+) {
   if (!context.scene) return;
   const parentId = resolveInsertParent(context.scene, context.selectedIds);
   const seed = resolveInsertSeed(context.scene, parentId);
   const pos = makeInsertPosition(context.scene, seed + 4);
+
+  if (board) {
+    // R10: place the board as resolution-independent SVG content. The scene
+    // image node preserves the board's aspect ratio; the SVG itself carries
+    // real <path> elements that the exporter can inline.
+    const maxEdge = 640;
+    const scale = Math.min(1, maxEdge / Math.max(1, board.width, board.height));
+    const width = Math.max(1, Math.round(board.width * scale));
+    const height = Math.max(1, Math.round(board.height * scale));
+    addSceneNode(context, {
+      id: crypto.randomUUID(),
+      type: "image",
+      parentId,
+      name: board.name ?? "Vector board",
+      visible: true,
+      x: Math.min(Math.max(0, pos.x), Math.max(0, context.scene.artboard.width - width)),
+      y: Math.min(Math.max(0, pos.y), Math.max(0, context.scene.artboard.height - height)),
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      opacity: 1,
+      originX: "left",
+      originY: "top",
+      width,
+      height,
+      src: board.src,
+      cropX: 0,
+      cropY: 0,
+      clipPath: null,
+    });
+    return;
+  }
 
   const groupId = crypto.randomUUID();
   const frameId = crypto.randomUUID();

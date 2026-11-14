@@ -10,6 +10,8 @@ import {
   type SaraswatiScene,
 } from "@/lib/saraswati";
 import { getRenderableNodeBounds } from "@/lib/editor/overlays";
+import type { AvnacDocumentV1 } from "@/lib/avnac-document";
+import { pageDisplayName } from "@/lib/avnac-multi-page-document";
 
 type LooseRecord = Record<string, any>;
 
@@ -28,6 +30,20 @@ type BoundsReport = { x: number; y: number; width: number; height: number };
 const NO_BOUNDS: BoundsReport = { x: 0, y: 0, width: 0, height: 0 };
 
 /**
+ * Optional real text measurement, supplied by the orchestration layer.
+ *
+ * Text nodes carry no height: getNodeBounds estimates it from a 0.5em average
+ * glyph width. That estimate is wider than most UI faces' real advance, so text
+ * whose box is its own measured natural width (exactly what MCP's
+ * render_elements stores) was reported as two lines. When a measurer is supplied,
+ * the summary uses the same layout the renderer draws, and the number agrees with
+ * the bounds render_elements returned.
+ */
+export type TextBoxMeasurer = (
+  node: Extract<SaraswatiNode, { type: "text" }>,
+) => { width: number; height: number } | null;
+
+/**
  * Bounds for a read-only response, from the engine rather than raw fields.
  *
  * Text nodes have no height field at all — height is derived from the wrapped
@@ -36,7 +52,31 @@ const NO_BOUNDS: BoundsReport = { x: 0, y: 0, width: 0, height: 0 };
  * out around it. Groups report the union of their descendants (null for an
  * invisible node, which still carries `visible` in the response).
  */
-function boundsOf(scene: SaraswatiScene, node: SaraswatiNode): BoundsReport {
+function boundsOf(
+  scene: SaraswatiScene,
+  node: SaraswatiNode,
+  measureText?: TextBoxMeasurer,
+): BoundsReport {
+  if (node.type === "text" && measureText && !node.rotation) {
+    const box = measureText(node);
+    if (box) {
+      const width = Math.abs(box.width * node.scaleX);
+      const height = Math.abs(box.height * node.scaleY);
+      const x =
+        node.originX === "center"
+          ? node.x - width / 2
+          : node.originX === "right"
+            ? node.x - width
+            : node.x;
+      const y =
+        node.originY === "center"
+          ? node.y - height / 2
+          : node.originY === "bottom"
+            ? node.y - height
+            : node.y;
+      return { x, y, width, height };
+    }
+  }
   const bounds =
     node.type === "group"
       ? getRenderableNodeBounds(scene, node.id)
@@ -92,8 +132,87 @@ export function collectCredits(scene: SaraswatiScene): CanvasCredit[] {
   return [...byPhoto.values()];
 }
 
+/** One page entry in get_canvas_summary. */
+export type CanvasPageEntry = {
+  index: number;
+  number: number;
+  name: string;
+  current: boolean;
+  nodeCount: number;
+  width: number;
+  height: number;
+};
+
+export type CanvasPageContext = {
+  pageCount: number;
+  page: {
+    index: number;
+    number: number;
+    name: string;
+    pageCount: number;
+    width: number;
+    height: number;
+  } | null;
+  pages: CanvasPageEntry[];
+};
+
+/**
+ * Page list for every read that returns canvas context.
+ *
+ * Agents need the active page name before mutating: a draft/test page and the
+ * real artboard are otherwise indistinguishable in a screenshot. Node counts
+ * come from each stored page so a plan can see which page is empty.
+ */
+export function buildPageContext(
+  pages: readonly AvnacDocumentV1[],
+  pageNames: readonly string[],
+  currentPage: number,
+  currentNodeCount?: number,
+): CanvasPageContext {
+  const safeCurrent = Math.min(
+    Math.max(0, Math.trunc(currentPage)),
+    Math.max(0, pages.length - 1),
+  );
+  const entries: CanvasPageEntry[] = pages.map((page, index) => {
+    const objects = (page as { fabric?: { objects?: unknown } }).fabric
+      ?.objects;
+    return {
+      index,
+      number: index + 1,
+      name: pageDisplayName(pageNames, index),
+      current: index === safeCurrent,
+      nodeCount:
+        index === safeCurrent && currentNodeCount !== undefined
+          ? Math.max(0, currentNodeCount)
+          : Array.isArray(objects)
+            ? objects.length
+            : 0,
+      width: page.artboard?.width ?? 0,
+      height: page.artboard?.height ?? 0,
+    };
+  });
+  const active = entries[safeCurrent] ?? null;
+  return {
+    pageCount: entries.length,
+    page: active
+      ? {
+          index: active.index,
+          number: active.number,
+          name: active.name,
+          pageCount: entries.length,
+          width: active.width,
+          height: active.height,
+        }
+      : null,
+    pages: entries,
+  };
+}
+
 /** Summarized artboard + node list for get_canvas_summary. */
-export function buildCanvasSummary(scene: SaraswatiScene): {
+export function buildCanvasSummary(
+  scene: SaraswatiScene,
+  measureText?: TextBoxMeasurer,
+): {
   artboard: SaraswatiScene["artboard"];
   nodes: LooseRecord[];
   credits: CanvasCredit[];
@@ -102,7 +221,7 @@ export function buildCanvasSummary(scene: SaraswatiScene): {
     .filter((n) => n.id !== scene.root)
     .map((n) => {
       const anyNode = n as LooseRecord;
-      const bounds = boundsOf(scene, n);
+      const bounds = boundsOf(scene, n, measureText);
       return {
         id: n.id,
         name: n.name,

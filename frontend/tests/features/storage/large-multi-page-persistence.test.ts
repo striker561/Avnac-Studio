@@ -56,7 +56,7 @@ describe("feature: storage / large multi-page persistence", () => {
 
   it("serializes and parses a multi-megabyte workspace envelope", () => {
     const pages = [makeDoc("page-1", 512_000), makeDoc("page-2", 512_000)];
-    const envelope = buildMultiPageDocument(pages, 1);
+    const envelope = buildMultiPageDocument(pages, 1, ["Main", "Test — layout"]);
     const raw = JSON.stringify(envelope);
     expect(raw.length).toBeGreaterThan(1_000_000);
 
@@ -64,13 +64,14 @@ describe("feature: storage / large multi-page persistence", () => {
     expect(parsed).not.toBeNull();
     expect(parsed!.pages).toHaveLength(2);
     expect(parsed!.currentPage).toBe(1);
+    expect(parsed!.pageNames).toEqual(["Main", "Test — layout"]);
   });
 
   it("writes the full pages payload through the native storage bridge", async () => {
     const pages = [makeDoc("a", 256_000), makeDoc("b", 256_000)];
     writePages.mockResolvedValue(undefined);
 
-    await saveStoredPages("workspace-huge", pages, 0);
+    await saveStoredPages("workspace-huge", pages, 0, ["A", "B"]);
 
     expect(writePages).toHaveBeenCalledTimes(1);
     const [persistId, raw] = writePages.mock.calls[0] as [string, string];
@@ -80,6 +81,35 @@ describe("feature: storage / large multi-page persistence", () => {
     const parsed = parseMultiPageDocument(JSON.parse(raw));
     expect(parsed).not.toBeNull();
     expect(parsed!.pages).toHaveLength(2);
+    expect(parsed!.pageNames).toEqual(["A", "B"]);
+  });
+
+  it("serializes overlapping writes so the newest page names land last", async () => {
+    let resolveFirst: (() => void) | undefined;
+    writePages.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+    writePages.mockResolvedValueOnce(undefined);
+
+    const first = saveStoredPages("workspace-race", [makeDoc("a")], 0, [
+      "Old name",
+    ]);
+    const second = saveStoredPages("workspace-race", [makeDoc("a")], 0, [
+      "New name",
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(writePages).toHaveBeenCalledTimes(1);
+
+    resolveFirst?.();
+    await Promise.all([first, second]);
+    expect(writePages).toHaveBeenCalledTimes(2);
+    const lastPayload = JSON.parse(
+      writePages.mock.calls[1]![1] as string,
+    ) as { pageNames: string[] };
+    expect(lastPayload.pageNames).toEqual(["New name"]);
   });
 
   it("keeps stored pages authoritative when the active-page snapshot is stale", () => {

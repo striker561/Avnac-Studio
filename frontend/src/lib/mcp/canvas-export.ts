@@ -10,6 +10,7 @@ import {
   renderSceneToPngDataUrl,
 } from "@/lib/renderer/offscreen-render";
 import type { SaraswatiScene } from "@/lib/saraswati";
+import { computeObjectCrop } from "@/lib/mcp/export";
 
 type LooseRecord = Record<string, any>;
 
@@ -28,17 +29,18 @@ export async function renderScenePreviewBase64(scene: SaraswatiScene): Promise<s
 }
 
 /**
- * Render the scene to a canvas at the given cap. `prePaint` controls whether
- * the artboard background is painted first (off for transparent exports).
+ * Render the scene for export. `multiplier` scales the artboard (2 = 2x);
+ * `maxCssPx` is the preview downscale cap. `prePaint` controls whether the
+ * artboard background is painted first (off for transparent exports).
  */
 export function renderSceneToExportCanvas(
   scene: SaraswatiScene,
-  maxCssPx: number,
-  prePaint: boolean,
+  options: { multiplier?: number; maxCssPx?: number; prePaint: boolean },
 ): Promise<HTMLCanvasElement | null> {
   return renderSceneToCanvas(scene, {
-    maxCssPx,
-    prePaintArtboardBackground: prePaint,
+    multiplier: options.multiplier,
+    maxCssPx: options.maxCssPx,
+    prePaintArtboardBackground: options.prePaint,
   });
 }
 
@@ -86,25 +88,26 @@ export function annotateSceneCanvas(canvas: HTMLCanvasElement, scene: SaraswatiS
  * Returns the cropped PNG as base64, or null when the 2D context is
  * unavailable (the caller falls back to the full-canvas image).
  */
-export function cropCanvasToNodeBase64(
+export function cropCanvasToNodeCanvas(
   canvas: HTMLCanvasElement,
   scene: SaraswatiScene,
   objectId: string,
-): string | null {
-  const targetNode = scene.nodes[objectId];
-  if (!targetNode) return null;
-  const anyNode = targetNode as LooseRecord;
-  const scale = canvas.width / Math.max(1, scene.artboard.width);
-  const nx = ("x" in targetNode ? anyNode.x : 0) * scale;
-  const ny = ("y" in targetNode ? anyNode.y : 0) * scale;
-  const nw = ("width" in targetNode ? anyNode.width : 100) * scale;
-  const nh = ("height" in targetNode ? anyNode.height : 100) * scale;
+): HTMLCanvasElement | null {
+  const crop = computeObjectCrop(scene, objectId);
+  if (!crop) return null;
+  const scaleX = canvas.width / Math.max(1, scene.artboard.width);
+  const scaleY = canvas.height / Math.max(1, scene.artboard.height);
 
-  const pad = 8;
-  const cropX = Math.max(0, Math.floor(nx - pad));
-  const cropY = Math.max(0, Math.floor(ny - pad));
-  const cropW = Math.min(canvas.width - cropX, Math.ceil(nw + pad * 2));
-  const cropH = Math.min(canvas.height - cropY, Math.ceil(nh + pad * 2));
+  const cropX = Math.max(0, Math.floor(crop.x * scaleX));
+  const cropY = Math.max(0, Math.floor(crop.y * scaleY));
+  const cropW = Math.min(
+    canvas.width - cropX,
+    Math.max(1, Math.ceil(crop.width * scaleX)),
+  );
+  const cropH = Math.min(
+    canvas.height - cropY,
+    Math.max(1, Math.ceil(crop.height * scaleY)),
+  );
 
   const cropCanvas = document.createElement("canvas");
   cropCanvas.width = Math.max(1, cropW);
@@ -112,5 +115,14 @@ export function cropCanvasToNodeBase64(
   const cropCtx = cropCanvas.getContext("2d");
   if (!cropCtx) return null;
   cropCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-  return canvasToPngBase64(cropCanvas);
+  return cropCanvas;
+}
+
+export function cropCanvasToNodeBase64(
+  canvas: HTMLCanvasElement,
+  scene: SaraswatiScene,
+  objectId: string,
+): string | null {
+  const cropCanvas = cropCanvasToNodeCanvas(canvas, scene, objectId);
+  return cropCanvas ? canvasToPngBase64(cropCanvas) : null;
 }

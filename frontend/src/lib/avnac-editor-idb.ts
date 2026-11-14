@@ -7,7 +7,7 @@ import {
 import { duplicateStoredPages } from "@/lib/avnac-multi-page-storage";
 import { type AvnacDocumentV1 } from "./avnac-document";
 import { migrateAvnacDocument } from "@/lib/avnac-migration";
-import type { VectorBoardDocument } from "./avnac-vector-board-document";
+import type { VectorBoardDocument } from "./avnac-vector";
 import {
   loadVectorBoardDocs,
   loadVectorBoards,

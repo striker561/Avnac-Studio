@@ -6,7 +6,7 @@
 import CanvasSelectionToolbar from "@/components/editor/canvas/canvas-selection-toolbar";
 import ImageRembgOverlay from "@/components/editor/canvas/image-rembg-overlay";
 import SceneWorkspaceStage from "@/components/scene-workspace/stage";
-import { AVNAC_VECTOR_BOARD_DRAG_MIME } from "@/lib/avnac-vector-board-document";
+import { VECTOR_BOARD_DRAG_MIME } from "@/lib/avnac-vector";
 import { findTopHitNodeId } from "@/lib/saraswati";
 import { readSceneDropIntent } from "./scene-drop-intent";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -34,6 +34,7 @@ import { useSceneEditorContextMenu } from "./use-scene-editor-context-menu";
 import { useSceneEditorDropActions } from "./use-scene-editor-drop-actions";
 import { useSceneEditorInteractions } from "./use-scene-editor-interactions";
 import { useSceneEditorShortcuts } from "./use-scene-editor-shortcuts";
+import { requestImagePicker } from "./insert-image-bridge";
 import { useSceneSelectionActions } from "./use-scene-selection-actions";
 import { ensureRembgBridge } from "@/lib/rembg-bridge";
 
@@ -60,6 +61,7 @@ export default function SceneEditorCanvas({
   const setSelectedIds = useSceneEditorStore((s) => s.setSelectedIds);
   const lockedIds = useSceneEditorStore((s) => s.lockedIds);
   const setTextContent = useSceneEditorStore((s) => s.setTextContent);
+  const insertText = useSceneEditorStore((s) => s.insertText);
   const zoomPercent = useSceneEditorStore((s) => s.zoomPercent);
   const setZoomPercent = useSceneEditorStore((s) => s.setZoomPercent);
   const canUndo = useSceneEditorStore((s) => s.canUndo);
@@ -355,7 +357,7 @@ export default function SceneEditorCanvas({
     const types = Array.from(event.dataTransfer.types);
     if (
       types.includes("Files") ||
-      types.includes(AVNAC_VECTOR_BOARD_DRAG_MIME)
+      types.includes(VECTOR_BOARD_DRAG_MIME)
     ) {
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
@@ -363,7 +365,7 @@ export default function SceneEditorCanvas({
     }
     const intent = readSceneDropIntent(
       event.dataTransfer,
-      AVNAC_VECTOR_BOARD_DRAG_MIME,
+      VECTOR_BOARD_DRAG_MIME,
     );
     if (!intent) return;
     event.preventDefault();
@@ -374,7 +376,7 @@ export default function SceneEditorCanvas({
     if (!scene) return;
     const intent = readSceneDropIntent(
       event.dataTransfer,
-      AVNAC_VECTOR_BOARD_DRAG_MIME,
+      VECTOR_BOARD_DRAG_MIME,
     );
     if (!intent) return;
     event.preventDefault();
@@ -484,6 +486,9 @@ export default function SceneEditorCanvas({
     onUngroup: actions.onUngroup,
     selectedIds,
     onNudge: actions.onNudge,
+    shortcutsOpen,
+    onInsertText: insertText,
+    onOpenImagePicker: requestImagePicker,
     onImageFilesPaste: (files) => {
       if (!scene) return;
       void dropActions.handleDropIntent(
@@ -509,6 +514,7 @@ export default function SceneEditorCanvas({
   return (
     <div
       ref={scrollContainerRef}
+      data-testid="scene-canvas-surface"
       className={`flex flex-1 [scrollbar-width:none] bg-neutral-100/80 p-8 [&::-webkit-scrollbar]:hidden ${interactions.activeCursor ? "overflow-hidden" : "overflow-auto"}`}
       style={viewportPanCursor ? { cursor: viewportPanCursor } : undefined}
       onPointerMove={(event) => {

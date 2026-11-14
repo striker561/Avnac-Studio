@@ -27,6 +27,7 @@ import {
   setSceneSnapIntensity,
 } from "@/lib/scene-editor-preferences";
 import { useUpdateCheck } from "../lib/use-update-check";
+import { getMCPClientId } from "@/lib/mcp/transport";
 
 import type { HugeiconsProps } from "@hugeicons/react";
 
@@ -57,9 +58,48 @@ type MCPStateLike = {
   error?: string;
 };
 
+type MCPToolSurfaceOp = {
+  op: string;
+  action?: string;
+  client: boolean;
+};
+
+type MCPToolSurfaceTool = {
+  name: string;
+  description: string;
+  ops?: MCPToolSurfaceOp[];
+  action?: string;
+};
+
+type MCPToolSurface = {
+  tools: MCPToolSurfaceTool[];
+  toolCount: number;
+  opCount: number;
+  generatedAt: string;
+  fingerprint: string;
+  clientActions: string[];
+};
+
+type MCPClientCheck = {
+  answered: boolean;
+  clientId?: string;
+  actionHandlerId?: string;
+  revision: number;
+  document?: string;
+  actions: string[];
+  missing: string[];
+  expected: string[];
+  latencyMs: number;
+  stale: boolean;
+  message: string;
+  error?: string;
+};
+
 type MCPBridge = {
   GetMCPInfo: () => Promise<MCPStateLike>;
   RegenerateToken: () => Promise<void>;
+  ToolSurface?: () => Promise<MCPToolSurface>;
+  CheckClient?: () => Promise<MCPClientCheck>;
 };
 
 function getMCPBridge(): MCPBridge | null {
@@ -92,19 +132,56 @@ function formatSecretsError(error: unknown, action: "load" | "save"): string {
     error instanceof Error ? error.message.trim() : String(error ?? "").trim();
   if (!message) {
     return action === "load"
-      ? "Could not load the saved key."
-      : "Could not save the key.";
+      ? "Couldn't load the saved key."
+      : "Couldn't save the key.";
   }
   if (
     /window\.go|Cannot read properties of undefined|undefined is not an object|not a function/i.test(
       message,
     )
   ) {
-    return "Secure key storage is only available inside the desktop app.";
+    return "Key storage needs the desktop app.";
   }
   return action === "load"
-    ? `Could not load saved key: ${message}`
-    : `Could not save key: ${message}`;
+    ? `Couldn't load saved key: ${message}`
+    : `Couldn't save key: ${message}`;
+}
+
+/** On/off switch used by the settings toggles */
+function SettingSwitch({
+  checked,
+  disabled,
+  onChange,
+  ariaLabel,
+  describedBy,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+  ariaLabel: string;
+  describedBy?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      aria-describedby={describedBy}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:opacity-50 ${
+        checked ? "bg-[var(--accent)]" : "bg-black/[0.16]"
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm ring-1 ring-black/[0.06] transition-transform duration-200 ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
 }
 
 /** Reusable card for a single API key field */
@@ -213,7 +290,7 @@ function ApiKeyCard({
             onClick={onSave}
             disabled={loading || saving}
           >
-            {saving ? "Saving…" : "Save key"}
+            {saving ? "Saving…" : "Save"}
           </button>
           <button
             type="button"
@@ -224,9 +301,7 @@ function ApiKeyCard({
             Clear
           </button>
           {loading ? (
-            <span className="text-sm text-[var(--text-muted)]">
-              Loading saved key…
-            </span>
+            <span className="text-sm text-[var(--text-muted)]">Loading…</span>
           ) : null}
         </div>
         {notice ? (
@@ -254,12 +329,9 @@ export const Route = createFileRoute("/settings")({
     const [rotationSensitivity, setRotationSensitivityState] = useState(() =>
       getSceneRotationSensitivity(),
     );
-    const [snapNotice, setSnapNotice] = useState<string | null>(null);
-    const [rotationNotice, setRotationNotice] = useState<string | null>(null);
     const [developerMode, setDeveloperModeState] = useState(() =>
       getSceneDeveloperMode(),
     );
-    const [developerNotice, setDeveloperNotice] = useState<string | null>(null);
 
     // --- MCP server ---
     const [mcpInfo, setMcpInfo] = useState<MCPStateLike | null>(null);
@@ -268,6 +340,14 @@ export const Route = createFileRoute("/settings")({
     const [mcpBusy, setMcpBusy] = useState(false);
     const [mcpNotice, setMcpNotice] = useState<string | null>(null);
     const [mcpError, setMcpError] = useState<string | null>(null);
+
+    // --- MCP tool surface ---
+    const [surface, setSurface] = useState<MCPToolSurface | null>(null);
+    const [clientCheck, setClientCheck] = useState<MCPClientCheck | null>(null);
+    const [surfaceLoading, setSurfaceLoading] = useState(false);
+    const [surfaceError, setSurfaceError] = useState<string | null>(null);
+    // This window's own id, so a check answered by another page is visible.
+    const [ownClientId] = useState(() => getMCPClientId());
 
     const {
       currentVersion,
@@ -311,7 +391,7 @@ export const Route = createFileRoute("/settings")({
           setUnsplashKey("");
           setUnsplashSaved(next.length > 0);
           setUnsplashNotice(
-            next ? "Unsplash API key saved." : "Unsplash API key cleared.",
+            next ? "Saved" : "Cleared",
           );
         } catch (err) {
           setUnsplashError(formatSecretsError(err, "save"));
@@ -332,7 +412,7 @@ export const Route = createFileRoute("/settings")({
           await bridge.DeleteKey("unsplash");
           setUnsplashKey("");
           setUnsplashSaved(false);
-          setUnsplashNotice("Unsplash API key cleared.");
+          setUnsplashNotice("Cleared");
         } catch (err) {
           setUnsplashError(formatSecretsError(err, "save"));
         } finally {
@@ -411,9 +491,7 @@ export const Route = createFileRoute("/settings")({
             if (!cfgBridge) throw new Error("Config bridge unavailable");
             const current = await cfgBridge.Get();
             await cfgBridge.Save({ ...current, mcp_enabled: next });
-            setMcpNotice(
-              next ? "Starting MCP server…" : "MCP server disabled.",
-            );
+            setMcpNotice(next ? "Starting…" : "Disabled.");
             // The Go watcher restarts the listener; re-read the state once
             // it has settled so the connect URL is fresh.
             setTimeout(() => {
@@ -424,9 +502,9 @@ export const Route = createFileRoute("/settings")({
                 setMcpNotice(
                   next
                     ? info.running
-                      ? "MCP server is running. Copy the connect URL and token below."
-                      : (info.error ?? "MCP server did not start.")
-                    : "MCP server disabled.",
+                      ? "Running. Copy the URL and token below."
+                      : (info.error ?? "Didn't start.")
+                    : "Disabled.",
                 );
               });
             }, 700);
@@ -452,7 +530,7 @@ export const Route = createFileRoute("/settings")({
           const secrets = getSecretsBridge();
           const tok = secrets ? await secrets.GetKey("mcp") : "";
           setMcpToken((tok ?? "").trim());
-          setMcpNotice("New token generated. Update your MCP client config.");
+          setMcpNotice("New token. Update your client config.");
         } catch (err) {
           setMcpError(formatSecretsError(err, "save"));
         } finally {
@@ -464,9 +542,48 @@ export const Route = createFileRoute("/settings")({
     const copyToClipboard = useCallback((text: string, label: string) => {
       void navigator.clipboard
         .writeText(text)
-        .then(() => setMcpNotice(`${label} copied to clipboard.`))
-        .catch(() => setMcpError("Could not copy — select the text manually."));
+        .then(() => setMcpNotice(`${label} copied.`))
+        .catch(() => setMcpError("Couldn't copy. Select the text."));
     }, []);
+
+    /**
+     * Read the Go tool surface and ask the open editor window to list the
+     * actions it can dispatch. Both share one Refresh because the comparison is
+     * the point: a window running an older bundle answers "Unknown action" for
+     * anything added since it loaded, which looks like a broken tool.
+     */
+    const refreshSurface = useCallback(async () => {
+      const bridge = getMCPBridge();
+      if (!bridge?.ToolSurface) {
+        setSurfaceError(
+          "This app predates the panel. Rebuild and relaunch.",
+        );
+        return;
+      }
+      setSurfaceLoading(true);
+      setSurfaceError(null);
+      try {
+        setSurface(await bridge.ToolSurface());
+        setClientCheck(bridge.CheckClient ? await bridge.CheckClient() : null);
+      } catch (err) {
+        setSurfaceError(
+          err instanceof Error && err.message.trim()
+            ? err.message
+            : "Couldn't read the tool surface.",
+        );
+      } finally {
+        setSurfaceLoading(false);
+      }
+    }, []);
+
+    useEffect(() => {
+      if (!getMCPBridge()?.ToolSurface) return;
+      void refreshSurface();
+    }, [refreshSurface]);
+
+    // Go marshals empty slices as null on older builds; the panel must not
+    // assume arrays here (a null crashed the whole settings route).
+    const missingActions = clientCheck?.missing ?? [];
 
     return (
       <main className="hero-page relative flex min-h-[100dvh] flex-col overflow-hidden">
@@ -498,12 +615,9 @@ export const Route = createFileRoute("/settings")({
 
           <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-12 sm:px-8 sm:py-16 lg:py-20">
             <div className="rise-in">
-              <h1 className="display-title mb-4 text-[clamp(2rem,5vw,3.25rem)] font-medium leading-[1.06] tracking-[-0.03em] text-[var(--text)]">
+              <h1 className="display-title mb-12 text-[clamp(2rem,5vw,3.25rem)] font-medium leading-[1.06] tracking-[-0.03em] text-[var(--text)]">
                 Settings
               </h1>
-              <p className="mb-12 max-w-xl text-lg leading-[1.6] text-[var(--text-muted)] sm:text-xl sm:leading-[1.55]">
-                Configure integrations and preferences.
-              </p>
 
               <div className="flex flex-col gap-6">
                 {/* Unsplash key */}
@@ -511,11 +625,11 @@ export const Route = createFileRoute("/settings")({
                   icon={Image01Icon}
                   badge="Images"
                   title="Unsplash API key"
-                  description="Used for stock photo search inside the editor. Get a free key at"
+                  description="Stock photo search in the editor. Free key at"
                   learnMoreHref="https://unsplash.com/developers"
                   learnMoreLabel="unsplash.com/developers"
                   inputId="avnac-unsplash-key"
-                  placeholder="Paste your Unsplash access key"
+                  placeholder="Access key"
                   value={unsplashKey}
                   onChange={(v) => {
                     setUnsplashKey(v);
@@ -548,31 +662,29 @@ export const Route = createFileRoute("/settings")({
                         MCP design server
                       </h2>
                       <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Lets local AI agents (Cursor, Claude Code, VS Code)
-                        design on your canvas over Model Context Protocol. The
-                        server only listens on this machine and requires a
-                        bearer token.
+                        Local AI agents (Cursor, Claude Code, VS Code) edit the
+                        canvas over MCP. Listens on this machine only; bearer
+                        token required.
                       </p>
                     </div>
 
-                    <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
+                    <div className="flex items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
                       <div className="pr-4">
                         <p className="text-sm font-medium text-[var(--text)]">
                           Enable MCP server
                         </p>
                         <p className="text-xs text-[var(--text-muted)]">
-                          Off by default. Binds to 127.0.0.1 on a fixed port (free-port fallback if taken).
+                          Binds to 127.0.0.1 on a fixed port; falls back to a
+                          free one.
                         </p>
                       </div>
-                      <input
-                        type="checkbox"
+                      <SettingSwitch
+                        ariaLabel="Enable MCP server"
                         checked={mcpInfo?.enabled ?? false}
                         disabled={mcpLoading || mcpBusy || !getMCPBridge()}
-                        onChange={(e) => toggleMCPServer(e.target.checked)}
-                        className="size-4 shrink-0 rounded border border-black/20"
-                        style={{ accentColor: "var(--accent)" }}
+                        onChange={toggleMCPServer}
                       />
-                    </label>
+                    </div>
 
                     {mcpInfo?.enabled && mcpInfo.running ? (
                       <div className="flex flex-col gap-3 rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
@@ -632,8 +744,7 @@ export const Route = createFileRoute("/settings")({
                             </button>
                           </div>
                           <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
-                            In your client config, set the URL above and send
-                            header{" "}
+                            In your client config, send header{" "}
                             <code className="rounded bg-black/[0.05] px-1 py-0.5 text-[11px]">
                               Authorization: Bearer &lt;token&gt;
                             </code>
@@ -664,6 +775,221 @@ export const Route = createFileRoute("/settings")({
                   </div>
                 </div>
 
+                {/* MCP tool surface */}
+                <div className="overflow-hidden rounded-[28px] border border-black/[0.08] bg-white/75 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur-md">
+                  <div className="flex flex-col gap-4 px-5 py-5 sm:px-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/80 px-3 py-1 text-xs font-medium text-[var(--text-muted)]">
+                          <HugeiconsIcon
+                            icon={BotIcon}
+                            size={14}
+                            strokeWidth={1.9}
+                            className="shrink-0"
+                          />
+                          AI Agents
+                        </div>
+                        <h2 className="m-0 text-base font-semibold text-[var(--text)] sm:text-lg">
+                          MCP tool surface
+                        </h2>
+                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                          What this build publishes and what the open window can
+                          dispatch. Refresh after a rebuild; an older bundle
+                          shows up here instead of as “Unknown action”.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void refreshSurface()}
+                        disabled={surfaceLoading}
+                        className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border border-black/[0.12] bg-white px-3 text-xs font-medium text-[var(--text)] transition hover:border-black/[0.2] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <HugeiconsIcon
+                          icon={ArrowReloadHorizontalIcon}
+                          size={15}
+                          strokeWidth={1.9}
+                          className={surfaceLoading ? "animate-spin" : ""}
+                        />
+                        Refresh
+                      </button>
+                    </div>
+
+                    {clientCheck ? (
+                      <div
+                        className={`rounded-2xl border px-4 py-3 ${
+                          clientCheck.stale
+                            ? "border-amber-200 bg-amber-50/80"
+                            : "border-emerald-200 bg-emerald-50/70"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <HugeiconsIcon
+                            icon={
+                              clientCheck.stale
+                                ? AlertDiamondIcon
+                                : CheckmarkCircle01Icon
+                            }
+                            size={16}
+                            strokeWidth={1.9}
+                            className={`mt-0.5 shrink-0 ${
+                              clientCheck.stale
+                                ? "text-amber-500"
+                                : "text-emerald-600"
+                            }`}
+                          />
+                          <div className="min-w-0">
+                            <p
+                              className={`text-sm font-medium ${
+                                clientCheck.stale
+                                  ? "text-amber-800"
+                                  : "text-emerald-800"
+                              }`}
+                            >
+                              {clientCheck.stale
+                                ? "Window needs a reload"
+                                : "Window is current"}
+                            </p>
+                            <p
+                              className={`mt-1 text-xs leading-5 ${
+                                clientCheck.stale
+                                  ? "text-amber-700"
+                                  : "text-emerald-700"
+                              }`}
+                            >
+                              {clientCheck.message}
+                            </p>
+                            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                              {clientCheck.answered
+                                ? `client ${clientCheck.clientId?.slice(0, 8) ?? "?"} · handler ${clientCheck.actionHandlerId?.slice(0, 8) ?? "?"} · revision ${clientCheck.revision}`
+                                : "no client answered"}{" "}
+                              · {clientCheck.latencyMs} ms · this window{" "}
+                              {ownClientId.slice(0, 8)}
+                            </p>
+                            {clientCheck.answered &&
+                            clientCheck.clientId &&
+                            clientCheck.clientId !== ownClientId ? (
+                              <p className="mt-2 text-[11px] leading-5 text-amber-700">
+                                Another window answered. A second copy of the app
+                                (browser tab or window) can win the tool-call
+                                race. Close it, then refresh.
+                              </p>
+                            ) : null}
+                            {missingActions.length > 0 ? (
+                              <p className="mt-2 break-all text-[11px] leading-5 text-red-700">
+                                missing: {missingActions.slice(0, 12).join(", ")}
+                                {missingActions.length > 12
+                                  ? ` +${missingActions.length - 12} more`
+                                  : ""}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {surface ? (
+                      <div className="rounded-2xl border border-black/[0.08] bg-white/85">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-black/[0.06] px-4 py-2 text-xs text-[var(--text-muted)]">
+                          <span>
+                            <strong className="font-semibold text-[var(--text)]">
+                              {surface.toolCount}
+                            </strong>{" "}
+                            tools
+                          </span>
+                          <span>
+                            <strong className="font-semibold text-[var(--text)]">
+                              {surface.opCount}
+                            </strong>{" "}
+                            ops
+                          </span>
+                          <span>
+                            fingerprint{" "}
+                            <code className="rounded bg-black/[0.05] px-1 py-0.5 text-[11px]">
+                              {surface.fingerprint}
+                            </code>
+                          </span>
+                          <span className="ml-auto">
+                            read{" "}
+                            {new Date(surface.generatedAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="max-h-80 overflow-auto px-4 py-1">
+                          {surface.tools.map((tool) => (
+                            <div
+                              key={tool.name}
+                              className="border-b border-black/[0.05] py-2 last:border-b-0"
+                            >
+                              <div className="flex items-baseline justify-between gap-3">
+                                <code className="text-[13px] font-medium text-[var(--text)]">
+                                  {tool.name}
+                                </code>
+                                {tool.action ? (
+                                  <span className="shrink-0 text-[11px] text-[var(--text-muted)]">
+                                    {tool.action}
+                                  </span>
+                                ) : null}
+                              </div>
+                              {tool.description ? (
+                                <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-muted)]">
+                                  {tool.description}
+                                </p>
+                              ) : null}
+                              {tool.ops && tool.ops.length > 0 ? (
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                  {tool.ops.map((op) => {
+                                    const missing =
+                                      op.client &&
+                                      Boolean(
+                                        op.action &&
+                                          missingActions.includes(op.action),
+                                      );
+                                    return (
+                                      <span
+                                        key={op.op}
+                                        title={
+                                          op.action
+                                            ? `emits ${op.action}`
+                                            : "answered in Go"
+                                        }
+                                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
+                                          missing
+                                            ? "border-red-200 bg-red-50 text-red-700"
+                                            : op.client
+                                              ? "border-black/[0.08] bg-white text-[var(--text)]"
+                                              : "border-black/[0.06] bg-black/[0.03] text-[var(--text-muted)]"
+                                        }`}
+                                      >
+                                        <span
+                                          className={`size-1.5 rounded-full ${
+                                            missing
+                                              ? "bg-red-500"
+                                              : op.client
+                                                ? "bg-emerald-500"
+                                                : "bg-black/20"
+                                          }`}
+                                        />
+                                        {op.op}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : surfaceLoading ? (
+                      <p className="text-sm text-[var(--text-muted)]">
+                        Reading…
+                      </p>
+                    ) : null}
+
+                    {surfaceError ? (
+                      <p className="text-sm text-red-600">{surfaceError}</p>
+                    ) : null}
+                  </div>
+                </div>
+
                 {/* Scene snap intensity */}
                 <div className="overflow-hidden rounded-[28px] border border-black/[0.08] bg-white/75 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur-md">
                   <div className="flex flex-col gap-4 px-5 py-5 sm:px-6">
@@ -675,8 +1001,7 @@ export const Route = createFileRoute("/settings")({
                         Snap Intensity
                       </h2>
                       <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Controls global stickiness for snapping and hit
-                        heuristics.
+                        How sticky snapping and hit-testing are.
                       </p>
                     </div>
                     <div className="rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
@@ -696,15 +1021,11 @@ export const Route = createFileRoute("/settings")({
                           const next = Math.max(0, Math.min(1, value));
                           setSnapIntensityState(next);
                           setSceneSnapIntensity(next);
-                          setSnapNotice("Snap intensity updated.");
                         }}
                         aria-label="Snap intensity"
                         trackClassName="w-full"
                       />
                     </div>
-                    {snapNotice ? (
-                      <p className="text-sm text-emerald-700">{snapNotice}</p>
-                    ) : null}
                   </div>
                 </div>
 
@@ -719,7 +1040,7 @@ export const Route = createFileRoute("/settings")({
                         Rotation Speed
                       </h2>
                       <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Controls how fast drag-to-rotate responds in the canvas.
+                        Drag-to-rotate responsiveness.
                       </p>
                     </div>
                     <div className="rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
@@ -739,17 +1060,11 @@ export const Route = createFileRoute("/settings")({
                           const next = Math.max(0.1, Math.min(1.5, value));
                           setRotationSensitivityState(next);
                           setSceneRotationSensitivity(next);
-                          setRotationNotice("Rotation speed updated.");
                         }}
                         aria-label="Rotation speed"
                         trackClassName="w-full"
                       />
                     </div>
-                    {rotationNotice ? (
-                      <p className="text-sm text-emerald-700">
-                        {rotationNotice}
-                      </p>
-                    ) : null}
                   </div>
                 </div>
 
@@ -764,44 +1079,25 @@ export const Route = createFileRoute("/settings")({
                         Developer Mode
                       </h2>
                       <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Hide the scene footer and technical diagnostics in the
-                        editor.
+                        Hides the scene footer and diagnostics.
                       </p>
                     </div>
 
-                    <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
+                    <div className="flex items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
                       <div className="pr-4">
                         <p className="text-sm font-medium text-[var(--text)]">
-                          Enable developer mode
-                        </p>
-                        <p className="text-xs text-[var(--text-muted)]">
-                          When enabled, footer details are hidden on the scene
-                          page.
+                          Developer mode
                         </p>
                       </div>
-                      <input
-                        type="checkbox"
+                      <SettingSwitch
+                        ariaLabel="Enable developer mode"
                         checked={developerMode}
-                        onChange={(e) => {
-                          const next = e.target.checked;
+                        onChange={(next) => {
                           setDeveloperModeState(next);
                           setSceneDeveloperMode(next);
-                          setDeveloperNotice(
-                            next
-                              ? "Developer mode enabled."
-                              : "Developer mode disabled.",
-                          );
                         }}
-                        className="size-4 shrink-0 rounded border border-black/20"
-                        style={{ accentColor: "var(--accent)" }}
                       />
-                    </label>
-
-                    {developerNotice ? (
-                      <p className="text-sm text-emerald-700">
-                        {developerNotice}
-                      </p>
-                    ) : null}
+                    </div>
                   </div>
                 </div>
 
@@ -822,7 +1118,7 @@ export const Route = createFileRoute("/settings")({
                         Updates
                       </h2>
                       <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                        Current version:{" "}
+                        Version{" "}
                         <span className="font-medium text-[var(--text)]">
                           {currentVersion ?? "…"}
                         </span>
@@ -855,11 +1151,10 @@ export const Route = createFileRoute("/settings")({
                         />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-[var(--text)]">
-                            {updateAvailable.latestVersion} is available
+                            {updateAvailable.latestVersion} available
                           </p>
                           <p className="mt-0.5 text-xs leading-5 text-[var(--text-muted)]">
-                            You&apos;re on {currentVersion}. Download the latest
-                            release to get new features and fixes.
+                            You&apos;re on {currentVersion}.
                           </p>
                           <button
                             type="button"
@@ -883,9 +1178,9 @@ export const Route = createFileRoute("/settings")({
                           className="mt-0.5 shrink-0 text-amber-500"
                         />
                         <span>
-                          Could not check for updates.
+                          Couldn&apos;t check for updates.
                           <span className="block text-xs text-[var(--text-muted)]">
-                            {checkError} — try again in a few minutes.
+                            {checkError}
                           </span>
                         </span>
                       </div>
@@ -897,7 +1192,7 @@ export const Route = createFileRoute("/settings")({
                           strokeWidth={1.75}
                           className="shrink-0 text-emerald-500"
                         />
-                        You&apos;re up to date
+                        Up to date
                         <span className="text-xs">
                           · checked{" "}
                           {lastChecked.toLocaleTimeString(undefined, {
@@ -908,7 +1203,7 @@ export const Route = createFileRoute("/settings")({
                       </div>
                     ) : (
                       <p className="text-sm text-[var(--text-muted)]">
-                        Checking for updates…
+                        Checking…
                       </p>
                     )}
                   </div>

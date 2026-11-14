@@ -21,6 +21,7 @@ import {
 } from "../scene";
 import { anchorToCenter } from "../transform/anchor";
 import { normalizeImageCredit } from "../credit";
+import { readBlur, readShadow } from "./effects";
 
 export type AvnacAdapterPipeline = "direct-avnac";
 
@@ -72,6 +73,11 @@ type RawObject = Record<string, unknown> & {
   avnacShape?: unknown;
   avnacVectorBoardId?: string;
   avnacLayerId?: string;
+  avnacLayerName?: unknown;
+  avnacBlur?: unknown;
+  avnacShadow?: unknown;
+  avnacClipPathStack?: unknown;
+  avnacBorderRadius?: unknown;
   src?: string;
   cropX?: number;
   cropY?: number;
@@ -217,8 +223,11 @@ function adaptRawObjects(input: {
         type: "group",
         parentId,
         rotation: 0,
+        name: readName(raw),
         visible: raw.visible !== false,
         opacity: clampOpacity(readNumber(raw.opacity, 1)),
+        shadow: readShadow(raw.avnacShadow),
+        blur: readBlur(raw.avnacBlur),
         children: [],
       };
       nodes[groupId] = groupNode;
@@ -311,6 +320,9 @@ function adaptRawObject(
       opacity: clampOpacity(readNumber(raw.opacity, 1)),
       originX: "left",
       originY: "top",
+      name: readName(raw),
+      shadow: readShadow(raw.avnacShadow),
+      blur: readBlur(raw.avnacBlur),
       x1: eps.x1,
       y1: eps.y1,
       x2: eps.x2,
@@ -321,7 +333,7 @@ function adaptRawObject(
         { type: "solid", color: "#262626" },
       ),
       strokeWidth: readArrowStrokeWidth(raw.avnacShape),
-      arrowStart: false,
+      arrowStart: readArrowStart(raw.avnacShape),
       arrowEnd: shapeKind === "arrow",
       lineStyle: readArrowLineStyle(raw.avnacShape),
       pathType: readArrowPathType(raw.avnacShape),
@@ -354,6 +366,9 @@ function adaptRawObject(
         opacity: clampOpacity(readNumber(raw.opacity, 1)),
         originX: normalizeOriginX(raw.originX),
         originY: normalizeOriginY(raw.originY),
+        name: readName(raw),
+        shadow: readShadow(raw.avnacShadow),
+        blur: readBlur(raw.avnacBlur),
         width: raw.width,
         height: raw.height,
         fill: readPaint(raw.avnacFill, raw.fill, {
@@ -365,6 +380,7 @@ function adaptRawObject(
         radiusX: readNumber(raw.rx, 0),
         radiusY: readNumber(raw.ry, 0),
         clipPath: readClipPath(raw.clipPath),
+        clipPathStack: readClipPathStack(raw.avnacClipPathStack),
       };
       return { node, issue: supportedIssue(sourceId, "rect") };
     }
@@ -403,6 +419,9 @@ function adaptRawObject(
         opacity: clampOpacity(readNumber(raw.opacity, 1)),
         originX: normalizeOriginX(raw.originX),
         originY: normalizeOriginY(raw.originY),
+        name: readName(raw),
+        shadow: readShadow(raw.avnacShadow),
+        blur: readBlur(raw.avnacBlur),
         width,
         height,
         fill: readPaint(raw.avnacFill, raw.fill, {
@@ -412,6 +431,7 @@ function adaptRawObject(
         stroke: readOptionalPaint(raw.avnacStroke, raw.stroke),
         strokeWidth: readNumber(raw.strokeWidth, 0),
         clipPath: readClipPath(raw.clipPath),
+        clipPathStack: readClipPathStack(raw.avnacClipPathStack),
       };
       return { node, issue: supportedIssue(sourceId, normalizedType) };
     }
@@ -441,6 +461,9 @@ function adaptRawObject(
         opacity: clampOpacity(readNumber(raw.opacity, 1)),
         originX: normalizeOriginX(raw.originX),
         originY: normalizeOriginY(raw.originY),
+        name: readName(raw),
+        shadow: readShadow(raw.avnacShadow),
+        blur: readBlur(raw.avnacBlur),
         width: bounds.width,
         height: bounds.height,
         points,
@@ -451,6 +474,7 @@ function adaptRawObject(
         stroke: readOptionalPaint(raw.avnacStroke, raw.stroke),
         strokeWidth: readNumber(raw.strokeWidth, 0),
         clipPath: readClipPath(raw.clipPath),
+        clipPathStack: readClipPathStack(raw.avnacClipPathStack),
       };
       return {
         node,
@@ -486,6 +510,9 @@ function adaptRawObject(
         opacity: clampOpacity(readNumber(raw.opacity, 1)),
         originX: normalizeOriginX(raw.originX),
         originY: normalizeOriginY(raw.originY),
+        name: readName(raw),
+        shadow: readShadow(raw.avnacShadow),
+        blur: readBlur(raw.avnacBlur),
         text: raw.text,
         width: readNumber(raw.width, 1),
         fontSize: readNumber(raw.fontSize, 16),
@@ -503,6 +530,7 @@ function adaptRawObject(
         stroke: readOptionalPaint(raw.avnacStroke, raw.stroke),
         strokeWidth: readNumber(raw.strokeWidth, 0),
         clipPath: readClipPath(raw.clipPath),
+        clipPathStack: readClipPathStack(raw.avnacClipPathStack),
       };
       return { node, issue: supportedIssue(sourceId, readSourceType(raw)) };
     }
@@ -535,6 +563,9 @@ function adaptRawObject(
         opacity: clampOpacity(readNumber(raw.opacity, 1)),
         originX: normalizeOriginX(raw.originX),
         originY: normalizeOriginY(raw.originY),
+        name: readName(raw),
+        shadow: readShadow(raw.avnacShadow),
+        blur: readBlur(raw.avnacBlur),
         width: raw.width,
         height: raw.height,
         src: raw.src,
@@ -544,8 +575,13 @@ function adaptRawObject(
         cropHeight: isPositiveNumber(raw.cropHeight)
           ? raw.cropHeight
           : undefined,
+        borderRadius: readNumber(
+          raw.avnacBorderRadius ?? raw.cornerRadius,
+          0,
+        ),
         credit: readCredit(raw.avnacCredit),
         clipPath: readClipPath(raw.clipPath),
+        clipPathStack: readClipPathStack(raw.avnacClipPathStack),
       };
       return { node, issue: supportedIssue(sourceId, "image") };
     }
@@ -648,6 +684,21 @@ function readNumber(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+function readName(raw: RawObject): string | undefined {
+  const value = raw.avnacLayerName;
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function readClipPathStack(value: unknown): SaraswatiClipPath[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined;
+  const stack = value
+    .map((entry) => readClipPath(entry))
+    .filter((entry): entry is SaraswatiClipPath => entry !== null);
+  return stack.length > 0 ? stack : undefined;
+}
+
 function isPositiveNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
@@ -731,6 +782,11 @@ function readArrowStrokeWidth(raw: unknown): number {
   if (!raw || typeof raw !== "object") return 2;
   const w = (raw as { arrowStrokeWidth?: unknown }).arrowStrokeWidth;
   return typeof w === "number" && Number.isFinite(w) && w > 0 ? w : 2;
+}
+
+function readArrowStart(raw: unknown): boolean {
+  if (!raw || typeof raw !== "object") return false;
+  return (raw as { arrowStart?: unknown }).arrowStart === true;
 }
 
 function readArrowLineStyle(raw: unknown): SaraswatiLineStyle {

@@ -138,7 +138,7 @@ func TestPublishedToolSurface(t *testing.T) {
 	if vectorTool == nil {
 		t.Fatal("vector tool missing")
 	}
-	for _, op := range []string{"draw", "update", "read", "export", "delete", "list"} {
+	for _, op := range []string{"draw", "update", "read", "export", "delete", "list", "status", "recover"} {
 		if !strings.Contains(vectorTool.Description, "op="+op) {
 			t.Errorf("vector description is missing op %q", op)
 		}
@@ -172,9 +172,9 @@ func TestPublishedToolSurface(t *testing.T) {
 	if canvasTool == nil {
 		t.Fatal("canvas tool missing")
 	}
-	for _, op := range []string{"add-page", "go-page", "rename-page", "delete-page"} {
+	for _, op := range []string{"add-page", "go-page", "rename-page", "delete-page", "resize", "snapshot", "restore", "undo", "redo", "status", "validate"} {
 		if !strings.Contains(canvasTool.Description, op) {
-			t.Errorf("canvas description is missing page op %q", op)
+			t.Errorf("canvas description is missing op %q", op)
 		}
 	}
 	schema, ok := canvasTool.InputSchema.(map[string]any)
@@ -182,9 +182,9 @@ func TestPublishedToolSurface(t *testing.T) {
 		t.Fatalf("canvas InputSchema is %T, want its JSON object form", canvasTool.InputSchema)
 	}
 	properties, _ := schema["properties"].(map[string]any)
-	for _, field := range []string{"page", "index", "name"} {
+	for _, field := range []string{"page", "index", "name", "width", "height", "token"} {
 		if properties[field] == nil {
-			t.Errorf("canvas schema is missing the %q page property", field)
+			t.Errorf("canvas schema is missing the %q property", field)
 		}
 	}
 }

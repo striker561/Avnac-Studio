@@ -62,13 +62,19 @@ type AvnacMCP struct {
 
 	pendingRequests map[string]chan any
 	mu              sync.Mutex
+	// emitFn is the generic frontend round trip used by scene tools. Nil in
+	// production (emitSync owns the Wails call); tests substitute it to drive
+	// the real MCP protocol without a Wails runtime.
+	emitFn func(ctx context.Context, action string, payload any, timeout time.Duration) (any, error)
 
 	// vectorBoards holds the vector IRs created through the vector tool, keyed
 	// by board id. They are session state on purpose: the placed SVG is the
 	// durable artifact, while the IR supports conversational edits ("make the
 	// ears smaller") without regenerating the whole drawing.
-	vectorMu     sync.Mutex
-	vectorBoards map[string]*vector.Board
+	vectorMu         sync.Mutex
+	vectorBoards     map[string]*vector.Board
+	vectorPlacements map[string]map[string]any
+	vectorPlaced     map[string]bool
 	// vectorEmit is the frontend round trip used by vector draw/update/delete.
 	// It is a field so tests can substitute a recorder; production always uses
 	// emitSync.
@@ -106,7 +112,10 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - ONE PROJECT, MANY PAGES: canvas op=create starts a NEW project. Use it only when the user wants a separate deliverable or no suitable canvas is open. NEVER create a new canvas to draft, test, compare variants or run a check — put that work on a page inside the current project.
    - To draft/test in the open project: canvas op=add-page (name="Test — <what>") adds a blank page and switches the editor to it, live. Compose there, call get_canvas_image to inspect, then canvas op=delete-page to remove a page you only used for testing (or keep it if it is useful). The real page is untouched.
    - Switch pages with canvas op=go-page (page = 1-based number or name, or index = 0-based); rename with canvas op=rename-page; delete with canvas op=delete-page (never the last page). canvas op=clear only clears the current page.
+   - If the open canvas has the wrong sheet size, use canvas op=resize (or add-page width/height) instead of creating another project. canvas op=add-page accepts optional width/height/backgroundColor for a differently sized page.
    - canvas op=create already applies backgroundColor — do not call canvas op=background again with the same value.
+   - If an action is unexpectedly unknown, an object ID is missing, or a response looks stale, call canvas op=status first. It reports clientId, actionHandlerId, revision, active page and implemented capabilities.
+   - Use canvas op=snapshot before a risky page-wide experiment and canvas op=restore(token) to return; canvas op=undo/redo also cover page history.
    - To edit an existing file that is not open: files op=list → files op=open(fileId). To change its title: files op=rename(fileId, name).
 
 3. ASSETS:
@@ -126,6 +135,8 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Confirm get_canvas_summary reports the page you meant to edit (page.name). If you are on a draft/test page, switch back with canvas op=go-page before reporting the real deliverable.
    - Call get_canvas_image and compare it to the design brief AND the user's original request, item by item: required content present and spelled correctly, dimensions, hierarchy, palette, style, no unintended placeholder text.
    - If something mismatches, fix it with elements op=modify (or arrange ops: align, distribute, group), take one more screenshot, then report an honest pass/fail per requirement. Explicitly flag any content you invented.
+   - elements op=modify resolves objectId/id or a unique name, returns before/after snapshots and changed fields, and fails with per-spec issues instead of a silent modifiedCount:0. For an image plate, pass url/src to replace its source without changing identity.
+   - If vector op=draw returns a recoverable error, do not redraw. Call vector op=status, then vector op=recover with the boardId; the deterministic node id lets it adopt an already-painted drawing instead of duplicating it.
 `
 
 func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, secrets *avnacsecrets.SecretsManager) *AvnacMCP {
@@ -143,12 +154,14 @@ func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, s
 		}, &mcp.ServerOptions{
 			Instructions: instructions,
 		}),
-		pendingRequests: make(map[string]chan any),
-		vectorBoards:    make(map[string]*vector.Board),
-		instructions:    instructions,
-		Unsplash:        unsplash,
-		Secrets:         secrets,
-		IO:              io,
+		pendingRequests:  make(map[string]chan any),
+		vectorBoards:     make(map[string]*vector.Board),
+		vectorPlacements: make(map[string]map[string]any),
+		vectorPlaced:     make(map[string]bool),
+		instructions:     instructions,
+		Unsplash:         unsplash,
+		Secrets:          secrets,
+		IO:               io,
 	}
 	// The vector tool's draw/update/delete need the same synchronous frontend
 	// round trip as the other mutation tools. Held as a field so tests can

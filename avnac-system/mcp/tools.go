@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -51,6 +53,9 @@ func emptyObjSchema() *jsonschema.Schema {
 // All scene-touching tools use this so callers get real success/error instead
 // of fire-and-forget {"message":"... requested"} acks.
 func (m *AvnacMCP) emitSync(wailsCtx context.Context, action string, payload any, timeout time.Duration) (any, error) {
+	if m.emitFn != nil {
+		return m.emitFn(wailsCtx, action, payload, timeout)
+	}
 	requestID := uuid.New().String()
 	ch := make(chan any, 1)
 
@@ -106,6 +111,33 @@ func toolErrorResult(data any) (*mcp.CallToolResult, any, error) {
 		IsError: true,
 		Content: []mcp.Content{&mcp.TextContent{Text: msg}},
 	}, data, nil
+}
+
+// writeSVGFile writes a generated SVG and returns its absolute path. A missing
+// .svg extension is added rather than silently writing text into a directory or
+// a filename the caller cannot reopen as an image.
+func writeSVGFile(requestedPath, svg string) (string, error) {
+	path := strings.TrimSpace(requestedPath)
+	if path == "" {
+		return "", fmt.Errorf("filePath is empty")
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("resolve filePath: %w", err)
+	}
+	if !strings.EqualFold(filepath.Ext(abs), ".svg") {
+		abs += ".svg"
+	}
+	if info, err := os.Stat(abs); err == nil && info.IsDir() {
+		return "", fmt.Errorf("filePath %s is a directory", abs)
+	}
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		return "", fmt.Errorf("create SVG directory: %w", err)
+	}
+	if err := os.WriteFile(abs, []byte(svg), 0o644); err != nil {
+		return "", fmt.Errorf("write SVG: %w", err)
+	}
+	return abs, nil
 }
 
 // Flexible input decoding.
@@ -886,6 +918,7 @@ type RenderElementsInput struct {
 
 type ElementModification struct {
 	ObjectID      string            `json:"objectId"`
+	ID            *string           `json:"id,omitempty"`
 	Type          *string           `json:"type,omitempty"`
 	Left          *float64          `json:"left,omitempty"`
 	Top           *float64          `json:"top,omitempty"`
@@ -916,6 +949,11 @@ type ElementModification struct {
 	Opacity       *float64          `json:"opacity,omitempty"`
 	Action        *string           `json:"action,omitempty"`
 	Name          *string           `json:"name,omitempty"`
+	NewName       *string           `json:"newName,omitempty"`
+	TargetName    *string           `json:"targetName,omitempty"`
+	ObjectName    *string           `json:"objectName,omitempty"`
+	URL           *string           `json:"url,omitempty"`
+	Src           *string           `json:"src,omitempty"`
 	Locked        *bool             `json:"locked,omitempty"`
 	GradientAngle *float64          `json:"gradientAngle,omitempty"`
 	GradientStops []GradientStop    `json:"gradientStops,omitempty"`
@@ -1149,11 +1187,60 @@ func decodePageTarget(raw map[string]any, allowName bool) (map[string]any, bool)
 }
 
 func decodeAddPageInput(raw map[string]any) map[string]any {
-	out := make(map[string]any, 1)
+	out := make(map[string]any, 5)
 	if name := truncatePageName(stringField(raw, "name", "pageName", "title")); name != "" {
 		out["name"] = name
 	}
+	for _, key := range []string{"width", "height"} {
+		if v, ok := raw[key]; ok && v != nil {
+			if n, ok := flexibleFloat(v); ok && n >= 100 && n <= 16000 {
+				out[key] = int(n)
+			}
+		}
+	}
+	if bg := stringField(raw, "backgroundColor", "color", "bg"); bg != "" {
+		out["backgroundColor"] = bg
+	}
+	if target, ok := decodePageTarget(raw, false); ok {
+		for key, value := range target {
+			out[key] = value
+		}
+	}
 	return out
+}
+
+func decodeResizeArtboardInput(raw map[string]any) (map[string]any, error) {
+	out := make(map[string]any, 5)
+	hasSize := false
+	for _, key := range []string{"width", "height"} {
+		if v, ok := raw[key]; ok && v != nil {
+			n, ok := flexibleFloat(v)
+			if !ok || n < 100 || n > 16000 {
+				return nil, fmt.Errorf("%s must be between 100 and 16000 pixels", key)
+			}
+			out[key] = int(n)
+			hasSize = true
+		}
+	}
+	if bg := stringField(raw, "backgroundColor", "color", "bg"); bg != "" {
+		out["backgroundColor"] = bg
+	} else if !hasSize {
+		return nil, fmt.Errorf("resize needs width, height, or backgroundColor")
+	}
+	if target, ok := decodePageTarget(raw, false); ok {
+		for key, value := range target {
+			out[key] = value
+		}
+	}
+	return out, nil
+}
+
+func decodeSnapshotTokenInput(raw map[string]any) (map[string]any, error) {
+	token := stringField(raw, "token", "snapshotId", "snapshot")
+	if token == "" {
+		return nil, fmt.Errorf("token is required (from canvas op=snapshot)")
+	}
+	return map[string]any{"token": token}, nil
 }
 
 func decodeGoToPageInput(raw map[string]any) (map[string]any, error) {
@@ -1205,9 +1292,13 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		Name: "add_page",
 		Description: "Add a named blank page to the open document and switch the editor to it live. " +
 			"Use this for drafts, tests, variations and explorations instead of creating a new canvas. " +
-			"The page inherits the current artboard size and starts blank.",
+			"By default the page inherits the current artboard size; pass width/height for a differently sized page.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
-			"name": desc("Optional page name (max 120 chars), e.g. 'Test — poster exploration'. Defaults to the page number."),
+			"name":            desc("Optional page name (max 120 chars), e.g. 'Test — poster exploration'. Defaults to the page number."),
+			"width":           desc("Optional page width in pixels (100-16000). Defaults to the current artboard width."),
+			"height":          desc("Optional page height in pixels (100-16000). Defaults to the current artboard height."),
+			"backgroundColor": desc("Optional page background color hex. Defaults to white."),
+			"color":           desc("Alias for backgroundColor."),
 		}),
 	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
 		data, err := m.emitSync(wailsCtx, "add_page", decodeAddPageInput(raw), 15*time.Second)
@@ -1267,6 +1358,124 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		}),
 	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
 		data, err := m.emitSync(wailsCtx, "delete_page", decodeDeletePageInput(raw), 15*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name: "resize_artboard",
+		Description: "Resize the active artboard in place, optionally changing its background. " +
+			"Use this instead of starting a new project when only the sheet dimensions are wrong.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"width":           desc("New width in pixels (100-16000)."),
+			"height":          desc("New height in pixels (100-16000)."),
+			"backgroundColor": desc("Optional new background color hex."),
+			"color":           desc("Alias for backgroundColor."),
+			"page":            desc("Optional active-page guard: 1-based number or page name."),
+			"index":           desc("Optional active-page guard: 0-based page index."),
+		}),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		input, err := decodeResizeArtboardInput(raw)
+		if err != nil {
+			return nil, nil, err
+		}
+		data, err := m.emitSync(wailsCtx, "resize_artboard", input, 15*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name:        "create_snapshot",
+		Description: "Capture every page of the open document and return a session token for canvas op=restore. Use before a risky edit or a page-wide experiment.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"token": desc("Optional caller-chosen token. Defaults to a generated snapshot id."),
+		}),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		data, err := m.emitSync(wailsCtx, "create_snapshot", raw, 15*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name:        "restore_snapshot",
+		Description: "Restore a document snapshot captured with canvas op=snapshot. The token is session-scoped.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"token":      desc("Snapshot token from canvas op=snapshot."),
+			"snapshotId": desc("Alias for token."),
+		}),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		input, err := decodeSnapshotTokenInput(raw)
+		if err != nil {
+			return nil, nil, err
+		}
+		data, err := m.emitSync(wailsCtx, "restore_snapshot", input, 20*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name:        "undo_canvas",
+		Description: "Undo the last scene or page operation in the open document.",
+		InputSchema: emptyObjSchema(),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		data, err := m.emitSync(wailsCtx, "undo", map[string]any{}, 15*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name:        "redo_canvas",
+		Description: "Redo the last undone scene or page operation in the open document.",
+		InputSchema: emptyObjSchema(),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		data, err := m.emitSync(wailsCtx, "redo", map[string]any{}, 15*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name:        "client_status",
+		Description: "Report the connected editor client, document/page, revision, undo state and implemented action capabilities. Use this first when an action is unexpectedly unknown or targets the wrong page.",
+		InputSchema: emptyObjSchema(),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		data, err := m.emitSync(wailsCtx, "client_status", map[string]any{}, 10*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name:        "validate_canvas",
+		Description: "Audit the active page and return structured issues: out-of-bounds objects, low text contrast, tiny type, thin strokes, duplicate names, near tangencies and unloaded fonts. Warnings are advisory; errors block a clean pass.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"families":        desc("Optional extra font family names to verify."),
+			"tolerance":       desc("Pixel tolerance for bounds/tangency checks (default 0.5)."),
+			"checkTangencies": desc("Set false to skip the pairwise near-tangency check."),
+			"page":            desc("Optional active-page guard: 1-based number or page name."),
+			"index":           desc("Optional active-page guard: 0-based page index."),
+			"documentId":      desc("Optional active-document guard."),
+		}),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		payload := map[string]any{}
+		for _, key := range []string{"families", "tolerance", "checkTangencies", "page", "index", "documentId"} {
+			if value, ok := raw[key]; ok && value != nil {
+				payload[key] = value
+			}
+		}
+		data, err := m.emitSync(wailsCtx, "validate_canvas", payload, 20*time.Second)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1546,33 +1755,28 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 	// it is a read tool, so it still appears as its own name.
 	mcp.AddTool(m.server, &mcp.Tool{
 		Name:        "get_object_properties",
-		Description: "Get detailed properties of a specific object by its ID",
+		Description: "Get detailed properties of an object by ID or by unique name. Returns the node, text metrics/image natural size, and the current document revision.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
-			"objectId": desc("ID of the object to inspect."),
-		}, "objectId"),
-	}, func(ctx context.Context, req *mcp.CallToolRequest, input GetObjectPropertiesInput) (*mcp.CallToolResult, any, error) {
-		requestID := uuid.New().String()
-		ch := make(chan any, 1)
-
-		m.mu.Lock()
-		m.pendingRequests[requestID] = ch
-		m.mu.Unlock()
-
-		runtime.EventsEmit(wailsCtx, "mcp:action", map[string]any{
-			"action":    "get_object_properties",
-			"requestId": requestID,
-			"payload":   input,
-		})
-
-		select {
-		case data := <-ch:
-			return toolErrorResult(data)
-		case <-time.After(5 * time.Second):
-			m.mu.Lock()
-			delete(m.pendingRequests, requestID)
-			m.mu.Unlock()
-			return nil, nil, fmt.Errorf("timeout waiting for object properties")
+			"objectId":   desc("ID of the object to inspect."),
+			"id":         desc("Alias for objectId."),
+			"name":       desc("Unique object name to inspect."),
+			"targetName": desc("Alias for name."),
+			"documentId": desc("Optional active-document guard."),
+			"page":       desc("Optional active-page guard."),
+			"index":      desc("Optional 0-based active-page guard."),
+		}),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		payload := map[string]any{}
+		for _, key := range []string{"objectId", "id", "name", "targetName", "documentId", "page", "index"} {
+			if value, ok := raw[key]; ok && value != nil {
+				payload[key] = value
+			}
 		}
+		data, err := m.emitSync(wailsCtx, "get_object_properties", payload, 8*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
 	})
 
 	addLegacy(&mcp.Tool{
@@ -1803,31 +2007,25 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 
 	addLegacy(&mcp.Tool{
 		Name:        "get_font_list",
-		Description: "Get the list of supported Google Fonts",
-		InputSchema: emptyObjSchema(),
+		Description: "Get the list of supported Google Fonts. Pass families/check to also report which of those families are actually loaded in the connected editor; a font can be listed but not yet rendered.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"families":     desc("Optional family names to verify (array or comma-separated string)."),
+			"fontFamilies": desc("Alias for families."),
+			"check":        desc("Alias for families."),
+			"family":       desc("Alias for a single family."),
+		}),
 	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
-		_ = raw
-		requestID := uuid.New().String()
-		ch := make(chan any, 1)
-
-		m.mu.Lock()
-		m.pendingRequests[requestID] = ch
-		m.mu.Unlock()
-
-		runtime.EventsEmit(wailsCtx, "mcp:action", map[string]any{
-			"action":    "get_font_list",
-			"requestId": requestID,
-		})
-
-		select {
-		case data := <-ch:
-			return toolErrorResult(data)
-		case <-time.After(5 * time.Second):
-			m.mu.Lock()
-			delete(m.pendingRequests, requestID)
-			m.mu.Unlock()
-			return nil, nil, fmt.Errorf("timeout waiting for font list")
+		payload := map[string]any{}
+		for _, key := range []string{"families", "fontFamilies", "check", "family"} {
+			if value, ok := raw[key]; ok && value != nil {
+				payload[key] = value
+			}
 		}
+		data, err := m.emitSync(wailsCtx, "get_font_list", payload, 8*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		return toolErrorResult(data)
 	})
 
 	addLegacy(&mcp.Tool{
@@ -1909,6 +2107,56 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 			}
 		}
 		return toolErrorResult(data)
+	})
+
+	addLegacy(&mcp.Tool{
+		Name: "export_svg",
+		Description: "Export the current page or a selection as editable SVG markup. " +
+			"Pass objectId/objectIds for a cropped selection, or omit them for the full artboard. " +
+			"Optionally write the SVG to filePath and return the written path.",
+		InputSchema: objSchema(map[string]*jsonschema.Schema{
+			"objectId":   desc("Optional single object/group to export as a cropped selection."),
+			"objectIds":  desc("Optional array of object/group ids to export as a cropped selection."),
+			"scope":      desc("page (default) or selection."),
+			"filePath":   desc("Optional absolute or workspace-relative .svg path to write."),
+			"documentId": desc("Optional active-document guard."),
+			"page":       desc("Optional active-page guard."),
+			"index":      desc("Optional 0-based active-page guard."),
+		}),
+	}, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
+		payload := map[string]any{}
+		for _, key := range []string{"objectId", "objectIds", "scope", "page", "index", "documentId"} {
+			if value, ok := raw[key]; ok && value != nil {
+				payload[key] = value
+			}
+		}
+		data, err := m.emitSync(wailsCtx, "export_svg", payload, 20*time.Second)
+		if err != nil {
+			return nil, nil, err
+		}
+		respMap, ok := data.(map[string]any)
+		if !ok || respMap == nil {
+			return toolErrorResult(data)
+		}
+		if errStr, _ := respMap["error"].(string); errStr != "" {
+			return toolErrorResult(data)
+		}
+		svg, _ := respMap["svg"].(string)
+		if svg == "" {
+			return nil, nil, fmt.Errorf("export_svg returned no SVG markup")
+		}
+		delete(respMap, "svg")
+		filePath := stringField(raw, "filePath", "path", "filename")
+		if filePath != "" {
+			written, err := writeSVGFile(filePath, svg)
+			if err != nil {
+				return nil, nil, err
+			}
+			respMap["filePath"] = written
+		}
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{Text: svg}},
+		}, respMap, nil
 	})
 
 	addLegacy(&mcp.Tool{
@@ -2182,16 +2430,23 @@ func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
 			"op=add-page (name) adds a named blank page to the OPEN project, switches the editor to it live, and returns its index/number; compose and verify there, then op=delete-page to clean up a test page or keep it. " +
 			"op=go-page (page: 1-based number or name; or index: 0-based) switches pages; op=rename-page (page?, name) renames; op=delete-page (page?, defaults current; never the last page). " +
 			"get_canvas_summary lists every page and the active one. op=clear removes every object on the current page; op=background sets the current page background; " +
-			"op=preset resizes to a standard preset (ig-square, ig-portrait, ig-story, hd, twitter-post, linkedin, youtube-thumb, a4-300, custom-4000).",
+			"op=resize (width, height, backgroundColor, page?) resizes the active sheet in place; op=preset resizes to a standard preset (ig-square, ig-portrait, ig-story, hd, twitter-post, linkedin, youtube-thumb, a4-300, custom-4000). " +
+			"op=snapshot captures all pages and returns a token; op=restore (token) restores it; op=undo/op=redo move through history; op=status reports the connected client, revision and implemented actions; op=validate audits bounds, contrast, type size, strokes, tangencies and fonts.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
-			"op":              desc("Operation: create, add-page, go-page, rename-page, delete-page, clear, background, preset."),
-			"width":           desc("create: canvas width in pixels (100-16000)."),
-			"height":          desc("create: canvas height in pixels (100-16000)."),
+			"op":              desc("Operation: create, add-page, go-page, rename-page, delete-page, clear, background, preset, resize, snapshot, restore, undo, redo, status, validate."),
+			"width":           desc("create/resize: canvas width in pixels (100-16000). add-page: page width."),
+			"height":          desc("create/resize: canvas height in pixels (100-16000). add-page: page height."),
 			"name":            desc("create: workspace name; add-page/rename-page: page name (max 120 chars)."),
 			"page":            desc("go-page/rename-page/delete-page: 1-based page number or page name. rename/delete default to the current page."),
 			"index":           desc("go-page/rename-page/delete-page: 0-based page index from get_canvas_summary."),
-			"backgroundColor": desc("create/background: background color hex."),
+			"documentId":      desc("Optional active-document guard for mutating canvas ops."),
+			"backgroundColor": desc("create/background/resize/add-page: background color hex."),
 			"color":           desc("Alias for backgroundColor."),
+			"token":           desc("restore: snapshot token from op=snapshot."),
+			"snapshotId":      desc("restore: alias for token."),
+			"families":        desc("validate: optional font families to verify."),
+			"tolerance":       desc("validate: pixel tolerance for bounds/tangency checks."),
+			"checkTangencies": desc("validate: set false to skip pairwise tangency checks."),
 			"presetId":        desc("preset: standard preset id."),
 			"preset":          desc("Alias for presetId."),
 		}, "op"),
@@ -2204,25 +2459,37 @@ func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
 		"clear":       "clear_canvas",
 		"background":  "set_background",
 		"preset":      "apply_artboard_preset",
+		"resize":      "resize_artboard",
+		"snapshot":    "create_snapshot",
+		"restore":     "restore_snapshot",
+		"undo":        "undo_canvas",
+		"redo":        "redo_canvas",
+		"status":      "client_status",
+		"validate":    "validate_canvas",
 	})
 
 	m.addOpTool(legacy, &mcp.Tool{
 		Name: "elements",
 		Description: "Create, change or measure canvas elements. op=render (elements[]) draws a batch in one call, bottom to top; " +
-			"op=modify (modifications[]) updates existing objects by id; op=delete (objectId|id, omit to delete the selection) removes an object; " +
+			"op=modify (modifications[]) updates existing objects by objectId, id, or unique name and returns before/after snapshots plus changed fields; op=delete (objectId|id|name, omit to delete the selection) removes an object; " +
 			"op=measure (elements[]) returns width/height, line count, line breaks and text vertical metrics for proposed elements WITHOUT drawing them — use it to check wrapping or fit a headline before rendering. " +
 			"Elements are rect, ellipse, circle, polygon, star, line, text, image, sticker. Text without a width is measured against its real font " +
 			"and auto-sized; when a later modify changes fontSize, pass width too, because the stored auto-measured width is kept and larger type will re-wrap. " +
 			"Images take `fit` (fill default, or cover to crop the source to the box aspect), `focalPoint` (normalized 0..1, keeps the subject in frame) " +
-			"and `crop` (explicit normalized source rectangle, wins over fit); modify accepts the same fields to re-crop an existing image. " +
-			"Unsupported element types are reported in `skipped`, and a batch that creates nothing fails. " +
+			"and `crop` (explicit normalized source rectangle, wins over fit); modify accepts the same fields to re-crop an existing image, or url/src to replace its source without changing its id. " +
+			"Unsupported element types and unresolved targets are reported in `skipped`/`issues`, and a batch that changes nothing fails. " +
 			"includePreview=true attaches a PNG preview to render/modify.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
 			"op":             desc("Operation: render, modify, delete, measure."),
 			"elements":       desc("render/measure: array of element objects, or a JSON-encoded string of that array."),
-			"modifications":  desc("modify: array of {objectId, ...fields} updates, or a JSON-encoded string."),
+			"modifications":  desc("modify: array of {objectId|id|targetName|name, ...fields}, or a JSON-encoded string. Use newName to rename a name-targeted object; url/src replaces an image source."),
 			"objectId":       desc("delete: id of the object to remove. Omit to delete the current selection."),
 			"id":             desc("Alias for objectId."),
+			"name":           desc("delete: unique object name to remove."),
+			"targetName":     desc("Alias for name."),
+			"documentId":     desc("Optional active-document guard for render/modify/delete."),
+			"page":           desc("Optional active-page guard: 1-based page number or page name."),
+			"index":          desc("Optional active-page guard: 0-based page index."),
 			"includePreview": desc("render/modify: attach a PNG preview."),
 		}, "op"),
 	}, map[string]string{
@@ -2281,12 +2548,15 @@ func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
 		Name: "assets",
 		Description: "External assets. op=unsplash (query, page, perPage) searches photos and returns compact records plus remaining quota; " +
 			"identical queries hit a two-minute cache, and placement via `elements` op=render is what fires Unsplash download tracking and stores the credit. " +
-			"op=fonts lists supported Google Fonts; op=stickers lists built-in stickers.",
+			"op=fonts lists supported Google Fonts and can verify which requested families are loaded; op=stickers lists built-in stickers.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
-			"op":      desc("Operation: unsplash, fonts, stickers."),
-			"query":   desc("unsplash: search keywords."),
-			"page":    desc("unsplash: page number."),
-			"perPage": desc("unsplash: results per page."),
+			"op":           desc("Operation: unsplash, fonts, stickers."),
+			"query":        desc("unsplash: search keywords."),
+			"page":         desc("unsplash: page number."),
+			"perPage":      desc("unsplash: results per page."),
+			"families":     desc("fonts: optional family names to verify (array or comma-separated string)."),
+			"fontFamilies": desc("fonts: alias for families."),
+			"check":        desc("fonts: alias for families."),
 		}, "op"),
 	}, map[string]string{
 		"unsplash": "search_unsplash",
@@ -2296,17 +2566,24 @@ func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
 
 	m.addOpTool(legacy, &mcp.Tool{
 		Name: "export",
-		Description: "Export the canvas or one object. op=png (multiplier, transparent) returns a base64 PNG of the artboard; " +
-			"op=object (objectId, multiplier) returns a transparent PNG cropped to that object or group's bounds; SVG object export is not supported over MCP yet.",
+		Description: "Export the canvas, one object, or a page/selection as SVG. op=png (multiplier, transparent) returns a base64 PNG of the artboard; " +
+			"op=object (objectId, multiplier, format=png|svg) returns a cropped export; op=svg (objectId/objectIds or the full page, filePath?) returns editable SVG markup and optionally writes it to disk.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
-			"op":          desc("Operation: png, object."),
-			"objectId":    desc("object: id of the object or group to export."),
+			"op":          desc("Operation: png, object, svg."),
+			"objectId":    desc("object/svg: id of the object or group to export."),
+			"objectIds":   desc("svg: array of object/group ids to export as one cropped selection."),
+			"scope":       desc("svg: page (default) or selection."),
 			"format":      desc("object: png (default) or svg."),
 			"multiplier":  desc("png/object: scale multiplier."),
 			"transparent": desc("png: omit the artboard background."),
+			"filePath":    desc("svg: optional path to write the SVG to."),
+			"documentId":  desc("Optional active-document guard."),
+			"page":        desc("Optional active-page guard."),
+			"index":       desc("Optional 0-based active-page guard."),
 		}, "op"),
 	}, map[string]string{
 		"png":    "export_png",
 		"object": "export_object",
+		"svg":    "export_svg",
 	})
 }

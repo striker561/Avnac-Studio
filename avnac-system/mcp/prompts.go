@@ -38,18 +38,20 @@ const defaultCanvasSize = "derive from the brief and state the size you choose"
 // designTools is the app-specific half of a design prompt: which tools exist.
 // It names capabilities only — no ordering, no duplicated workflow steps.
 const designTools = "Tools: `get_canvas_summary` to read the canvas and its pages, `canvas` op=create for a new project, " +
-	"`canvas` op=add-page (name) to draft/test/vary inside the open project, `canvas` ops go-page/rename-page/delete-page to manage pages, " +
+	"`canvas` op=add-page (name; optional width/height/backgroundColor) to draft/test/vary inside the open project, `canvas` ops go-page/rename-page/delete-page to manage pages, " +
+	"`canvas` op=resize to fix the active sheet in place, op=snapshot/restore for a session checkpoint, op=undo/redo for history, op=status when a call looks stale, " +
 	"`elements` op=render to compose in one batch, `elements` op=measure to check text fit before drawing, " +
-	"`elements` op=modify and `arrange` ops align/group to fix, " +
-	"`vector` op=draw for original path artwork (logo mark, icon, character, pattern) and `vector` op=update to refine it by id, " +
+	"`elements` op=modify (by objectId, id, or unique name; returns before/after and accepts url/src for images) and `arrange` ops align/group to fix, " +
+	"`vector` op=draw for original path artwork (logo mark, icon, character, pattern), op=update to refine it by id, and op=status/recover after a lost response, " +
 	"`get_canvas_image` to look at the result, `assets` op=unsplash for photography (credit the photographer, and pass `fit: \"cover\"`), " +
-	"`assets` ops fonts/stickers when you need the available set."
+	"`assets` ops fonts/stickers when you need the available set, and `export` op=svg for an editable page or selection."
 
 // oneProjectRule is the page discipline every prompt repeats. The app can hold
 // many pages; creating a second canvas for a draft splits the user's project
 // and hides the work from the page rail they are watching.
 const oneProjectRule = "One project, many pages: never create another canvas for a draft, test, variation or check. " +
 	"When a canvas is already open, use `canvas` op=add-page with a descriptive name and switch to it — the app shows the active page live. " +
+	"If only the sheet size is wrong, use `canvas` op=resize (or add-page width/height) instead of creating a new project. " +
 	"Return to the real page with `canvas` op=go-page, and delete a page you only used for testing."
 
 // auditTools names the two reads an audit starts from.

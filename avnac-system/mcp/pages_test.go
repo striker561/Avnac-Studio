@@ -21,6 +21,61 @@ func TestDecodeAddPageInput(t *testing.T) {
 	}
 }
 
+func TestDecodeAddPageDimensionsAndBackground(t *testing.T) {
+	got := decodeAddPageInput(map[string]any{
+		"name":            "  Poster  ",
+		"width":           "1200",
+		"height":          1600,
+		"backgroundColor": "#F4ECDD",
+	})
+	if got["name"] != "Poster" {
+		t.Errorf("name = %#v", got["name"])
+	}
+	if got["width"] != 1200 || got["height"] != 1600 {
+		t.Errorf("dimensions = %#v x %#v, want 1200x1600", got["width"], got["height"])
+	}
+	if got["backgroundColor"] != "#F4ECDD" {
+		t.Errorf("background = %#v", got["backgroundColor"])
+	}
+
+	// Invalid dimensions fall back to the current artboard rather than creating
+	// a zero/negative page.
+	bad := decodeAddPageInput(map[string]any{"width": 5, "height": "nope"})
+	if _, present := bad["width"]; present {
+		t.Errorf("invalid width was forwarded: %#v", bad)
+	}
+	if _, present := bad["height"]; present {
+		t.Errorf("invalid height was forwarded: %#v", bad)
+	}
+}
+
+func TestDecodeResizeAndSnapshotInputs(t *testing.T) {
+	got, err := decodeResizeArtboardInput(map[string]any{
+		"width": "1200", "height": 1600, "backgroundColor": "#173B2C", "page": "2",
+	})
+	if err != nil {
+		t.Fatalf("decodeResizeArtboardInput: %v", err)
+	}
+	if got["width"] != 1200 || got["height"] != 1600 {
+		t.Errorf("resize dimensions = %#v", got)
+	}
+	if got["backgroundColor"] != "#173B2C" || got["page"] != "2" {
+		t.Errorf("resize extras = %#v", got)
+	}
+	if _, err := decodeResizeArtboardInput(map[string]any{}); err == nil {
+		t.Error("resize without size/background succeeded")
+	}
+	if _, err := decodeResizeArtboardInput(map[string]any{"width": 50}); err == nil {
+		t.Error("resize accepted an out-of-range width")
+	}
+	if _, err := decodeSnapshotTokenInput(map[string]any{"token": "snap-1"}); err != nil {
+		t.Errorf("snapshot token: %v", err)
+	}
+	if _, err := decodeSnapshotTokenInput(map[string]any{}); err == nil {
+		t.Error("snapshot restore accepted an empty token")
+	}
+}
+
 func TestDecodePageTargets(t *testing.T) {
 	t.Run("go page by name", func(t *testing.T) {
 		got, err := decodeGoToPageInput(map[string]any{"page": "Draft"})

@@ -15,7 +15,10 @@ import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { SubmitResponse } from "../../../wailsjs/go/mcp/AvnacMCP";
 import { idbGetEditorRecord, idbSetDocumentName } from "@/lib/avnac-editor-idb";
-import { useSceneEditorStore } from "@/features/scene-editor/store";
+import {
+  useSceneEditorStore,
+  type SceneSnapshot,
+} from "@/features/scene-editor/store";
 import { GOOGLE_FONT_FAMILIES } from "@/data/google-font-families";
 import { ARTBOARD_PRESETS } from "@/data/artboard-presets";
 import {
@@ -35,6 +38,7 @@ import {
   buildRenderElementsCommands,
   buildVectorPlaceCommands,
   buildVectorUpdateCommand,
+  snapshotNode,
   type TextMeasureRequest,
   type VectorPlacePayload,
 } from "@/lib/mcp/commands";
@@ -72,8 +76,10 @@ import {
   renderSceneToExportCanvas,
 } from "@/lib/mcp/canvas-export";
 import { planExport } from "@/lib/mcp/export";
+import { buildPageSvg, buildSelectionSvg } from "@/lib/avnac-selection-export";
+import { validateScene } from "@/lib/mcp/validate";
 import { budgetFor, isOverBudget } from "@/lib/mcp/budgets";
-import { subscribeToMCPActions } from "@/lib/mcp/transport";
+import { getMCPActionHandlerId, subscribeToMCPActions } from "@/lib/mcp/transport";
 
 type LooseRecord = Record<string, any>;
 
@@ -84,12 +90,46 @@ interface MCPDeps {
 
 // ─── response helpers ─────────────────────────────────────────────────────────
 
+/**
+ * Identifies this browser client in every MCP response. When a stale tab or a
+ * second client answers an action, the mismatch is visible in the reply instead
+ * of looking like a random ID failure.
+ */
+const MCP_CLIENT_ID =
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : "client-" + Math.random().toString(36).slice(2);
+
+const SNAPSHOT_LIMIT = 20;
+const SNAPSHOTS = new Map<string, SceneSnapshot>();
+
+/** Last response emitted to the MCP bridge; dev-only observability for E2E. */
+let lastMCPResponse: LooseRecord | null = null;
+
+export function getLastMCPResponse(): LooseRecord | null {
+  return lastMCPResponse;
+}
+
+function responseMeta(): LooseRecord {
+  const state = useSceneEditorStore.getState();
+  return {
+    clientId: MCP_CLIENT_ID,
+    actionHandlerId: getMCPActionHandlerId(),
+    revision: state.revision,
+    documentId: state.documentId,
+    pageIndex: state.currentPage,
+    pageCount: state.pages.length,
+  };
+}
+
 function respond(requestId: string | undefined, data: LooseRecord): void {
-  if (requestId) SubmitResponse(requestId, data);
+  lastMCPResponse = { ...data, ...responseMeta() };
+  if (requestId) SubmitResponse(requestId, lastMCPResponse);
 }
 
 function respondError(requestId: string | undefined, error: string): void {
-  if (requestId) SubmitResponse(requestId, { error });
+  lastMCPResponse = { error, ...responseMeta() };
+  if (requestId) SubmitResponse(requestId, lastMCPResponse);
 }
 
 // ─── scene access ─────────────────────────────────────────────────────────────
@@ -112,6 +152,116 @@ async function requireScene(requestId: string | undefined) {
   const scene = await getReadyScene();
   if (!scene) respondError(requestId, NO_SCENE_ERROR);
   return scene;
+}
+
+/**
+ * Verify an optional document/page target before mutating. Agents can pin the
+ * exact context they read in get_canvas_summary; if the editor moved, the call
+ * fails instead of silently editing a different page.
+ */
+function assertTargetContext(
+  requestId: string | undefined,
+  payload: LooseRecord,
+): boolean {
+  const store = useSceneEditorStore.getState();
+  // Let the action's requireScene path produce NO_SCENE_ERROR when no document
+  // is open; a target guard should not replace it with "no pages".
+  if (!store.scene || !store.documentId) return true;
+  const wantedDocument = payload?.documentId;
+  if (typeof wantedDocument === "string" && wantedDocument.trim()) {
+    if (wantedDocument !== store.documentId) {
+      respondError(
+        requestId,
+        "Target document " + wantedDocument + " is not active (active: " +
+          (store.documentId ?? "none") + ").",
+      );
+      return false;
+    }
+  }
+
+  const selector = pageSelectorFromPayload(payload ?? {});
+  if (selector.target !== undefined) {
+    const resolved = resolvePageIndex(
+      store.pages.length,
+      store.pageNames,
+      selector.target,
+      store.currentPage,
+    );
+    if (!resolved.ok) {
+      respondError(requestId, resolved.error);
+      return false;
+    }
+    if (resolved.index !== store.currentPage) {
+      respondError(
+        requestId,
+        "Target page '" + resolved.name + "' is not active (active: '" +
+          pageDisplayName(store.pageNames, store.currentPage) +
+          "'). Switch pages first or omit the page target.",
+      );
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Scene + target guard for mutating/readback actions that accept a target. */
+async function requireTargetScene(
+  requestId: string | undefined,
+  payload: LooseRecord,
+) {
+  const scene = await requireScene(requestId);
+  if (!scene) return null;
+  if (!assertTargetContext(requestId, payload ?? {})) return null;
+  return scene;
+}
+
+/**
+ * Resolve an object by id or by unique name. Name lookup is exact,
+ * case-insensitive, and rejects ambiguity instead of picking one.
+ */
+function resolveNodeTarget(
+  scene: NonNullable<ReturnType<typeof useSceneEditorStore.getState>["scene"]>,
+  payload: LooseRecord,
+):
+  | { ok: true; id: string; node: any }
+  | { ok: false; error: string } {
+  const rawId = payload?.objectId ?? payload?.id;
+  if (typeof rawId === "string" && rawId.trim()) {
+    const id = rawId.trim();
+    const node = scene.nodes[id];
+    return node
+      ? { ok: true, id, node }
+      : { ok: false, error: "Object " + id + " not found" };
+  }
+  const rawName = payload?.name ?? payload?.targetName ?? payload?.objectName;
+  if (typeof rawName !== "string" || !rawName.trim()) {
+    return {
+      ok: false,
+      error: "objectId, id, or name is required to identify an object",
+    };
+  }
+  const wanted = rawName.trim().toLowerCase();
+  const matches = Object.values(scene.nodes).filter(
+    (node) =>
+      node.id !== scene.root &&
+      typeof (node as LooseRecord).name === "string" &&
+      String((node as LooseRecord).name).trim().toLowerCase() === wanted,
+  );
+  if (matches.length === 1) {
+    return { ok: true, id: matches[0]!.id, node: matches[0]! };
+  }
+  if (matches.length > 1) {
+    return {
+      ok: false,
+      error:
+        "Name " + JSON.stringify(rawName) + " matches " + matches.length +
+        " objects; use an objectId.",
+    };
+  }
+  return {
+    ok: false,
+    error: "No object named " + JSON.stringify(rawName) + ".",
+  };
 }
 
 /**
@@ -158,6 +308,42 @@ export async function handleMCPAction(
   if (!actionData || !actionData.action) return;
 
   const { action, payload, requestId } = actionData;
+  // Optional document/page guards are honored uniformly for mutations that
+  // operate on the active page. Page-management ops are excluded because their
+  // `page` field selects the target, not the current-page guard.
+  const TARGET_GUARDED_ACTIONS = new Set([
+    "render_elements",
+    "modify_elements",
+    "delete_object",
+    "set_background",
+    "apply_artboard_preset",
+    "clear_canvas",
+    "select_objects",
+    "align_objects",
+    "distribute_objects",
+    "group_objects",
+    "ungroup_objects",
+    "fit_to_artboard",
+    "export_png",
+    "export_object",
+    "export_svg",
+    "validate_canvas",
+    "vector_draw",
+    "vector_update",
+    "vector_delete",
+    "resize_artboard",
+    "create_snapshot",
+    "restore_snapshot",
+    "undo",
+    "redo",
+  ]);
+  if (
+    TARGET_GUARDED_ACTIONS.has(action) &&
+    payload &&
+    !assertTargetContext(requestId, payload as LooseRecord)
+  ) {
+    return;
+  }
   try {
     switch (action) {
       case "create_canvas":
@@ -174,6 +360,18 @@ export async function handleMCPAction(
         return await renamePageAction(payload ?? {}, requestId);
       case "delete_page":
         return await deletePageAction(payload ?? {}, requestId);
+      case "resize_artboard":
+        return await resizeArtboard(payload ?? {}, requestId);
+      case "create_snapshot":
+        return createSnapshotAction(payload ?? {}, requestId);
+      case "restore_snapshot":
+        return await restoreSnapshotAction(payload ?? {}, requestId);
+      case "undo":
+        return undoAction(requestId);
+      case "redo":
+        return redoAction(requestId);
+      case "client_status":
+        return clientStatusAction(requestId);
       case "render_elements":
         return await renderElements(payload ?? {}, requestId);
       case "modify_elements":
@@ -215,8 +413,12 @@ export async function handleMCPAction(
       case "export_png":
       case "export_object":
         return await exportImage(payload ?? {}, requestId);
+      case "export_svg":
+        return await exportSvg(payload ?? {}, requestId);
+      case "validate_canvas":
+        return await validateCanvas(payload ?? {}, requestId);
       case "get_font_list":
-        return await getFontList(requestId);
+        return await getFontList(payload ?? {}, requestId);
       case "vector_draw":
         return await vectorDraw(payload ?? {}, requestId);
       case "vector_update":
@@ -230,9 +432,10 @@ export async function handleMCPAction(
     console.error("Failed to handle MCP action:", e);
     try {
       if (actionData.requestId) {
-        SubmitResponse(actionData.requestId, {
-          error: e?.message || "Internal error handling MCP action",
-        });
+        respondError(
+          actionData.requestId,
+          e?.message || "Internal error handling MCP action",
+        );
       }
     } catch {}
   }
@@ -281,14 +484,14 @@ async function createCanvas(
       if (requestId) {
         done = useSceneEditorStore.getState();
         const persistedName = done.documentName || "Untitled";
-        SubmitResponse(requestId, {
+        respond(requestId, {
           success: !title || persistedName === title,
           id: newId,
           name: persistedName,
           width: done.scene?.artboard.width ?? w,
           height: done.scene?.artboard.height ?? h,
           message: title
-            ? `Canvas '${persistedName}' created and navigated to /scene`
+            ? "Canvas '" + persistedName + "' created and navigated to /scene"
             : "Canvas created and navigated to /scene",
           ...(previousDocumentId
             ? {
@@ -314,7 +517,7 @@ async function createCanvas(
       if (requestId) {
         const done = useSceneEditorStore.getState();
         const persistedName = done.documentName || "Untitled";
-        SubmitResponse(requestId, {
+        respond(requestId, {
           success: !title || persistedName === title,
           id: newId,
           name: persistedName,
@@ -452,6 +655,13 @@ function currentPageResponse(
   });
 }
 
+function readArtboardDimension(value: unknown): number | null | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 100 || n > 16000) return null;
+  return Math.round(n);
+}
+
 async function addPageAction(
   payload: MCPPayload,
   requestId: string | undefined,
@@ -461,14 +671,24 @@ async function addPageAction(
     respondError(requestId, PAGE_SCENE_ERROR);
     return;
   }
+  if (!assertTargetContext(requestId, payload ?? {})) return;
+  const width = readArtboardDimension(payload.width);
+  const height = readArtboardDimension(payload.height);
+  if (width === null || height === null) {
+    respondError(requestId, "Page width and height must be between 100 and 16000 pixels.");
+    return;
+  }
+  const backgroundColor =
+    typeof payload.backgroundColor === "string"
+      ? payload.backgroundColor
+      : typeof payload.color === "string"
+        ? payload.color
+        : undefined;
   const name = pageNameFromPayload(payload.name ?? payload.pageName);
   try {
-    await store.addPage(name);
-    const context = buildPageContext(
-      useSceneEditorStore.getState().pages,
-      useSceneEditorStore.getState().pageNames,
-      useSceneEditorStore.getState().currentPage,
-    );
+    await store.addPage(name, { width, height, backgroundColor });
+    const next = useSceneEditorStore.getState();
+    const context = buildPageContext(next.pages, next.pageNames, next.currentPage);
     currentPageResponse(requestId, {
       message: `Added page '${context.page?.name ?? name}' and switched the editor to it.`,
     });
@@ -599,6 +819,192 @@ async function deletePageAction(
   }
 }
 
+// ─── artboard lifecycle, snapshots and diagnostics ───────────────────────────
+
+async function resizeArtboard(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const scene = await requireTargetScene(requestId, payload ?? {});
+  if (!scene) return;
+
+  const width = readArtboardDimension(payload.width);
+  const height = readArtboardDimension(payload.height);
+  if (width === null || height === null) {
+    respondError(requestId, "Artboard width and height must be between 100 and 16000 pixels.");
+    return;
+  }
+  const background =
+    typeof payload.backgroundColor === "string"
+      ? payload.backgroundColor
+      : typeof payload.color === "string"
+        ? payload.color
+        : undefined;
+  if (width === undefined && height === undefined && !background) {
+    respondError(requestId, "resize needs width, height, or backgroundColor.");
+    return;
+  }
+
+  const store = useSceneEditorStore.getState();
+  store.setArtboard(
+    width,
+    height,
+    background ? parseColor(background) : undefined,
+  );
+  const next = useSceneEditorStore.getState().scene;
+  respond(requestId, {
+    success: true,
+    width: next?.artboard.width ?? width ?? scene.artboard.width,
+    height: next?.artboard.height ?? height ?? scene.artboard.height,
+    background: next?.artboard.bg ?? scene.artboard.bg,
+    message: "Artboard resized.",
+  });
+}
+
+function createSnapshotAction(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): void {
+  const store = useSceneEditorStore.getState();
+  if (!store.documentId || !store.scene) {
+    respondError(requestId, PAGE_SCENE_ERROR);
+    return;
+  }
+  if (!assertTargetContext(requestId, payload ?? {})) return;
+  const snapshot = store.captureSnapshot();
+  if (!snapshot) {
+    respondError(requestId, "Could not capture the current document.");
+    return;
+  }
+  const token =
+    typeof payload.token === "string" && payload.token.trim()
+      ? payload.token.trim()
+      : "snap-" + crypto.randomUUID();
+  SNAPSHOTS.set(token, snapshot);
+  while (SNAPSHOTS.size > SNAPSHOT_LIMIT) {
+    const oldest = SNAPSHOTS.keys().next().value;
+    if (oldest === undefined) break;
+    SNAPSHOTS.delete(oldest);
+  }
+  respond(requestId, {
+    success: true,
+    token,
+    pageCount: snapshot.pages.length,
+    currentPage: snapshot.currentPage,
+    nodeCount: snapshot.pages[snapshot.currentPage]
+      ? (snapshot.pages[snapshot.currentPage] as any).fabric?.objects?.length ?? 0
+      : 0,
+    snapshotRevision: snapshot.revision,
+    message: "Snapshot captured. Restore it with canvas op=restore.",
+  });
+}
+
+async function restoreSnapshotAction(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const token = String(payload.token ?? payload.snapshotId ?? "").trim();
+  if (!token) {
+    respondError(requestId, "snapshot token is required (from canvas op=snapshot).");
+    return;
+  }
+  const snapshot = SNAPSHOTS.get(token);
+  if (!snapshot) {
+    respondError(
+      requestId,
+      "No snapshot named " + JSON.stringify(token) +
+        ". Snapshots are session-scoped; capture a new one with canvas op=snapshot.",
+    );
+    return;
+  }
+  const store = useSceneEditorStore.getState();
+  if (!assertTargetContext(requestId, payload ?? {})) return;
+  const restored = await store.restoreSnapshot(snapshot);
+  if (!restored) {
+    respondError(requestId, "Could not restore the snapshot.");
+    return;
+  }
+  const next = useSceneEditorStore.getState();
+  respond(requestId, {
+    success: true,
+    token,
+    pageCount: next.pages.length,
+    restoredRevision: snapshot.revision,
+    message: "Snapshot restored.",
+  });
+}
+
+function undoAction(requestId: string | undefined): void {
+  const store = useSceneEditorStore.getState();
+  store.undo();
+  const next = useSceneEditorStore.getState();
+  respond(requestId, {
+    success: true,
+    canUndo: next.canUndo,
+    canRedo: next.canRedo,
+    message: "Undo applied.",
+  });
+}
+
+function redoAction(requestId: string | undefined): void {
+  const store = useSceneEditorStore.getState();
+  store.redo();
+  const next = useSceneEditorStore.getState();
+  respond(requestId, {
+    success: true,
+    canUndo: next.canUndo,
+    canRedo: next.canRedo,
+    message: "Redo applied.",
+  });
+}
+
+function clientStatusAction(requestId: string | undefined): void {
+  const store = useSceneEditorStore.getState();
+  const context = buildPageContext(store.pages, store.pageNames, store.currentPage);
+  respond(requestId, {
+    success: true,
+    clientId: MCP_CLIENT_ID,
+    actionHandlerId: getMCPActionHandlerId(),
+    revision: store.revision,
+    document: {
+      id: store.documentId,
+      name: store.documentName,
+      pageCount: context.pageCount,
+    },
+    page: context.page,
+    canUndo: store.canUndo,
+    canRedo: store.canRedo,
+    capabilities: [
+      "canvas.add-page",
+      "canvas.go-page",
+      "canvas.rename-page",
+      "canvas.delete-page",
+      "canvas.resize",
+      "canvas.snapshot",
+      "canvas.restore",
+      "canvas.undo",
+      "canvas.redo",
+      "canvas.status",
+      "elements.render",
+      "elements.modify",
+      "elements.measure",
+      "export.png",
+      "export.object",
+      "export.svg",
+      "vector.draw",
+      "vector.update",
+      "vector.read",
+      "vector.export",
+      "vector.delete",
+      "vector.list",
+      "vector.status",
+      "vector.recover",
+      "validate",
+      "fonts.loaded",
+    ],
+  });
+}
+
 // ─── element creation / modification ──────────────────────────────────────────
 
 /**
@@ -646,7 +1052,7 @@ async function renderElements(
   payload: MCPPayload,
   requestId: string | undefined,
 ): Promise<void> {
-  const scene = await requireScene(requestId);
+  const scene = await requireTargetScene(requestId, payload);
   if (!scene) return;
 
   const { elements, includePreview } = payload;
@@ -697,28 +1103,26 @@ async function renderElements(
     return;
   }
 
-  if (requestId) {
-    if (includePreview) {
-      try {
-        const updatedScene = useSceneEditorStore.getState().scene;
-        if (updatedScene) {
-          const imageData = await renderScenePreviewBase64(updatedScene);
-          SubmitResponse(requestId, { created, skipped, imageData });
-          return;
-        }
-      } catch (err) {
-        console.warn("Failed to generate preview for render_elements:", err);
+  if (includePreview) {
+    try {
+      const updatedScene = useSceneEditorStore.getState().scene;
+      if (updatedScene) {
+        const imageData = await renderScenePreviewBase64(updatedScene);
+        respond(requestId, { success: true, created, skipped, imageData });
+        return;
       }
+    } catch (err) {
+      console.warn("Failed to generate preview for render_elements:", err);
     }
-    SubmitResponse(requestId, { created, skipped });
   }
+  respond(requestId, { success: true, created, skipped });
 }
 
 async function modifyElements(
   payload: MCPPayload,
   requestId: string | undefined,
 ): Promise<void> {
-  const scene = await requireScene(requestId);
+  const scene = await requireTargetScene(requestId, payload);
   if (!scene) return;
 
   const { modifications, includePreview } = payload;
@@ -726,45 +1130,73 @@ async function modifyElements(
     respondError(requestId, "modifications must be an array");
     return;
   }
+  if (modifications.length === 0) {
+    respondError(requestId, "modifications is empty");
+    return;
+  }
 
-  // Art-direction modifications on image nodes need the source dimensions to
-  // recompute the crop; everything else modifies without any I/O.
-  const urls = (modifications as LooseRecord[])
-    .filter((mod) => {
-      const node = scene.nodes[mod?.objectId];
-      return (
-        node?.type === "image" &&
-        (mod.fit !== undefined || mod.focalPoint !== undefined || mod.crop !== undefined)
-      );
-    })
-    .map((mod) => (scene.nodes[mod.objectId] as LooseRecord).src)
-    .filter((src): src is string => typeof src === "string" && src.length > 0);
+  // Art-direction modifications and source replacement need natural image
+  // dimensions to recompute the crop; everything else modifies without I/O.
+  const urlSet = new Set<string>();
+  for (const raw of modifications as LooseRecord[]) {
+    if (typeof raw?.url === "string" && raw.url.trim()) urlSet.add(raw.url.trim());
+    if (typeof raw?.src === "string" && raw.src.trim()) urlSet.add(raw.src.trim());
+    const id = raw?.objectId ?? raw?.id;
+    const node = typeof id === "string" ? scene.nodes[id] : null;
+    if (
+      node?.type === "image" &&
+      (raw.fit !== undefined || raw.focalPoint !== undefined || raw.crop !== undefined)
+    ) {
+      const src = (node as LooseRecord).src;
+      if (typeof src === "string" && src.length > 0) urlSet.add(src);
+    }
+  }
+  const urls = [...urlSet];
   const imageSizes = urls.length > 0 ? await loadImageSizes(urls) : undefined;
 
-  const { commands, modifiedCount } = buildModifyElementsCommands(
-    scene,
-    modifications,
-    imageSizes,
-  );
+  const { commands, modifiedCount, resolved, issues } =
+    buildModifyElementsCommands(scene, modifications, imageSizes);
+
   if (commands.length > 0) {
     useSceneEditorStore.getState().applyCommands(commands);
   }
 
-  if (requestId) {
-    if (includePreview) {
-      try {
-        const updatedScene = useSceneEditorStore.getState().scene;
-        if (updatedScene) {
-          const imageData = await renderScenePreviewBase64(updatedScene);
-          SubmitResponse(requestId, { modifiedCount, imageData });
-          return;
-        }
-      } catch (err) {
-        console.warn("Failed to generate preview for modify_elements:", err);
-      }
-    }
-    SubmitResponse(requestId, { modifiedCount });
+  const afterScene = useSceneEditorStore.getState().scene;
+  const modified = resolved.map((entry) => {
+    const afterNode = afterScene?.nodes[entry.objectId];
+    return {
+      ...entry,
+      after: afterNode ? snapshotNode(afterNode) : null,
+    };
+  });
+
+  if (modifiedCount === 0) {
+    const detail = issues
+      .map((issue) => "#" + issue.index + " " + issue.requested + ": " + issue.reason)
+      .join("; ");
+    respondError(
+      requestId,
+      "No elements were modified. " + (detail || "No changes were produced."),
+    );
+    return;
   }
+
+  const result: LooseRecord = {
+    success: true,
+    modifiedCount,
+    modified,
+    issues,
+  };
+  if (includePreview) {
+    try {
+      if (afterScene) {
+        result.imageData = await renderScenePreviewBase64(afterScene);
+      }
+    } catch (err) {
+      console.warn("Failed to generate preview for modify_elements:", err);
+    }
+  }
+  respond(requestId, result);
 }
 
 // ─── scene queries ────────────────────────────────────────────────────────────
@@ -901,21 +1333,22 @@ async function getObjectProperties(
   payload: MCPPayload,
   requestId: string | undefined,
 ): Promise<void> {
-  const scene = await requireScene(requestId);
+  const scene = await requireTargetScene(requestId, payload ?? {});
   if (!scene) return;
-  const node = scene.nodes[payload?.objectId];
-  if (node) {
-    if (node.type === "image") {
-      const cached = getCachedImageSize(node.src);
-      const naturalSize = cached !== undefined ? cached : await loadImageSize(node.src);
-      respond(requestId, naturalSize ? { node, naturalSize } : { node });
-      return;
-    }
-    const metrics = textInkMetrics(node as LooseRecord);
-    respond(requestId, metrics ? { node, metrics } : { node });
-  } else {
-    respondError(requestId, `Object ${payload?.objectId} not found`);
+  const target = resolveNodeTarget(scene, payload ?? {});
+  if (!target.ok) {
+    respondError(requestId, target.error);
+    return;
   }
+  const node = target.node;
+  if (node.type === "image") {
+    const cached = getCachedImageSize(node.src);
+    const naturalSize = cached !== undefined ? cached : await loadImageSize(node.src);
+    respond(requestId, naturalSize ? { id: target.id, node, naturalSize } : { id: target.id, node });
+    return;
+  }
+  const metrics = textInkMetrics(node as LooseRecord);
+  respond(requestId, metrics ? { id: target.id, node, metrics } : { id: target.id, node });
 }
 
 async function listObjects(requestId: string | undefined): Promise<void> {
@@ -1039,8 +1472,37 @@ async function getSelection(requestId: string | undefined): Promise<void> {
   respond(requestId, buildSelectionSummary(scene, selectedIds));
 }
 
-async function getFontList(requestId: string | undefined): Promise<void> {
-  respond(requestId, { fonts: GOOGLE_FONT_FAMILIES });
+async function getFontList(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const raw =
+    payload.families ?? payload.fontFamilies ?? payload.check ?? payload.family;
+  const requested = Array.isArray(raw)
+    ? raw.map((value) => String(value).trim()).filter(Boolean)
+    : typeof raw === "string"
+      ? raw.split(",").map((value) => value.trim()).filter(Boolean)
+      : [];
+  const loaded: Record<string, boolean> = {};
+  if (typeof document !== "undefined" && document.fonts) {
+    for (const family of requested) {
+      try {
+        loaded[family] = document.fonts.check('16px "' + family.replace(/"/g, "") + '"');
+      } catch {
+        loaded[family] = false;
+      }
+    }
+  }
+  respond(requestId, {
+    fonts: GOOGLE_FONT_FAMILIES,
+    requested,
+    loaded,
+    ...(requested.length > 0
+      ? {
+          allLoaded: requested.every((family) => loaded[family] === true),
+        }
+      : {}),
+  });
 }
 // ─── selection / layout ───────────────────────────────────────────────────────
 
@@ -1072,26 +1534,28 @@ async function deleteObject(
   payload: MCPPayload,
   requestId: string | undefined,
 ): Promise<void> {
-  const scene = await requireScene(requestId);
+  const scene = await requireTargetScene(requestId, payload ?? {});
   if (!scene) return;
   const store = useSceneEditorStore.getState();
-  const objectId = payload?.objectId;
-  if (objectId) {
-    if (!scene.nodes[objectId]) {
-      respondError(requestId, `Object ${objectId} not found`);
+  const hasTarget =
+    payload?.objectId ?? payload?.id ?? payload?.name ?? payload?.targetName;
+  if (hasTarget !== undefined) {
+    const target = resolveNodeTarget(scene, payload ?? {});
+    if (!target.ok) {
+      respondError(requestId, target.error);
       return;
     }
-    store.applyCommands([{ type: "DELETE_NODE", id: objectId }]);
+    store.applyCommands([{ type: "DELETE_NODE", id: target.id }]);
     const next = useSceneEditorStore.getState();
-    next.setSelectedIds(next.selectedIds.filter((id) => id !== objectId));
-    respond(requestId, { success: true, deletedId: objectId });
+    next.setSelectedIds(next.selectedIds.filter((id) => id !== target.id));
+    respond(requestId, { success: true, deletedId: target.id });
     return;
   }
   const selected = store.selectedIds ?? [];
   if (selected.length === 0) {
     respondError(
       requestId,
-      "No objectId provided and no current selection to delete",
+      "No objectId/name provided and no current selection to delete",
     );
     return;
   }
@@ -1116,13 +1580,11 @@ async function setBackground(
   useSceneEditorStore
     .getState()
     .setArtboard(undefined, undefined, parseColor(color));
-  if (requestId) {
-    const updated = useSceneEditorStore.getState().scene;
-    SubmitResponse(requestId, {
-      success: true,
-      background: updated?.artboard.bg ?? parseColor(color),
-    });
-  }
+  const updated = useSceneEditorStore.getState().scene;
+  respond(requestId, {
+    success: true,
+    background: updated?.artboard.bg ?? parseColor(color),
+  });
 }
 
 async function applyArtboardPreset(
@@ -1341,14 +1803,143 @@ async function fitToArtboard(
   respond(requestId, { success: true, fittedCount: commands.length, padding });
 }
 
+// ─── validation ───────────────────────────────────────────────────────────────
+
+async function validateCanvas(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const scene = await requireTargetScene(requestId, payload ?? {});
+  if (!scene) return;
+  const families = new Set<string>();
+  for (const node of Object.values(scene.nodes)) {
+    if (node.type === "text") {
+      const family = String((node as LooseRecord).fontFamily ?? "").trim();
+      if (family) families.add(family);
+    }
+  }
+  for (const family of Array.isArray(payload?.families) ? payload.families : []) {
+    if (typeof family === "string" && family.trim()) families.add(family.trim());
+  }
+  if (families.size > 0) {
+    await Promise.race([
+      ensureGoogleFontsForFamilies([...families]),
+      new Promise((resolve) => setTimeout(resolve, 800)),
+    ]);
+  }
+  const loadedFonts: Record<string, boolean> = {};
+  if (typeof document !== "undefined" && document.fonts) {
+    for (const family of families) {
+      try {
+        loadedFonts[family] = document.fonts.check('16px "' + family.replace(/"/g, "") + '"');
+      } catch {
+        loadedFonts[family] = false;
+      }
+    }
+  }
+  const report = validateScene(scene, {
+    tolerance: Number(payload?.tolerance ?? 0.5),
+    loadedFonts,
+    checkTangencies: payload?.checkTangencies !== false,
+  });
+  respond(requestId, {
+    success: true,
+    ...report,
+    fonts: loadedFonts,
+    page: buildPageContext(
+      useSceneEditorStore.getState().pages,
+      useSceneEditorStore.getState().pageNames,
+      useSceneEditorStore.getState().currentPage,
+    ).page,
+  });
+}
+
 // ─── export ───────────────────────────────────────────────────────────────────
+
+function objectIdList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((id): id is string => typeof id === "string" && id.trim().length > 0);
+  }
+  if (typeof value === "string" && value.trim()) {
+    const text = value.trim();
+    if (text.startsWith("[")) {
+      try {
+        return objectIdList(JSON.parse(text));
+      } catch {
+        return [];
+      }
+    }
+    return text.split(",").map((id) => id.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+async function exportSvg(
+  payload: MCPPayload,
+  requestId: string | undefined,
+): Promise<void> {
+  const scene = await requireTargetScene(requestId, payload ?? {});
+  if (!scene) return;
+  try {
+    const rawIds = payload?.objectIds ?? payload?.ids;
+    const requestedIds = objectIdList(rawIds);
+    if (requestedIds.length === 0 && typeof payload?.objectId === "string") {
+      requestedIds.push(payload.objectId);
+    }
+    const scope =
+      payload?.scope === "selection" || requestedIds.length > 0
+        ? "selection"
+        : "page";
+    let objectIds = requestedIds;
+    if (scope === "selection" && objectIds.length === 0) {
+      objectIds = useSceneEditorStore.getState().selectedIds ?? [];
+    }
+    if (scope === "selection") {
+      objectIds = objectIds.filter((id) => Boolean(scene.nodes[id]));
+      if (objectIds.length === 0) {
+        respondError(requestId, "No matching objects to export as SVG.");
+        return;
+      }
+      const svg = await buildSelectionSvg(scene, objectIds);
+      if (!svg) {
+        respondError(requestId, "Nothing to export — check the selection.");
+        return;
+      }
+      respond(requestId, {
+        success: true,
+        scope,
+        objectIds,
+        svg,
+        bytes: svg.length,
+      });
+      return;
+    }
+
+    const svg = await buildPageSvg(scene);
+    respond(requestId, {
+      success: true,
+      scope: "page",
+      objectIds: [],
+      svg,
+      width: scene.artboard.width,
+      height: scene.artboard.height,
+      bytes: svg.length,
+    });
+  } catch (err: any) {
+    respondError(requestId, err?.message || "SVG export failed");
+  }
+}
 
 async function exportImage(
   payload: MCPPayload,
   requestId: string | undefined,
 ): Promise<void> {
-  const scene = await requireScene(requestId);
+  const scene = await requireTargetScene(requestId, payload ?? {});
   if (!scene) return;
+  if (payload?.format === "svg") {
+    await exportSvg(payload, requestId);
+    return;
+  }
   try {
     const exportId =
       typeof payload?.objectId === "string" && payload.objectId
@@ -1356,13 +1947,6 @@ async function exportImage(
         : null;
     if (exportId && !scene.nodes[exportId]) {
       respondError(requestId, `Object ${exportId} not found in scene`);
-      return;
-    }
-    if (exportId && payload?.format === "svg") {
-      respondError(
-        requestId,
-        "SVG object export is not yet supported via MCP; use PNG format",
-      );
       return;
     }
 
@@ -1415,7 +1999,7 @@ async function vectorDraw(
   payload: MCPPayload,
   requestId: string | undefined,
 ): Promise<void> {
-  const scene = await requireScene(requestId);
+  const scene = await requireTargetScene(requestId, payload ?? {});
   if (!scene) return;
   const built = buildVectorPlaceCommands(scene, payload as VectorPlacePayload);
   if ("error" in built) {
@@ -1437,13 +2021,14 @@ async function vectorUpdate(
   payload: MCPPayload,
   requestId: string | undefined,
 ): Promise<void> {
-  const scene = await requireScene(requestId);
+  const scene = await requireTargetScene(requestId, payload ?? {});
   if (!scene) return;
-  const objectId = typeof payload?.objectId === "string" ? payload.objectId : "";
-  if (!objectId) {
-    respondError(requestId, "vector_update needs objectId");
+  const target = resolveNodeTarget(scene, payload ?? {});
+  if (!target.ok) {
+    respondError(requestId, target.error);
     return;
   }
+  const objectId = target.id;
   const built = buildVectorUpdateCommand(scene, objectId, {
     src: String(payload?.src ?? ""),
     name: typeof payload?.name === "string" ? payload.name : undefined,
@@ -1460,13 +2045,14 @@ async function vectorDelete(
   payload: MCPPayload,
   requestId: string | undefined,
 ): Promise<void> {
-  const scene = await requireScene(requestId);
+  const scene = await requireTargetScene(requestId, payload ?? {});
   if (!scene) return;
-  const objectId = typeof payload?.objectId === "string" ? payload.objectId : "";
-  if (!objectId) {
-    respondError(requestId, "vector_delete needs objectId");
+  const target = resolveNodeTarget(scene, payload ?? {});
+  if (!target.ok) {
+    respondError(requestId, target.error);
     return;
   }
+  const objectId = target.id;
   if (!scene.nodes[objectId]) {
     // The element may already have been removed by hand; forgetting the board
     // is still the right outcome, so report success rather than an error.

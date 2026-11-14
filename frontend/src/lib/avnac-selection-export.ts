@@ -826,6 +826,48 @@ export async function buildSelectionSvg(
   return buildSvgString(result.leafNodes, result.width, result.height);
 }
 
+/**
+ * Export the whole artboard as SVG at its authored dimensions.
+ *
+ * Unlike selection export this must not crop to content bounds: the poster's
+ * empty margins are part of the composition. A synthetic background rect is
+ * prepended so the artboard fill survives, then the normal render-order leaves
+ * follow. Vector-board data URLs are inlined by imageToSvg when they carry the
+ * Avnac board marker.
+ */
+export async function buildPageSvg(scene: SaraswatiScene): Promise<string> {
+  const background: SaraswatiRectNode = {
+    id: "__page_background__",
+    type: "rect",
+    parentId: scene.root,
+    name: "Artboard background",
+    visible: true,
+    x: 0,
+    y: 0,
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    opacity: 1,
+    originX: "left",
+    originY: "top",
+    width: scene.artboard.width,
+    height: scene.artboard.height,
+    radiusX: 0,
+    radiusY: 0,
+    fill: scene.artboard.bg,
+    stroke: null,
+    strokeWidth: 0,
+    clipPath: null,
+    clipPathStack: [],
+  };
+  const leaves = listSaraswatiNodesInRenderOrder(scene);
+  return buildSvgString(
+    [background, ...leaves],
+    scene.artboard.width,
+    scene.artboard.height,
+  );
+}
+
 export async function exportSelectionAsSvg(
   filename: string,
   scene: SaraswatiScene,

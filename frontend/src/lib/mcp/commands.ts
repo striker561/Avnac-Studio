@@ -379,29 +379,237 @@ function buildElementNode(
 
 // ─── modify_elements ──────────────────────────────────────────────────────────
 
+/** A compact, serializable snapshot of a node for before/after audit trails. */
+export type NodeSnapshot = {
+  id: string;
+  type: string;
+  name?: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  rotation?: number;
+  opacity?: number;
+  text?: string;
+  src?: string;
+  fill?: unknown;
+  stroke?: unknown;
+  strokeWidth?: number;
+};
+
+export type ModifyIssue = {
+  index: number;
+  requested: string;
+  status: "not_found" | "ambiguous" | "unchanged" | "unsupported";
+  reason: string;
+  matches?: string[];
+};
+
+export type ResolvedModification = {
+  index: number;
+  requested: string;
+  objectId: string;
+  type: string;
+  before: NodeSnapshot;
+  changedFields: string[];
+};
+
+/** Capture only the fields an agent needs to understand a mutation. */
+export function snapshotNode(node: SaraswatiNode): NodeSnapshot {
+  const anyNode = node as LooseRecord;
+  const snapshot: NodeSnapshot = {
+    id: node.id,
+    type: node.type,
+    name: anyNode.name,
+    x: anyNode.x,
+    y: anyNode.y,
+    width: anyNode.width,
+    height: anyNode.height,
+    rotation: anyNode.rotation,
+    opacity: anyNode.opacity,
+    text: anyNode.text,
+    src: anyNode.src,
+    fill: anyNode.fill,
+    stroke: anyNode.stroke,
+    strokeWidth: anyNode.strokeWidth,
+  };
+  return Object.fromEntries(
+    Object.entries(snapshot).filter(([, value]) => value !== undefined),
+  ) as NodeSnapshot;
+}
+
+function targetLabel(mod: LooseRecord): string {
+  for (const value of [
+    mod.objectId,
+    mod.id,
+    mod.targetName,
+    mod.objectName,
+    mod.name,
+  ]) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "?";
+}
+
+/**
+ * Resolve a modification target.
+ *
+ * objectId/id are exact and always win. Without an id, targetName /
+ * objectName / name select a unique case-insensitive node name. Supplying an
+ * id also keeps the legacy meaning of name (the new node name); with a name
+ * target, use newName to rename and avoid turning the selector into the value
+ * being written.
+ */
+function resolveModifyTarget(
+  scene: SaraswatiScene,
+  mod: LooseRecord,
+):
+  | { ok: true; node: SaraswatiNode; targetByName: boolean }
+  | { ok: false; status: "not_found" | "ambiguous" | "unsupported"; reason: string; matches?: string[] } {
+  const explicitId = mod.objectId ?? mod.id;
+  if (typeof explicitId === "string" && explicitId.trim()) {
+    const id = explicitId.trim();
+    const node = scene.nodes[id];
+    if (node) return { ok: true, node, targetByName: false };
+    return { ok: false, status: "not_found", reason: "Object " + id + " not found" };
+  }
+
+  const rawName = mod.targetName ?? mod.objectName ?? mod.name;
+  if (typeof rawName !== "string" || !rawName.trim()) {
+    return {
+      ok: false,
+      status: "unsupported",
+      reason:
+        "Each modification needs objectId, id, targetName, objectName, or name (when no id is supplied).",
+    };
+  }
+  const wanted = rawName.trim().toLowerCase();
+  const matches = Object.values(scene.nodes).filter(
+    (node) =>
+      node.id !== scene.root &&
+      typeof (node as LooseRecord).name === "string" &&
+      String((node as LooseRecord).name).trim().toLowerCase() === wanted,
+  );
+  if (matches.length === 1) {
+    return { ok: true, node: matches[0]!, targetByName: true };
+  }
+  if (matches.length > 1) {
+    const ids = matches.map((node) => node.id);
+    return {
+      ok: false,
+      status: "ambiguous",
+      reason:
+        "Name " + JSON.stringify(rawName) + " matches " + matches.length +
+        " objects; use an objectId.",
+      matches: ids,
+    };
+  }
+  const names = Object.values(scene.nodes)
+    .filter((node) => node.id !== scene.root)
+    .map((node) => String((node as LooseRecord).name ?? "").trim())
+    .filter(Boolean)
+    .slice(0, 20);
+  return {
+    ok: false,
+    status: "not_found",
+    reason:
+      "No object named " + JSON.stringify(rawName) + ". Known names: " +
+      (names.join(", ") || "none"),
+  };
+}
+
 /**
  * Convert modify_elements modification specs into engine commands.
- * Returns the commands plus the count of specs whose objectId existed.
+ *
+ * Returns commands plus a per-spec audit: resolved target, before snapshot,
+ * changed fields, and unresolved/ambiguous/unchanged reasons. The orchestration
+ * layer applies the commands and reads the after snapshots, so this builder
+ * never needs a mutable scene or renderer.
  */
 export function buildModifyElementsCommands(
   scene: SaraswatiScene,
   modifications: unknown[],
   imageSizes?: Map<string, ImageSize | null>,
-): { commands: SaraswatiCommand[]; modifiedCount: number } {
+): {
+  commands: SaraswatiCommand[];
+  modifiedCount: number;
+  resolved: ResolvedModification[];
+  issues: ModifyIssue[];
+} {
   const commands: SaraswatiCommand[] = [];
+  const resolved: ResolvedModification[] = [];
+  const issues: ModifyIssue[] = [];
   let modifiedCount = 0;
 
-  for (const raw of modifications) {
+  for (const [index, raw] of modifications.entries()) {
     const mod = (raw ?? {}) as LooseRecord;
-    const node = scene.nodes[mod.objectId];
-    if (!node) continue;
-    modifiedCount++;
-    const anyNode = node as LooseRecord;
+    const target = resolveModifyTarget(scene, mod);
+    if (!target.ok) {
+      issues.push({
+        index,
+        requested: targetLabel(mod),
+        status: target.status,
+        reason: target.reason,
+        ...(target.matches ? { matches: target.matches } : {}),
+      });
+      continue;
+    }
 
-    // Image art direction: fit/focalPoint/crop recompute the source rectangle
-    // against the node's (possibly new) box.
+    const node = target.node;
+    const anyNode = node as LooseRecord;
+    const objectId = node.id;
+    const commandStart = commands.length;
+    const changedFields: string[] = [];
+
+    // Image source replacement. This is deliberately one REPLACE_NODE rather
+    // than an image-specific command so the node keeps its identity, z-order,
+    // parent and selection while its pixels change.
+    const newSrcValue = mod.url ?? mod.src;
+    const newSrc =
+      typeof newSrcValue === "string" && newSrcValue.trim()
+        ? newSrcValue.trim()
+        : "";
+    let imageSrcReplaced = false;
+    if (newSrc) {
+      if (node.type !== "image") {
+        issues.push({
+          index,
+          requested: targetLabel(mod),
+          status: "unsupported",
+          reason: "url/src replacement is only supported on image objects",
+        });
+      } else {
+        const targetWidth = Number(mod.width ?? node.width);
+        const targetHeight = Number(mod.height ?? node.height);
+        const crop = computeImageCrop({
+          natural: imageSizes?.get(newSrc) ?? null,
+          target: {
+            width: Number.isFinite(targetWidth) ? targetWidth : node.width,
+            height: Number.isFinite(targetHeight) ? targetHeight : node.height,
+          },
+          fit: mod.fit,
+          focalPoint: mod.focalPoint,
+          crop: mod.crop,
+        });
+        const replacement: SaraswatiImageNode = {
+          ...node,
+          src: newSrc,
+          cropX: crop.cropX,
+          cropY: crop.cropY,
+          cropWidth: crop.cropWidth,
+          cropHeight: crop.cropHeight,
+          clipPath: null,
+        };
+        commands.push({ type: "REPLACE_NODE", node: replacement });
+        changedFields.push("src");
+        imageSrcReplaced = true;
+      }
+    }
+
+    // Image art direction without a source replacement.
     if (
       node.type === "image" &&
+      !imageSrcReplaced &&
       (mod.fit !== undefined || mod.focalPoint !== undefined || mod.crop !== undefined)
     ) {
       const natural = imageSizes?.get(node.src) ?? null;
@@ -417,7 +625,8 @@ export function buildModifyElementsCommands(
         focalPoint: mod.focalPoint,
         crop: mod.crop,
       });
-      commands.push({ type: "SET_IMAGE_CROP", id: node.id, ...crop });
+      commands.push({ type: "SET_IMAGE_CROP", id: objectId, ...crop });
+      changedFields.push("crop");
     }
 
     const newX = mod.x ?? mod.left;
@@ -425,21 +634,24 @@ export function buildModifyElementsCommands(
     if (newX !== undefined || newY !== undefined || mod.width !== undefined || mod.height !== undefined) {
       commands.push({
         type: "RESIZE_NODE",
-        id: mod.objectId,
+        id: objectId,
         x: newX ?? ("x" in node ? anyNode.x : 0),
         y: newY ?? ("y" in node ? anyNode.y : 0),
         width: mod.width ?? ("width" in node ? anyNode.width : 100),
         height: mod.height ?? ("height" in node ? anyNode.height : 100),
       });
+      changedFields.push("layout");
     }
 
     const rot = mod.rotation ?? mod.angle;
     if (rot !== undefined) {
-      commands.push({ type: "ROTATE_NODE", id: mod.objectId, rotation: rot });
+      commands.push({ type: "ROTATE_NODE", id: objectId, rotation: rot });
+      changedFields.push("rotation");
     }
 
     if (mod.opacity !== undefined) {
-      commands.push({ type: "SET_NODE_OPACITY", id: mod.objectId, opacity: mod.opacity });
+      commands.push({ type: "SET_NODE_OPACITY", id: objectId, opacity: mod.opacity });
+      changedFields.push("opacity");
     }
 
     const hasPaintFields =
@@ -463,15 +675,17 @@ export function buildModifyElementsCommands(
         } else if (node.type === "line") {
           commands.push({
             type: "SET_NODE_STROKE",
-            id: mod.objectId,
+            id: objectId,
             stroke: pendingPaint,
             strokeWidth: mod.strokeWidth ?? anyNode.strokeWidth ?? 2,
           });
           pendingPaint = null;
           lineStrokeDone = true;
+          changedFields.push("stroke");
         } else if (node.type !== "image" && node.type !== "group") {
-          commands.push({ type: "SET_NODE_FILL", id: mod.objectId, fill: pendingPaint });
+          commands.push({ type: "SET_NODE_FILL", id: objectId, fill: pendingPaint });
           pendingPaint = null;
+          changedFields.push("fill");
         } else {
           pendingPaint = null;
         }
@@ -483,23 +697,25 @@ export function buildModifyElementsCommands(
       if (node.type === "rect") {
         commands.push({
           type: "SET_NODE_CORNER_RADIUS",
-          id: mod.objectId,
+          id: objectId,
           radiusX: rad,
           radiusY: rad,
         });
+        changedFields.push("cornerRadius");
       } else if (node.type === "image") {
         commands.push({
           type: "SET_IMAGE_BORDER_RADIUS",
-          id: mod.objectId,
+          id: objectId,
           radius: rad,
         });
+        changedFields.push("cornerRadius");
       }
     }
 
     if (mod.shadow) {
       commands.push({
         type: "SET_NODE_SHADOW",
-        id: mod.objectId,
+        id: objectId,
         shadow: {
           blur: mod.shadow.blur ?? 0,
           offsetX: mod.shadow.offsetX ?? 0,
@@ -508,14 +724,17 @@ export function buildModifyElementsCommands(
           opacityPct: mod.shadow.opacity ?? 100,
         },
       });
+      changedFields.push("shadow");
     }
 
     if (mod.blur !== undefined) {
-      commands.push({ type: "SET_NODE_BLUR", id: mod.objectId, blur: mod.blur });
+      commands.push({ type: "SET_NODE_BLUR", id: objectId, blur: mod.blur });
+      changedFields.push("blur");
     }
 
     if (mod.text !== undefined && node.type === "text") {
-      commands.push({ type: "SET_TEXT_CONTENT", id: mod.objectId, text: mod.text });
+      commands.push({ type: "SET_TEXT_CONTENT", id: objectId, text: mod.text });
+      changedFields.push("text");
     }
 
     if (node.type === "text") {
@@ -536,17 +755,19 @@ export function buildModifyElementsCommands(
       if (Object.keys(formatPatch).length > 0) {
         commands.push({
           type: "SET_TEXT_FORMAT",
-          id: mod.objectId,
+          id: objectId,
           ...formatPatch,
         } as SaraswatiCommand);
+        changedFields.push("textFormat");
       }
       if (mod.stroke !== undefined || mod.strokeWidth !== undefined) {
         commands.push({
           type: "SET_NODE_STROKE",
-          id: mod.objectId,
+          id: objectId,
           stroke: mod.stroke ? parseColor(mod.stroke) : anyNode.stroke ?? null,
           strokeWidth: mod.strokeWidth ?? anyNode.strokeWidth ?? 0,
         });
+        changedFields.push("stroke");
       }
     } else if (mod.stroke !== undefined || mod.strokeWidth !== undefined) {
       if (lineStrokeDone) {
@@ -554,19 +775,43 @@ export function buildModifyElementsCommands(
       } else if (node.type !== "group" && node.type !== "image") {
         commands.push({
           type: "SET_NODE_STROKE",
-          id: mod.objectId,
+          id: objectId,
           stroke: mod.stroke ? parseColor(mod.stroke) : anyNode.stroke ?? null,
           strokeWidth: mod.strokeWidth ?? anyNode.strokeWidth ?? 0,
         });
+        changedFields.push("stroke");
       }
     }
 
-    if (mod.name !== undefined) {
-      commands.push({ type: "SET_NODE_NAME", id: mod.objectId, name: mod.name });
+    // Rename: with an explicit id/targetName, name keeps its legacy meaning.
+    // With a name target, name selected the node; newName is the rename value.
+    const newNameValue = mod.newName ?? (target.targetByName ? undefined : mod.name);
+    if (typeof newNameValue === "string" && newNameValue.trim()) {
+      commands.push({ type: "SET_NODE_NAME", id: objectId, name: newNameValue.trim() });
+      changedFields.push("name");
+    }
+
+    if (commands.length > commandStart) {
+      modifiedCount++;
+      resolved.push({
+        index,
+        requested: targetLabel(mod),
+        objectId,
+        type: node.type,
+        before: snapshotNode(node),
+        changedFields: [...new Set(changedFields)],
+      });
+    } else {
+      issues.push({
+        index,
+        requested: targetLabel(mod),
+        status: "unchanged",
+        reason: "Target resolved, but no supported field would change it.",
+      });
     }
   }
 
-  return { commands, modifiedCount };
+  return { commands, modifiedCount, resolved, issues };
 }
 
 // ─── bounds helpers ───────────────────────────────────────────────────────────

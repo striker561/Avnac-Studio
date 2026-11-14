@@ -389,6 +389,99 @@ describe("buildModifyElementsCommands", () => {
     ]);
     expect(commands).toContainEqual({ type: "SET_NODE_NAME", id: "a", name: "Hero" });
   });
+
+  it("resolves a unique object name and returns a before/changed-field audit", () => {
+    const target = buildRectNode("a", { x: 10, y: 20, width: 80, height: 60 });
+    target.name = "Hero Panel";
+    const scene = sceneWith(target);
+    const { commands, modifiedCount, resolved, issues } =
+      buildModifyElementsCommands(scene, [
+        { name: "hero panel", width: 120 },
+      ]);
+
+    expect(modifiedCount).toBe(1);
+    expect(issues).toHaveLength(0);
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0]).toMatchObject({
+      objectId: "a",
+      type: "rect",
+      changedFields: ["layout"],
+      before: { id: "a", x: 10, y: 20, width: 80, height: 60 },
+    });
+    expect(commands).toContainEqual({
+      type: "RESIZE_NODE",
+      id: "a",
+      x: 10,
+      y: 20,
+      width: 120,
+      height: 60,
+    });
+  });
+
+  it("renames a name-targeted object with newName", () => {
+    const target = buildRectNode("a");
+    target.name = "Hero";
+    const scene = sceneWith(target);
+    const { commands, modifiedCount } = buildModifyElementsCommands(scene, [
+      { name: "Hero", newName: "Headline" },
+    ]);
+    expect(modifiedCount).toBe(1);
+    expect(commands).toContainEqual({
+      type: "SET_NODE_NAME",
+      id: "a",
+      name: "Headline",
+    });
+  });
+
+  it("rejects ambiguous names and reports not-found targets", () => {
+    const a = buildRectNode("a");
+    a.name = "Panel";
+    const b = buildRectNode("b");
+    b.name = "Panel";
+    const scene = sceneWith(a, b);
+    const result = buildModifyElementsCommands(scene, [
+      { name: "Panel", width: 50 },
+      { objectId: "missing", width: 50 },
+    ]);
+
+    expect(result.modifiedCount).toBe(0);
+    expect(result.commands).toHaveLength(0);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "ambiguous", requested: "Panel" }),
+        expect.objectContaining({ status: "not_found", requested: "missing" }),
+      ]),
+    );
+  });
+
+  it("replaces an image source without changing its identity", () => {
+    const image = buildImageNode("img");
+    const scene = sceneWith(image);
+    const nextSrc = "data:image/svg+xml;base64,PHN2Zy8+";
+    const { commands, modifiedCount, resolved } = buildModifyElementsCommands(
+      scene,
+      [{ objectId: "img", url: nextSrc }],
+    );
+
+    expect(modifiedCount).toBe(1);
+    expect(resolved[0]!.changedFields).toContain("src");
+    const replacement = commands.find((command) => command.type === "REPLACE_NODE");
+    expect(replacement).toBeDefined();
+    if (!replacement || replacement.type !== "REPLACE_NODE") {
+      throw new Error("unreachable");
+    }
+    expect(replacement.node.id).toBe("img");
+    expect((replacement.node as SaraswatiImageNode).src).toBe(nextSrc);
+  });
+
+  it("reports a source replacement on a non-image as unsupported", () => {
+    const scene = sceneWith(buildRectNode("a"));
+    const result = buildModifyElementsCommands(scene, [
+      { objectId: "a", url: "data:image/svg+xml;base64,abc" },
+    ]);
+    expect(result.modifiedCount).toBe(0);
+    expect(result.issues[0]).toMatchObject({ status: "unsupported" });
+  });
 });
 
 describe("buildAlignCommands", () => {

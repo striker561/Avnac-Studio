@@ -375,3 +375,20 @@ func TestReceiptDoesNotAskForRulesAlreadyRouted(t *testing.T) {
 		t.Errorf("readNext asked for a routed rule: %v", next)
 	}
 }
+
+func TestCompositionWithoutARouteSaysSo(t *testing.T) {
+	m := NewAvnacMCP(nil, nil, nil)
+	first := map[string]any{"success": true}
+	m.attachGuide(first, map[string]any{"elements": []any{map[string]any{"type": "rect"}}})
+	if _, ok := first["guideMissing"]; !ok {
+		t.Fatal("a composition with no route did not report the omission")
+	}
+	if _, _, err := m.handleGuide(map[string]any{"task": "design an A2 gig poster for a jazz trio"}); err != nil {
+		t.Fatal(err)
+	}
+	second := map[string]any{"success": true}
+	m.attachGuide(second, map[string]any{"elements": []any{map[string]any{"type": "rect"}}})
+	if _, ok := second["guideMissing"]; ok {
+		t.Error("the nudge persisted after a route was fetched")
+	}
+}

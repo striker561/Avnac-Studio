@@ -308,16 +308,18 @@ func (m *AvnacMCP) attachGuide(data any, payload map[string]any) {
 	if msg, _ := response["error"].(string); msg != "" {
 		return
 	}
-	task := taskTextFromPayload(payload)
-	if task == "" {
-		return
-	}
 	lib, err := skill.Default()
 	if err != nil {
 		return
 	}
+	task := taskTextFromPayload(payload)
+	if task == "" {
+		m.noteMissingRoute(response)
+		return
+	}
 	g, ok := lib.Guide(task, 5)
 	if !ok || !g.Confident() {
+		m.noteMissingRoute(response)
 		return
 	}
 	sig := guideSignature(g)
@@ -332,6 +334,23 @@ func (m *AvnacMCP) attachGuide(data any, payload map[string]any) {
 		return
 	}
 	response["guide"] = guidePayload(g)
+}
+
+// noteMissingRoute makes the omission visible in the tool output, which is the
+// one channel an agent cannot skim past. It fires only while no route has been
+// handed out in this session, so it nags once and then stops; a hard error would
+// refuse legitimate work (moving a rectangle, clearing a test page) that needs no
+// design knowledge.
+func (m *AvnacMCP) noteMissingRoute(response map[string]any) {
+	m.guideMu.Lock()
+	routed := m.guideSig != ""
+	m.guideMu.Unlock()
+	if routed {
+		return
+	}
+	response["guideMissing"] = "No design route has been fetched in this session. Call guide(task=<the brief>) " +
+		"before the next composition: it returns the workflow, the rules and the always-on gates that this " +
+		"response did not carry."
 }
 
 // guideSignature identifies a route by its workflow and rule list. Two payloads

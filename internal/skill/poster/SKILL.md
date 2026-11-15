@@ -1,6 +1,6 @@
 ---
 name: poster
-description: Design single-sheet graphics meant to be read at a distance — gig and club bills, exhibition and film posters, protest and event print, A3/A2/A1 wall sheets. Use whenever the task is one standalone sheet with one message, even when the user calls it a flyer, a banner, a cover, or "something for the show".
+description: Design single-sheet graphics meant to be read at a distance — gig and club bills, exhibition and film posters, protest and event print, promotional and sale flyers, A3/A2/A1 wall sheets. Use whenever the task is one standalone sheet with one message, even when the user calls it a flyer, a banner, a cover, or "something for the show".
 ---
 
 # Poster Design

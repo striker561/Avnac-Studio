@@ -1,6 +1,6 @@
 ---
 name: ui
-description: Design screens and interfaces — layout, spacing, components, states, responsive behaviour and accessibility for web and app UI. Use whenever the task is a website, app screen, dashboard shell, settings page, form, navigation or design system, or the user says the interface feels cramped, inconsistent or hard to use.
+description: Design screens and interfaces — layout, spacing, components, states, responsive behaviour and accessibility for web and app UI. Use whenever the task is a website, landing page, hero section, app screen, dashboard shell, settings page, form, navigation or design system, or the user says the interface feels cramped, inconsistent or hard to use.
 ---
 
 # Interface Design

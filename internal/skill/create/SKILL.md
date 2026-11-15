@@ -1,6 +1,6 @@
 ---
 name: create
-description: Start a new design from a brief — choosing the format, building the first draft, and getting something worth refining on screen fast. Use whenever the user asks to make a graphic, banner, cover, social post, flyer or "something for" an event or product and no more specific workflow fits, or when a task is stalled at the blank-canvas stage.
+description: Start a new design from a brief — choosing the format, building the first draft, and getting something worth refining on screen fast. Use whenever the user asks to make a graphic, banner, cover, social post, Instagram story, sale or promo graphic, flyer, or "something for" an event or product and no more specific workflow fits, or when a task is stalled at the blank-canvas stage.
 ---
 
 # Creating a Design From a Brief

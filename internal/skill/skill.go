@@ -479,9 +479,15 @@ func (l *Library) Route(task string, limit int) []Route {
 			matched = append(matched, tok)
 		}
 		// A task that names the deliverable outright ("a poster", "the logo")
-		// should beat a skill that merely mentions the same words in prose.
-		for _, tok := range taskTokens {
-			if nameTokens[tok] {
+		// should beat a skill that merely mentions the same words in prose. The
+		// name has to be the head of the phrase, though: in "a yogurt brand" the
+		// skill word is a modifier, and a flat bonus turned a flyer request into
+		// a branding job. Head position is the cheap stand-in for parsing.
+		for i, tok := range taskTokens {
+			if !nameTokens[tok] {
+				continue
+			}
+			if i < 4 || (i > 0 && determiners[taskTokens[i-1]]) {
 				score += 5
 				matched = append(matched, tok+" (named)")
 				break
@@ -1070,6 +1076,13 @@ func uniqueTokens(s string) []string {
 		out = append(out, t)
 	}
 	return out
+}
+
+// determiners mark the head of a noun phrase for the named-deliverable bonus:
+// "the logo" is the deliverable, "a yogurt brand" is a modifier.
+var determiners = map[string]bool{
+	"a": true, "an": true, "the": true, "my": true, "your": true, "our": true,
+	"their": true, "this": true, "that": true, "these": true, "those": true, "its": true,
 }
 
 var stopWords = map[string]bool{

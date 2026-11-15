@@ -2172,7 +2172,7 @@ func opDispatcher(m *AvnacMCP, group string, ops map[string]string, legacy map[s
 			args[k] = v
 		}
 		res, data, err := handler(ctx, req, args)
-		if err == nil && guideActions[action] && m != nil {
+		if err == nil && m != nil && (guideActions[action] || guideActions[op]) {
 			m.attachGuide(data, args)
 		}
 		return res, data, err

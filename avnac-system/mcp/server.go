@@ -166,7 +166,7 @@ func NewAvnacMCP(unsplash *avnacserver.UnsplashService, io *avnacio.IOManager, s
 	server := &AvnacMCP{
 		server: mcp.NewServer(&mcp.Implementation{
 			Name:    "Avnac Studio",
-			Version: "2.0.0",
+			Version: "2.1.0",
 		}, &mcp.ServerOptions{
 			Instructions: instructions,
 		}),

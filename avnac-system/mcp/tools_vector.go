@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -609,12 +610,5 @@ func objectSummaries(res *vector.Result) []map[string]any {
 }
 
 func round2(v float64) float64 {
-	return float64(int64(v*100+0.5*signFloat(v))) / 100
-}
-
-func signFloat(v float64) float64 {
-	if v < 0 {
-		return -1
-	}
-	return 1
+	return math.Round(v*100) / 100
 }

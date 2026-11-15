@@ -93,6 +93,10 @@ type Skill struct {
 	Body string
 	// Rules are the rule IDs linked under "## Rules to apply".
 	Rules []string
+	// RuleNotes maps a rule ID to the qualifier the workflow attached to it,
+	// e.g. "the crop is the composition when there is one image". It travels
+	// with the route so a conditional rule is not read as a blanket order.
+	RuleNotes map[string]string
 	// References are the reference names linked in the file.
 	References []string
 }
@@ -246,6 +250,7 @@ func Load() (*Library, error) {
 			Path:        path,
 			Body:        b,
 			Rules:       ruleLinks(b),
+			RuleNotes:   ruleNotes(b),
 			References:  referenceLinks(b),
 		}
 		if s.Name == "" {
@@ -672,6 +677,47 @@ func (r *Rule) Markdown() string { return strings.TrimSpace(r.Body) }
 // Section returns one H2 section of the rule, trimmed.
 func (r *Rule) Section(name string) string { return strings.TrimSpace(r.Sections[name]) }
 
+// Checks returns the Verification section as short imperative lines, one per
+// numbered item. The bold label is kept in front because the label is the task
+// ("Margin ladder", "Count the pops") and the sentence after it is the measure.
+// This is the part of a rule an agent can act on without reading the essay, so
+// routed guides ship it by default instead of only a URI.
+func (r *Rule) Checks() []string {
+	section := r.Section("Verification")
+	if section == "" {
+		return nil
+	}
+	var out []string
+	for _, raw := range strings.Split(section, "\n") {
+		line := strings.TrimSpace(raw)
+		if line == "" {
+			continue
+		}
+		if checkItemRe.MatchString(line) {
+			out = append(out, strings.TrimSpace(checkItemRe.ReplaceAllString(line, "")))
+			continue
+		}
+		// An item wraps over several lines; join the continuation.
+		if len(out) > 0 {
+			out[len(out)-1] += " " + line
+		}
+	}
+	for i, item := range out {
+		m := checkLabelRe.FindStringSubmatch(item)
+		if m == nil {
+			continue
+		}
+		label := strings.TrimSuffix(strings.TrimSpace(m[1]), ".")
+		rest := strings.TrimSpace(item[len(m[0]):])
+		if rest == "" {
+			out[i] = label
+			continue
+		}
+		out[i] = label + " — " + rest
+	}
+	return out
+}
+
 // Markdown returns the reference body.
 func (ref *Reference) Markdown() string { return strings.TrimSpace(ref.Body) }
 
@@ -724,6 +770,10 @@ var (
 	linkRe       = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)
 	numberRe     = regexp.MustCompile(`^(\d+)-`)
 	digitsRe     = regexp.MustCompile(`^(\d+)`)
+
+	checkItemRe  = regexp.MustCompile(`^\d+\.\s+`)
+	checkLabelRe = regexp.MustCompile(`^\*\*([^*]+)\*\*\s*`)
+	ruleBulletRe = regexp.MustCompile("^[-*]\\s+\\[\\x60([^\\x60]+)\\x60\\]\\([^)]*\\)\\s*(?:—|–|-)?\\s*(.*)$")
 )
 
 // parseFrontmatter splits a YAML frontmatter block from the markdown body.
@@ -827,6 +877,24 @@ func linksIn(fragment string) []string {
 
 func ruleLinks(body string) []string {
 	return dedupe(linksIn(sectionText(body, "Rules to apply")))
+}
+
+// ruleNotes reads the qualifier each "Rules to apply" bullet puts after the
+// link, so a conditional rule travels with its condition: "38-cropping-and-
+// framing — the crop is the composition when there is one image."
+func ruleNotes(body string) map[string]string {
+	out := make(map[string]string)
+	for _, line := range strings.Split(sectionText(body, "Rules to apply"), "\n") {
+		m := ruleBulletRe.FindStringSubmatch(strings.TrimSpace(line))
+		if m == nil {
+			continue
+		}
+		note := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(m[2]), "."))
+		if note != "" {
+			out[m[1]] = note
+		}
+	}
+	return out
 }
 
 func referenceLinks(body string) []string {

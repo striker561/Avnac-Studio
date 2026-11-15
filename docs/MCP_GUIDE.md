@@ -160,12 +160,16 @@ one-tool-per-action surface returned, and the legacy action name is accepted as 
 `guide` (`task`, `limit`, `inline`) — pass the brief; returns the matching workflow (`skill://...`),
 4–8 rules (`rules://...`), the matched tokens and a confidence level. Call it before specialized
 work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI,
-vector drawing, critique — even when the user did not ask for guidance. `inline=true` returns the
-full workflow and rule text for clients that cannot read resources.
+vector drawing, critique — even when the user did not ask for guidance. The default answer is a
+**digest**, not a reading list: `checks` carries the Verification lines of the top three rules and
+`moreChecks` the rest, because the actionable part of a rule is one or two lines and eight essays
+are not read. `inline=true` returns the full workflow and rule text for clients that cannot read
+resources.
 
 The server also attaches a compact `guide` field to composition results (`canvas` op=create/add-page,
-`elements` op=render/measure/modify, `vector` op=draw) whenever the payload is a clear match. That
-way the library is used *during* the task even when the agent never calls `guide` explicitly.
+`elements` op=render/measure/modify, `vector` op=draw) whenever the payload is a clear match — once
+per route. Repeating the same URI list on every render is what taught agents to skim past it, so a
+repeat is skipped; `validate` reports the debt instead (see `guideReceipt` below).
 
 ### Reads (6)
 
@@ -188,7 +192,7 @@ way the library is used *during* the task even when the agent never calls `guide
 - `snapshot` / `restore` (`token`) — capture every page, then return to that checkpoint. Tokens are session-scoped.
 - `undo` / `redo` — object-level and page-level history.
 - `status` — connected `clientId`, `actionHandlerId`, `revision`, active document/page, undo state and implemented capabilities. Call this first when an action looks stale.
-- `validate` — structured audit for out-of-bounds objects, low contrast, tiny type, thin strokes, duplicate names, near tangencies and unloaded fonts.
+- `validate` — structured audit for out-of-bounds objects, low contrast, tiny type, thin strokes, duplicate names, near tangencies and unloaded fonts, plus rule-backed `checks` with measured numbers: `margin_ladder` (8% of the short edge, bottom largest), `density` (4×4 coverage), `level_census` (four levels, five on a poster), `type_steps` (1.3×–1.5×), `optical_centring` (2–4px high at 100px) and `contrast_floor`. When a route has been handed out, the response also carries `guideReceipt`: which routed rules this validate actually measured, and which are prose the agent still has to apply.
 - `clear` — removes every object **on the current page**, returns `clearedCount`.
 - `background` (`backgroundColor`/`color`) — sets the current page background.
 - `preset` (`presetId`/`preset`) — `ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`.

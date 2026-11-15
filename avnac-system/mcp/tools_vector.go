@@ -253,7 +253,7 @@ func (m *AvnacMCP) vectorDraw(wailsCtx context.Context, raw map[string]any) (*mc
 	}
 	// The drawing itself is a design task: route it to the library so the next
 	// turn can cite the geometry rules it is following.
-	attachGuide(data, raw)
+	m.attachGuide(data, raw)
 	return nil, data, nil
 }
 

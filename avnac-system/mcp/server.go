@@ -87,6 +87,14 @@ type AvnacMCP struct {
 	// emitSync.
 	vectorEmit func(ctx context.Context, action string, payload any, timeout time.Duration) (any, error)
 
+	// guideMu guards the last route handed to this client. A guide is stamped
+	// once per route: repeating the same URI list on every render taught agents
+	// to skim past it, and the receipt in validate is what carries the debt
+	// forward instead.
+	guideMu    sync.Mutex
+	guideSig   string
+	guideRoute *skill.Guide
+
 	// instructions is the connect text handed to every client: the design
 	// doctrine in DesignerInstructions plus the compact resource index. It is
 	// built once because the embedded library cannot change at runtime, and the
@@ -111,7 +119,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Parse the request and extract known constraints: dimensions, exact copy, brand or shop names, dates/addresses, palette, style, imagery.
    - Identify critical unknowns: real text content, names, dates, addresses, size intent. If any are missing, ask the user up to 3 targeted questions and STOP — do not call tools yet. If nothing critical is missing, state your assumptions explicitly and proceed.
    - Write a compact design plan: layout zones with approximate coordinates, type hierarchy, palette, fonts, asset needs. The later verification step checks the render against this brief.
-   - Route the brief through the guide tool BEFORE composing: guide(task=the brief) returns the workflow (skill://...) and the 4-8 rules that apply for any specialized work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI, vector drawing, critique — whether or not the user asked for guidance. Read them, then design from them, and run the Verification checks at the end of those rules before delivering. Composition tool results also carry a compact guide field, so the route appears even if you skip this call. A route is a starting point, not a reading limit: the task will move to subjects the first route did not name, and every skill://, rules:// and references:// URI stays readable — open the ones the work needs by URI, starting at skill://avnac-design or rules://index.
+   - Route the brief through the guide tool BEFORE composing: guide(task=the brief) returns the workflow (skill://...) and the 4-8 rules that apply for any specialized work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI, vector drawing, critique — whether or not the user asked for guidance. Read them, then design from them, and run the Verification checks at the end of those rules before delivering. By default the answer is a digest: the Verification lines of the top three rules, the checks to run, with the rest one rules:// read away — read it before the first composition call, not after a delivery. Composition tool results also carry the compact guide once per route (it is not re-stamped when nothing changed), so the route appears even if you skip this call. A route is a starting point, not a reading limit: the task will move to subjects the first route did not name, and every skill://, rules:// and references:// URI stays readable — open the ones the work needs by URI, starting at skill://avnac-design or rules://index.
    - For EDIT requests, write a diff-oriented brief (what changes, what stays). Start from the real canvas: if the target file is not currently open, call files op=list then files op=open — NEVER silently recreate an existing design in a new file.
 
 2. INSPECT / CANVAS SETUP:
@@ -139,6 +147,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Styling: hex colors, cornerRadius, blur, opacity, shadows (blur, offsetX, offsetY, color, opacity), and gradientStops.
 
 5. VERIFY AGAINST THE BRIEF:
+   - Run canvas op=validate before you report, not only when something looks wrong. It returns rule-backed checks with measured numbers — margin ladder, density, type-level census, step ratio, optical centring, contrast — and a guideReceipt naming which routed rules it measured and which are still prose. Fix the ones that fail; the command that fails is cheaper than the sentence that gets skipped.
    - Confirm get_canvas_summary reports the page you meant to edit (page.name). If you are on a draft/test page, switch back with canvas op=go-page before reporting the real deliverable.
    - Call get_canvas_image and compare it to the design brief AND the user's original request, item by item: required content present and spelled correctly, dimensions, hierarchy, palette, style, no unintended placeholder text.
    - If something mismatches, fix it with elements op=modify (or arrange ops: align, distribute, group), take one more screenshot, then report an honest pass/fail per requirement. Explicitly flag any content you invented.

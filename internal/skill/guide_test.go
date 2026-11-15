@@ -118,3 +118,39 @@ func TestGuideIsDeterministic(t *testing.T) {
 		}
 	}
 }
+
+func TestRuleChecksAreTaskShaped(t *testing.T) {
+	lib := testLibrary(t)
+	r, ok := lib.Rule("24-typographic-hierarchy")
+	if !ok {
+		t.Fatal("rule 24 missing")
+	}
+	checks := r.Checks()
+	if len(checks) < 3 {
+		t.Fatalf("rule 24 exposes %d checks", len(checks))
+	}
+	if !strings.HasPrefix(checks[0], "Level census — ") {
+		t.Errorf("first check = %q, want the task label in front", checks[0])
+	}
+	for _, id := range lib.RuleIDs() {
+		rule, _ := lib.Rule(id)
+		if len(rule.Checks()) == 0 {
+			t.Errorf("%s has no verification checks", id)
+		}
+	}
+}
+
+func TestSkillRuleNotesCarryTheQualifier(t *testing.T) {
+	lib := testLibrary(t)
+	poster, ok := lib.Skill("poster")
+	if !ok {
+		t.Fatal("poster skill missing")
+	}
+	note := poster.RuleNotes["38-cropping-and-framing"]
+	if !strings.Contains(note, "when there is one image") {
+		t.Errorf("poster note for 38 = %q, want the conditional qualifier", note)
+	}
+	if strings.HasSuffix(note, ".") {
+		t.Errorf("note keeps its trailing period: %q", note)
+	}
+}

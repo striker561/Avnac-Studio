@@ -18,7 +18,7 @@ func recorder(got *map[string]any) toolHandler {
 
 func TestOpDispatcherRoutesAndStripsOp(t *testing.T) {
 	var got map[string]any
-	h := opDispatcher("elements", map[string]string{"render": "render_elements"}, map[string]toolHandler{
+	h := opDispatcher(NewAvnacMCP(nil, nil, nil), "elements", map[string]string{"render": "render_elements"}, map[string]toolHandler{
 		"render_elements": recorder(&got),
 	})
 
@@ -39,7 +39,7 @@ func TestOpDispatcherRoutesAndStripsOp(t *testing.T) {
 
 func TestOpDispatcherAcceptsLegacyActionName(t *testing.T) {
 	var got map[string]any
-	h := opDispatcher("elements", map[string]string{"render": "render_elements"}, map[string]toolHandler{
+	h := opDispatcher(NewAvnacMCP(nil, nil, nil), "elements", map[string]string{"render": "render_elements"}, map[string]toolHandler{
 		"render_elements": recorder(&got),
 	})
 
@@ -52,7 +52,7 @@ func TestOpDispatcherAcceptsLegacyActionName(t *testing.T) {
 }
 
 func TestOpDispatcherRejectsUnknownAndMissingOps(t *testing.T) {
-	h := opDispatcher("canvas", map[string]string{"create": "create_canvas"}, map[string]toolHandler{
+	h := opDispatcher(NewAvnacMCP(nil, nil, nil), "canvas", map[string]string{"create": "create_canvas"}, map[string]toolHandler{
 		"create_canvas": recorder(new(map[string]any)),
 	})
 

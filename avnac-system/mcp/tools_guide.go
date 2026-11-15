@@ -47,7 +47,7 @@ func (m *AvnacMCP) registerGuideTool() {
 		Description: "Route a design task to Avnac's knowledge library and return the workflow and rules to read before composing. " +
 			"Call this at the start of ANY task that needs specialized design instructions — poster, flyer, social graphic, logo, icon, illustration, layout, typography, color, palette, branding, print, packaging, photography, UI, data visualization, critique, or vector path drawing — " +
 			"even when the user did not ask for guidance and even when you think you know the answer. Design decisions you cannot cite are guesses; the library carries the thresholds and failure modes. " +
-			"It returns skill:// and rules:// resource URIs, the matched task tokens and a confidence level. Set inline=true to get the full workflow and rule text as markdown when the client cannot read resources. " +
+			"It returns skill:// and rules:// resource URIs, the matched task tokens and a confidence level, plus the Verification lines of the top three rules — the checks to run before the next render. Set inline=true to get the full workflow and rule text as markdown when the client cannot read resources. " +
 			"Composition tool results (canvas create/add-page, elements render/measure/modify, vector draw) also carry a compact guide automatically when the payload is a clear match. " +
 			"Matching is lexical — words are compared, not meaning — so a low or empty match means the brief's words did not overlap the library, not that it has nothing on the subject. " +
 			"A route is where to start, not a reading limit: every skill://, rules:// and references:// URI stays readable, so open " + designEntryURI + ", " + designRuleIndexURI + " or any other rule by URI once the work moves to a subject the route did not name.",
@@ -98,6 +98,14 @@ func (m *AvnacMCP) handleGuide(raw map[string]any) (*mcp.CallToolResult, any, er
 	}
 
 	data := guidePayload(g)
+	// An explicit route is the receipt's baseline: validate will report which of
+	// these rules it could actually measure.
+	if g.Confident() {
+		m.guideMu.Lock()
+		m.guideSig = guideSignature(g)
+		m.guideRoute = g
+		m.guideMu.Unlock()
+	}
 	if !g.Confident() {
 		data["note"] = "Low confidence: only one generic word overlapped the library. Check matchedTokens " +
 			"against the brief; add the deliverable and format for a sharper route, or read skill://avnac-design."
@@ -121,6 +129,16 @@ func (m *AvnacMCP) handleGuide(raw map[string]any) (*mcp.CallToolResult, any, er
 	}
 	return nil, data, nil
 }
+
+// guideDigestRules is how many routed rules get their Verification lines
+// printed in the payload itself. The rest stay a URI: three checks are read,
+// eight are skipped, so the default ships the three that are most likely to be
+// run before the next render.
+const guideDigestRules = 3
+
+// guideCheckChars caps one printed check. The full rule is always one
+// rules:// read away; the digest exists to be acted on, not to be complete.
+const guideCheckChars = 180
 
 // guidePayload is the compact, stable shape both the tool and the automatic
 // attachments use.
@@ -154,6 +172,7 @@ func guidePayload(g *skill.Guide) map[string]any {
 	if g.Confident() {
 		confidence = "high"
 	}
+	checks := guideChecks(g)
 	return map[string]any{
 		"matched":    true,
 		"task":       g.Task,
@@ -165,16 +184,74 @@ func guidePayload(g *skill.Guide) map[string]any {
 		},
 		"rules":         rules,
 		"references":    references,
+		"checks":        checks,
+		"moreChecks":    len(g.Rules) - len(checks),
 		"matchedTokens": g.Matched,
-		"note": "Read the workflow, then these rules, before the next design decision. " +
+		"note": "Run these checks before the next render, not after delivery. " +
+			"Each line is the rule's own Verification item; open the rules:// URI when a check needs the reasoning. " +
 			"When you report the result, name the rule you followed. This route is a starting point: " +
 			"matching is lexical, so read other rules:// or references:// resources by URI once the work moves past it.",
 	}
 }
 
+// guideChecks prints the Verification lines of the first few routed rules, so
+// the default answer is something to do rather than a list of things to go and
+// read. The workflow's own qualifier travels with the rule: a crop rule that
+// applies "when there is one image" must not read as a blanket order.
+func guideChecks(g *skill.Guide) []map[string]any {
+	if g == nil || g.Skill == nil {
+		return nil
+	}
+	out := make([]map[string]any, 0, guideDigestRules)
+	for i, r := range g.Rules {
+		if i >= guideDigestRules {
+			break
+		}
+		lines := r.Checks()
+		if len(lines) > 2 {
+			lines = lines[:2]
+		}
+		short := make([]string, 0, len(lines))
+		for _, line := range lines {
+			short = append(short, truncateText(line, guideCheckChars))
+		}
+		entry := map[string]any{
+			"rule":   r.ID,
+			"title":  r.Title,
+			"checks": short,
+		}
+		if i < len(g.RuleSources) && g.RuleSources[i] == "workflow" {
+			if note := g.Skill.RuleNotes[r.ID]; note != "" {
+				entry["applies"] = note
+			}
+		}
+		out = append(out, entry)
+	}
+	return out
+}
+
+// truncateText shortens on a word boundary so a digest line never ends
+// mid-word; the ellipsis signals that the rule file has the full sentence.
+func truncateText(s string, max int) string {
+	runes := []rune(strings.TrimSpace(s))
+	if len(runes) <= max {
+		return string(runes)
+	}
+	cut := runes[:max]
+	for i := len(cut) - 1; i > max/2; i-- {
+		if cut[i] == ' ' {
+			cut = cut[:i]
+			break
+		}
+	}
+	return strings.TrimRight(string(cut), " ,;:") + "…"
+}
+
 // attachGuide adds the routed guide to a structured tool response. It never
-// overwrites an existing guide and never attaches to an error payload.
-func attachGuide(data any, payload map[string]any) {
+// overwrites an existing guide, never attaches to an error payload, and stamps
+// a given route once: the same URI list repeated on every render is wallpaper,
+// so a repeat is skipped and the debt is reported by validate's receipt instead.
+func (m *AvnacMCP) attachGuide(data any, payload map[string]any) {
 	response, ok := data.(map[string]any)
 	if !ok || response == nil {
 		return
@@ -197,7 +274,89 @@ func attachGuide(data any, payload map[string]any) {
 	if !ok || !g.Confident() {
 		return
 	}
+	sig := guideSignature(g)
+	m.guideMu.Lock()
+	repeat := sig == m.guideSig
+	if !repeat {
+		m.guideSig = sig
+		m.guideRoute = g
+	}
+	m.guideMu.Unlock()
+	if repeat {
+		return
+	}
 	response["guide"] = guidePayload(g)
+}
+
+// guideSignature identifies a route by its workflow and rule list. Two payloads
+// that route to the same reading are the same guide, whatever their wording.
+func guideSignature(g *skill.Guide) string {
+	if g == nil || g.Skill == nil {
+		return ""
+	}
+	parts := make([]string, 0, len(g.Rules)+1)
+	parts = append(parts, g.Skill.Name)
+	for _, r := range g.Rules {
+		parts = append(parts, r.ID)
+	}
+	return strings.Join(parts, "|")
+}
+
+// attachGuideReceipt closes the loop a guide opens. Validate runs measured,
+// rule-backed checks; the receipt says which of the routed rules those checks
+// cover and which are still prose the agent has to apply itself. Without it,
+// "read the rules" and "read nothing" look the same in a tool result.
+func (m *AvnacMCP) attachGuideReceipt(data any) {
+	response, ok := data.(map[string]any)
+	if !ok || response == nil {
+		return
+	}
+	if msg, _ := response["error"].(string); msg != "" {
+		return
+	}
+	m.guideMu.Lock()
+	g := m.guideRoute
+	m.guideMu.Unlock()
+	if g == nil || g.Skill == nil || len(g.Rules) == 0 {
+		return
+	}
+
+	measured := make(map[string]bool)
+	switch checks := response["checks"].(type) {
+	case []any:
+		for _, item := range checks {
+			entry, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if rule, _ := entry["rule"].(string); rule != "" {
+				measured[rule] = true
+			}
+		}
+	case []map[string]any:
+		for _, entry := range checks {
+			if rule, _ := entry["rule"].(string); rule != "" {
+				measured[rule] = true
+			}
+		}
+	}
+
+	checked := make([]string, 0, len(g.Rules))
+	pending := make([]string, 0, len(g.Rules))
+	for _, r := range g.Rules {
+		if measured[r.ID] {
+			checked = append(checked, r.ID)
+			continue
+		}
+		pending = append(pending, r.ID)
+	}
+	response["guideReceipt"] = map[string]any{
+		"skill":   "skill://" + g.Skill.Name,
+		"checked": checked,
+		"pending": pending,
+		"note": "checked rules were measured by this validate. pending rules are prose: " +
+			"validate cannot see them, so apply them yourself before the next render.",
+	}
 }
 
 // taskTextFromPayload collects the human-meaningful strings a client sent:

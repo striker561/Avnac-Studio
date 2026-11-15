@@ -1399,6 +1399,7 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
+		m.attachGuideReceipt(data)
 		return toolErrorResult(data)
 	})
 
@@ -2122,7 +2123,7 @@ func (m *AvnacMCP) addOpTool(
 	// The op → action table is only authoritative here, so record it for the
 	// settings panel while the dispatcher is built from the same map.
 	m.recordToolOps(tool.Name, ops)
-	handler := opDispatcher(tool.Name, ops, legacy)
+	handler := opDispatcher(m, tool.Name, ops, legacy)
 	mcp.AddTool(m.server, tool, func(ctx context.Context, req *mcp.CallToolRequest, raw map[string]any) (*mcp.CallToolResult, any, error) {
 		return handler(ctx, req, raw)
 	})
@@ -2134,7 +2135,7 @@ func (m *AvnacMCP) addOpTool(
 // `op`, and accepting the old action name costs one map entry instead of a
 // failed call. Arguments are forwarded unchanged minus the op keys, so every
 // existing decoder (including the flexible stringifying ones) keeps working.
-func opDispatcher(group string, ops map[string]string, legacy map[string]toolHandler) toolHandler {
+func opDispatcher(m *AvnacMCP, group string, ops map[string]string, legacy map[string]toolHandler) toolHandler {
 	names := make([]string, 0, len(ops))
 	for op := range ops {
 		names = append(names, op)
@@ -2171,8 +2172,8 @@ func opDispatcher(group string, ops map[string]string, legacy map[string]toolHan
 			args[k] = v
 		}
 		res, data, err := handler(ctx, req, args)
-		if err == nil && guideActions[action] {
-			attachGuide(data, args)
+		if err == nil && guideActions[action] && m != nil {
+			m.attachGuide(data, args)
 		}
 		return res, data, err
 	}
@@ -2190,7 +2191,7 @@ func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
 			"op=go-page (page: 1-based number or name; or index: 0-based) switches pages; op=rename-page (page?, name) renames; op=delete-page (page?, defaults current; never the last page). " +
 			"get_canvas_summary lists every page and the active one. op=clear removes every object on the current page; op=background sets the current page background; " +
 			"op=resize (width, height, backgroundColor, page?) resizes the active sheet in place; op=preset resizes to a standard preset (ig-square, ig-portrait, ig-story, hd, twitter-post, linkedin, youtube-thumb, a4-300, custom-4000). " +
-			"op=snapshot captures all pages and returns a token; op=restore (token) restores it; op=undo/op=redo move through history; op=status reports the connected client, revision and implemented actions; op=validate audits bounds, contrast, type size, strokes, tangencies and fonts.",
+			"op=snapshot captures all pages and returns a token; op=restore (token) restores it; op=undo/op=redo move through history; op=status reports the connected client, revision and implemented actions; op=validate audits bounds, contrast, type size, strokes, tangencies and fonts, and returns rule-backed `checks` with measured numbers (margin ladder, density, level census, step ratio, optical centring) plus a `guideReceipt` naming which routed rules it could measure.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
 			"op":              desc("Operation: create, add-page, go-page, rename-page, delete-page, clear, background, preset, resize, snapshot, restore, undo, redo, status, validate."),
 			"width":           desc("create/resize: canvas width in pixels (100-16000). add-page: page width."),

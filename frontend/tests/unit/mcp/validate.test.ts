@@ -5,6 +5,7 @@ import {
   type SaraswatiScene,
   type SaraswatiTextNode,
 } from "@/lib/saraswati";
+import { getNodeBounds } from "@/lib/saraswati/spatial";
 import { contrastRatio, validateScene } from "@/lib/mcp/validate";
 
 function rect(
@@ -162,5 +163,94 @@ describe("validateScene", () => {
     const report = validateScene(scene);
     expect(report.errors).toBe(0);
     expect(report.checked.nodes).toBe(1);
+    expect(report.checks.map((check) => check.status)).not.toContain("warn");
+  });
+
+  it("reports rule-backed checks even when they pass", () => {
+    const scene = sceneWith(rect("card", { x: 64, y: 64, width: 200, height: 120 }));
+    const report = validateScene(scene);
+    expect(report.checks.map((check) => check.id)).toEqual([
+      "margin_ladder",
+      "density",
+      "level_census",
+      "optical_centring",
+      "contrast_floor",
+    ]);
+    const margin = report.checks.find((check) => check.id === "margin_ladder");
+    expect(margin?.status).toBe("pass");
+    expect(margin?.detail).toContain("floor 48");
+  });
+
+  it("warns when content crowds the trim edge", () => {
+    const scene = sceneWith(rect("edge", { x: 4, y: 120, width: 200, height: 120 }));
+    const report = validateScene(scene);
+    const check = report.checks.find((entry) => entry.id === "margin_ladder");
+    expect(check?.status).toBe("warn");
+    const issue = report.issues.find((entry) => entry.code === "tight_margin");
+    expect(issue?.rule).toBe("08-negative-space");
+    expect(issue?.message).toContain("8% of the short edge");
+  });
+
+  it("counts text levels and flags more than five", () => {
+    const sizes = [60, 40, 28, 20, 16, 12];
+    const scene = sceneWith(
+      ...sizes.map((fontSize, index) =>
+        text("level-" + index, { y: 40 + index * 80, fontSize, width: 180 }),
+      ),
+    );
+    const report = validateScene(scene);
+    const check = report.checks.find((entry) => entry.id === "level_census");
+    expect(check?.status).toBe("warn");
+    expect(check?.detail).toContain("6 level(s)");
+    expect(report.issues.map((issue) => issue.code)).toContain("level_overflow");
+  });
+
+  it("flags a type ladder that is too flat to read as two levels", () => {
+    const scene = sceneWith(
+      text("headline", { y: 60, fontSize: 40, width: 300 }),
+      text("subhead", { y: 200, fontSize: 36, width: 300 }),
+    );
+    const report = validateScene(scene);
+    const check = report.checks.find((entry) => entry.id === "type_steps");
+    expect(check?.status).toBe("warn");
+    expect(report.issues.map((issue) => issue.code)).toContain("flat_type_steps");
+  });
+
+  it("does not call a weight change a flat size step", () => {
+    const scene = sceneWith(
+      text("body", { y: 100, fontSize: 16, fontWeight: "400", width: 300 }),
+      text("label", { y: 200, fontSize: 14, fontWeight: "700", width: 300 }),
+    );
+    const report = validateScene(scene);
+    expect(report.checks.find((entry) => entry.id === "type_steps")?.status).toBe("pass");
+  });
+
+  it("flags display type centred mathematically", () => {
+    const headline = text("headline", { x: 250, y: 0, width: 300, fontSize: 40 });
+    const bounds = getNodeBounds(headline);
+    headline.y = 300 - (bounds.y + bounds.height / 2);
+    const report = validateScene(sceneWith(headline));
+    const check = report.checks.find((entry) => entry.id === "optical_centring");
+    expect(check?.status).toBe("warn");
+    const issue = report.issues.find((entry) => entry.code === "mathematical_centring");
+    expect(issue?.rule).toBe("04-balance-and-proportion");
+  });
+
+  it("counts density on the 4x4 grid and ignores the background plate", () => {
+    const quadrants = [
+      rect("q1", { x: 0, y: 0, width: 400, height: 300 }),
+      rect("q2", { x: 400, y: 0, width: 400, height: 300 }),
+      rect("q3", { x: 0, y: 300, width: 400, height: 300 }),
+      rect("q4", { x: 400, y: 300, width: 400, height: 300 }),
+    ];
+    const full = sceneWith(...quadrants);
+    const packed = validateScene(full).checks.find((entry) => entry.id === "density");
+    expect(packed?.status).toBe("warn");
+    expect(packed?.detail).toContain("16/16 cells");
+
+    const plate = rect("bg", { x: 0, y: 0, width: 800, height: 600 });
+    const empty = validateScene(sceneWith(plate)).checks.find((entry) => entry.id === "density");
+    expect(empty?.status).toBe("pass");
+    expect(empty?.detail).toContain("0/16 cells");
   });
 });

@@ -64,6 +64,17 @@ function measure(fn: () => void): number {
   return performance.now() - start;
 }
 
+// CI runners are shared and start JIT-cold: one sample can land 5-10x above
+// the steady state and fail a budget the code comfortably meets. Warm up,
+// then take the median so a single stalled sample cannot fail the suite.
+function medianMs(fn: () => void, runs = 7): number {
+  fn();
+  fn();
+  const samples = Array.from({ length: runs }, () => measure(fn));
+  samples.sort((a, b) => a - b);
+  return samples[runs >> 1]!;
+}
+
 function fakeContext(): CanvasRenderingContext2D {
   const target: Record<string, unknown> = {
     fillStyle: "",
@@ -118,7 +129,7 @@ describe("feature: vector / performance budgets", () => {
   it("hit-tests 300 strokes within a pointer-frame budget", () => {
     const doc = buildDoc(300);
     findTopStrokeAt(doc, [10, 10], 4);
-    const ms = measure(() => {
+    const ms = medianMs(() => {
       findTopStrokeAt(doc, [310, 140], 4);
       findTopStrokeAt(doc, [910, 600], 4);
     });
@@ -132,7 +143,7 @@ describe("feature: vector / performance budgets", () => {
       strokeId: s.id,
     }));
     selectionBounds(doc, selections);
-    const ms = measure(() => {
+    const ms = medianMs(() => {
       const bounds = selectionBounds(doc, selections);
       expect(bounds).not.toBeNull();
     });
@@ -143,14 +154,14 @@ describe("feature: vector / performance budgets", () => {
     const doc = buildDoc(300);
     const ctx = fakeContext();
     paintVectorDocument(ctx, doc);
-    const ms = measure(() => paintVectorDocument(ctx, doc));
+    const ms = medianMs(() => paintVectorDocument(ctx, doc));
     expect(ms).toBeLessThan(PAINT_BUDGET_MS);
   });
 
   it("serializes 300 strokes to SVG within budget", () => {
     const doc = buildDoc(300);
     vectorBoardDocumentToSvg(doc);
-    const ms = measure(() => {
+    const ms = medianMs(() => {
       const svg = vectorBoardDocumentToSvg(doc);
       expect(svg.length).toBeGreaterThan(1000);
     });
@@ -160,7 +171,7 @@ describe("feature: vector / performance budgets", () => {
   it("fits a 600-sample hand stroke within budget", () => {
     const points = handStroke();
     fitFreehandCubics(points, { tolerance: 2.5 });
-    const ms = measure(() => {
+    const ms = medianMs(() => {
       const result = fitFreehandCubics(points, { tolerance: 2.5 });
       expect(result.anchors.length).toBeGreaterThan(2);
       expect(result.anchors.length).toBeLessThan(40);
@@ -193,7 +204,7 @@ describe("feature: vector / performance budgets", () => {
       activeLayerId: "l1",
     };
     migrateVectorBoardDocument(legacy);
-    const ms = measure(() => {
+    const ms = medianMs(() => {
       const doc = migrateVectorBoardDocument(legacy);
       expect(doc.layers[0]!.strokes).toHaveLength(300);
     });
@@ -206,7 +217,7 @@ describe("feature: vector / performance budgets", () => {
       layerId: doc.layers[0]!.id,
       strokeId: s.id,
     }));
-    const ms = measure(() => {
+    const ms = medianMs(() => {
       const next = applyTranslateStrokesInDoc(doc, selections, 10, 10);
       expect(next).not.toBe(doc);
     });
@@ -218,7 +229,7 @@ describe("feature: vector / performance budgets", () => {
     const previous = new Map(
       doc.layers.map((layer) => [layer.id, { layerRef: layer, pixelRatio: 1 }]),
     );
-    const ms = measure(() => {
+    const ms = medianMs(() => {
       const plan = planLayerCaches(previous, doc, 1);
       expect(plan.reuse).toHaveLength(doc.layers.length);
     });
@@ -253,7 +264,7 @@ describe("feature: vector / performance budgets", () => {
     const first = selectionBounds(bigDoc, selections);
     expect(first).not.toBeNull();
     // Same document + same selection array must hit the identity cache.
-    const ms = measure(() => {
+    const ms = medianMs(() => {
       for (let i = 0; i < 200; i += 1) {
         expect(selectionBounds(bigDoc, selections)).toBe(first);
       }
@@ -278,7 +289,7 @@ describe("feature: vector / performance budgets", () => {
     expect(path.subpaths[0]!.segments).toHaveLength(2499);
     expect(strokeBounds(huge)).not.toBeNull();
     nearestPointOnPath(path, [600, 450]);
-    const ms = measure(() => {
+    const ms = medianMs(() => {
       for (let i = 0; i < 100; i += 1) {
         const hit = nearestPointOnPath(path, [600, 450]);
         expect(hit).not.toBeNull();

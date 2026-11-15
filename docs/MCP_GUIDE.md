@@ -172,6 +172,10 @@ degraded-output test, constructed vectors. They ride with the route because the 
 of the library chosen by keyword overlap, and the gates are the part that applies whatever the
 sample says. A gate whose rules the route already carries is dropped.
 
+The eval that keeps this honest — thirteen common briefs, the payload budget, URI resolution and
+the non-design rejection set — is [resource-eval.md](resource-eval.md), run with
+`go test ./avnac-system/mcp -run TestResourceCompliance -v`.
+
 The server also attaches a compact `guide` field to composition results (`canvas` op=create/add-page,
 `elements` op=render/measure/modify, `vector` op=draw) whenever the payload is a clear match — once
 per route. Repeating the same URI list on every render is what taught agents to skim past it, so a

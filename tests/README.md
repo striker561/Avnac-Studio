@@ -18,6 +18,7 @@ Tests are arranged by **unit** (pure logic, fast) and **features** (cross-module
 | Vector knowledge + routing eval | `internal/skill/vector/`, `internal/skill/rules/120-127` | `internal/skill/vector_eval_test.go`, `avnac-system/mcp/vector_resources_test.go` |
 | Vector board editor UI | `frontend/src/components/editor/vector-boards/` | `frontend/tests/e2e/vector-board.e2e.ts` |
 | MCP server instructions/tools | `avnac-system/mcp/` | `avnac-system/mcp/*_test.go` |
+| Resource-compliance eval (routing, payload budget, URI resolution) | `internal/skill/`, `avnac-system/mcp/tools_guide.go` | `avnac-system/mcp/resource_compliance_test.go`, [docs/resource-eval.md](../docs/resource-eval.md) |
 | Multi-page persistence | `frontend/src/lib/avnac-multi-page-storage.ts` | `frontend/tests/unit/storage/`, `frontend/tests/features/storage/` |
 | Remove background UI | `frontend/src/lib/use-remove-bg.ts` | `frontend/tests/unit/rembg/` |
 

@@ -60,6 +60,21 @@ is `clamp(32px, 26px + 2.4vw, 52px)` — 32 px at 320, 44 px at 768, 52 px at 12
 "Choose plan" bar carries `padding-bottom: max(16px, env(safe-area-inset-bottom))` and its buttons are
 48 px tall with 12 px gaps. No copy drops below 16 px and no feature is removed on mobile.
 
+## Verification
+1. **Width sweep.** Resize in 8 px steps from 320 to 1440 and record where the layout fails. The
+   breakpoints sit at those failures rounded to a 16 px multiple — 704, 912, 1180 — not at 375, 768
+   and 1440 because those are device widths.
+2. **320 px floor.** At 320 CSS px: one column, 16 px margins, no horizontal scroll and no copy
+   under 16 px. At 400% zoom the content reflows to one column with nothing lost (WCAG 1.4.10).
+3. **Reflow pattern.** 12→8→4→1 columns, sidebar→top bar→drawer, 4-up→2-up→1-up cards, table→stacked
+   block with labels: one named pattern per component. Two patterns in one component is the bug.
+4. **Small targets.** 44×44 px with 8 px between, 48 px where controls sit close together, measured
+   on the 320 px render. A 32 px target carried over from the desktop layout is under the touch
+   floor.
+5. **Clamped type.** Every `clamp()` has both ends rendered: body 16–19 px, page title 32–52 px, and
+   the value at 320, 768 and 1280 is one of those ends. Type scaled only in `vw` fails at both
+   extremes.
+
 ## Related Rules
 - [`93-interface-layout-and-spacing`](93-interface-layout-and-spacing.md) — the containers and scale that stay constant while layout reflows.
 - [`39-responsive-composition`](39-responsive-composition.md) — the same reflow problem in print and poster formats.

@@ -58,6 +58,22 @@ digital run only. A 12 pt reversed caption sits 0/0/0/0 on a 0/0/0/100 panel, wh
 is 40/30/30/100 at 300% TAC. The proof measures 165 C within Delta E 2; the press sheet holds at two of three
 sample points.
 
+## Verification
+1. **Output intent.** The file names its destination before the first measurement — GRACoL 2006 for
+   US coated, FOGRA39 for European coated, SWOP for US web — and the separations are CMYK or named
+   spots. A profile assigned after layout moves every colour on the page.
+2. **Delta E.** Measure every brand solid and proof patch: Delta E 2 or less passes, 3–5 is visible
+   in solids, above 5 rejects the proof. The number goes in the job record, not the adjective
+   'close'.
+3. **Black build.** Read the separations: body text, hairlines and reversed type sit at 0/0/0/100,
+   large solids at 40/30/30/100. Four inks on 12 pt type fringe at register, which is why the split
+   exists.
+4. **Total area coverage.** Sum the four inks at the darkest point: 300% on coated, 240% on
+   uncoated. The 340% build sets off and scuffs before it dries.
+5. **Tint and grey balance.** On the contract proof a 50% tint measures near 50%, the 50/40/40 grey
+   balance patch is neutral and the brand solid sits within Delta E 2–3. Then hold the sheet under
+   D50 beside the proof, not the monitor.
+
 ## Related Rules
 - [`15-color-systems-and-models`](15-color-systems-and-models.md) — RGB, CMYK, Lab, and what a profile describes.
 - [`80-print-design-fundamentals`](80-print-design-fundamentals.md) — ink coverage as a design budget.

@@ -102,6 +102,34 @@ inflection sits exactly at the middle anchor. Curvature is continuous at both jo
 middle anchor would need a refit that deviates more than 2 px, so it stays. The result is 3 anchors
 instead of the 14 a freehand trace would produce.
 
+The same curve as IR. Both middle handles are horizontal, which is what makes the join smooth; the
+percentages above are proportions of each segment's triangle, not coordinates:
+
+```json vector
+{
+  "canvas": { "width": 200, "height": 220, "background": "#F4F0E8" },
+  "objects": [
+    { "id": "curve/s", "type": "path", "start": [40, 160],
+      "segments": [
+        { "type": "cubic", "control1": [70, 160], "control2": [70, 120], "to": [100, 120] },
+        { "type": "cubic", "control1": [130, 120], "control2": [130, 160], "to": [160, 160] } ],
+      "closed": false, "stroke": "#1B1B1B", "strokeWidth": 2, "lineCap": "round" }
+  ]
+}
+```
+
+## Verification
+1. **Magic triangle at 400%.** Every handle lies inside its segment's triangle; designed curves use
+   55–65%, arcs 0.556. A handle outside the triangle is an inflection or a cusp nobody asked for.
+2. **Node-type audit.** Smooth nodes have collinear handles; cusps are deliberate. A smooth
+   node with a corner between its handles shows as a kink at 100%.
+3. **Extrema check.** Every curve has an anchor at its horizontal and vertical extremes. Missing
+   extrema show up as flat spots and as extra anchors added later.
+4. **Anchor budget.** Circle 4 · leaf 6–8 · face 12–20 · character 30–60. Over 1.5× the budget means
+   simplify before editing; a refit is cheaper than a redraw.
+5. **Open/closed.** List open paths: stroked is legitimate, filled is a bug (the closing chord cuts
+   the shape).
+
 ## Related Rules
 - [`122-geometric-primitives-and-construction`](122-geometric-primitives-and-construction.md) — where the curve comes from before it is shaped.
 - [`124-symmetry-and-transformations`](124-symmetry-and-transformations.md) — handles must mirror with their anchors.

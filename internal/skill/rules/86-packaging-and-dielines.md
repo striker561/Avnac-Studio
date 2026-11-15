@@ -60,6 +60,20 @@ holds the dieline locked on top; the front face is a guide `rect` at x=105, y=55
 brand sits centered on that rect, 6 mm clear of the crease, the background `#1B3A2F` runs 3 mm past
 each crease, and the barcode goes on the base panel, never across a fold.
 
+## Verification
+1. **Dieline out of the export.** `export` op `svg`: no cut or crease line appears in the delivered
+   art, and the dieline sits on a layer named 'DO NOT PRINT' that is off. A magenta crease in the
+   export is a reprint.
+2. **Zone geometry.** Bleed runs 3 mm past every outside cut; the safe zone is 3–5 mm inside every
+   crease and cut. Measure type at 5 mm and rules at 3 mm clear of the nearest crease.
+3. **Compensation.** Each fold carries the converter's compensation — about 0.5 mm per fold on
+   0.5 mm SBS, 1.5–2 mm on E-flute, 3–4 mm on B-flute. Panel widths measured without it leave the
+   box out of square and the seam open.
+4. **Glue area.** 10–15 mm on a folding carton, 20–25 mm on a corrugated case, with no ink and no
+   type inside it. Artwork there is destroyed by glue and shadows through the board.
+5. **Assembled dummy.** Cut and fold a white dummy at 1:1: panels close, the barcode is on the base,
+   no flap covers the name, and the 1 mm fold shift opens no white line at a crease.
+
 ## Related Rules
 - [`82-bleed-trim-and-safe-areas`](82-bleed-trim-and-safe-areas.md) — bleed and safe numbers applied to a non-rectangular shape.
 - [`84-print-finishing-techniques`](84-print-finishing-techniques.md) — die-cutting, creasing and their tool tolerances.

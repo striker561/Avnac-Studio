@@ -71,11 +71,35 @@ fill containing several subpaths, with even-odd or non-zero deciding how overlap
 | Shipping live overlaps | Print and cut show seams | Remove overlap on export |
 
 ## Practical Examples
-A letter O for a 512 px logo: outer ellipse 150 × 190, inner ellipse 96 × 136, both centred. Subtract
-the inner from the outer, then reverse the inner contour if the editor did not; the result is one
-compound path with two subpaths, 8 anchors total, non-zero fill. A 6-unit highlight is then unioned
-into the lower-right of the ring, adding 4 anchors at the tangencies. Before export the overlap scan
-finds no path under 2 units, and the exported SVG declares `fill-rule="nonzero"` once.
+A letter O for a 512 px logo: outer ellipse 300 × 380, inner ellipse 192 × 272, both centred.
+Subtract the inner from the outer, then reverse the inner contour if the editor did not; the result
+is one compound path with two subpaths, 8 anchors total, non-zero fill. A 6-unit highlight is then
+unioned into the lower-right of the ring, adding 4 anchors at the tangencies. Before export the
+overlap scan finds no path under 2 units, and the exported SVG declares `fill-rule="nonzero"` once:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"
+     role="img">
+  <title>Letter O</title>
+  <path fill="#1B1B1B" fill-rule="nonzero"
+        d="M256 66C338.84 66 406 151.07 406 256C406 360.93 338.84 446 256 446C173.16 446 106 360.93 106 256C106 151.07 173.16 66 256 66Z
+           M256 120C202.98 120 160 180.89 160 256C160 331.11 202.98 392 256 392C309.02 392 352 331.11 352 256C352 180.89 309.02 120 256 120Z"/>
+</svg>
+```
+
+The outer contour runs clockwise and the inner counter-clockwise. Reverse the inner one and the hole
+fills solid under `nonzero` — which is the failure the fill rule is there to prevent.
+
+## Verification
+1. **Expression first.** Write the boolean as an expression (`outer − inner`, then `+ highlight`)
+   before operating. The operand order is the design decision; a wrong order is silent.
+2. **Winding and fill rule.** Every compound path declares `fill-rule`. Reverse the inner contour of
+   a ring: the hole must fill solid, proving the rule is doing the work.
+3. **Node delta.** Count anchors before and after the boolean. A union that adds more than about 20%
+   means the inputs were the wrong shapes; rebuild from primitives instead.
+4. **Overlap scan.** Before export, no two painted paths overlap. Overlap that looks fine on screen
+   shows as a seam in print and a double cut at the cutter.
+5. **Double-overlap render.** At 4000 px, stacked translucent shapes show no white gap at the seam.
 
 ## Related Rules
 - [`122-geometric-primitives-and-construction`](122-geometric-primitives-and-construction.md) — the inputs a boolean should be built from.

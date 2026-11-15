@@ -57,6 +57,22 @@ Pantone 1235 C. Page 6 sets type at 96/48/28/18/14 px with leading per size. Pag
 do/don't pairs for the lockup at its 240 px minimum width. Page 12 links four Avnac templates at 1080×1080,
 1920×1080, 1200×630, and 2480×3508.
 
+## Verification
+1. **Stranger test.** Hand the document to someone who did not make it and ask for one post. Pass:
+   under ten minutes and zero questions. Every question is a missing number, and it is added to the
+   page that should have answered it.
+2. **Numbered rules.** Read every spread and count the rules without a value. Pass: zero. "Use clear
+   space" fails; "0.5× cap height, minimum 24 px digital or 10 mm print" passes, because it can be
+   followed at 2 a.m.
+3. **Do/don't pairs.** Count pairs and inspect each. Pass: six or fewer, matched at 400 × 300 px
+   with one 2 px rule and one caption, and the "don't" is the failure state — a stretched logo, a
+   2.9:1 caption. A straw-man "don't" teaches nothing.
+4. **Page-one sheet.** Open page one. Pass: the six invariants, the file-naming convention and the
+   named owner all appear before the reader turns the page.
+5. **Length and tokens.** Count pages: 12 to 24 for a small brand. Pass: a token file with hex, RGB,
+   CMYK and Pantone, pulled with `export` and checked as text rather than as an image. A hex locked
+   inside a print-ready PDF is a hex nobody can use.
+
 ## Related Rules
 - [`52-visual-identity-systems`](52-visual-identity-systems.md) — the system the document describes.
 - [`55-brand-color-and-typography`](55-brand-color-and-typography.md) — the values for the color and type pages.

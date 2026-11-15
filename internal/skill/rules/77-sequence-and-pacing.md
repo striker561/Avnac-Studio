@@ -78,6 +78,20 @@ The density pattern is open, open, dense, reveal, medium, open — no three dens
 and the two reveals sit four spreads apart, at the opening quarter and the centre. The panorama is
 the only image that crosses the fold; every other image is composed to stand within its page.
 
+## Verification
+1. **Beat sheet complete.** One row per spread: beat, density %, image size, type role, reward. For
+   the 32-page example that is 32 rows. A row without a beat name is a spread designed by accident.
+2. **Density run.** Read the density column: no three spreads above 60% in a row, and two or three
+   dense spreads are followed by one below 25%. The example runs open, open, dense, reveal, medium,
+   open.
+3. **Reveal count.** One full-bleed, one colour surprise and one scale jump per 16-page signature,
+   at the emotional peak. The two reveals in the example sit four spreads apart, p8–9 and p16–17.
+4. **Turn test.** Review pairs 1-2, 2-3, 3-4 as the reader turns: every right-hand page adds what
+   the left did not. A right page that only continues the left has no turn and the beat sheet is
+   fiction.
+5. **Fold clearance.** On perfect binding, faces stay 10 mm clear of the fold; the only cross-gutter
+   image in the example sits on a saddle-stitched spread at p16–17.
+
 ## Related Rules
 - [`05-rhythm-and-repetition`](05-rhythm-and-repetition.md) — intervals inside a page, applied here across turns.
 - [`31-layout-structures`](31-layout-structures.md) — the structure each spread is built on.

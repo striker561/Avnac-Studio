@@ -63,6 +63,18 @@ An 800×1000 poster:
 - Type 18 px/1.5 `#111111` sans, one 240 px column at x=40 y=760, flush left — no centered line
   anywhere on the page.
 
+## Verification
+1. **Orthogonality.** `get_object_properties` on every shape: rotation 0, no diagonal and no curve.
+   One 45° shape fails the whole language.
+2. **Area ranking.** Measure red, yellow and blue: three unequal areas, ranked, with the largest at
+   roughly a tenth of the canvas. Equal areas read as a flag.
+3. **Bar widths.** At most three — 12 px frame, 8 px division, 4 px accent. A 1 px line has lost its
+   structural job.
+4. **Open frame.** Count frame bars on the four edges: two or three, never four. Four close a
+   composition that is meant to be cropped and continuing.
+5. **Palette purity.** Full-strength primaries only: no tint, tone or gradient, on white with black
+   line. A pastel primary reads as an error inside this doctrine.
+
 ## Related Rules
 - [`101-bauhaus`](101-bauhaus.md) — the same primary palette with a more permissive geometry.
 - [`11-color-harmony`](11-color-harmony.md) — why three full-strength primaries need unequal areas.

@@ -59,6 +59,22 @@ In Avnac that was three artboards: transitional lockup at 1920×1080 for signage
 social, and a 1200×630 web header. The sunset calendar put packaging at month 9 and vehicles at month 18, which
 set the launch date.
 
+## Verification
+1. **Mismatch audit.** Open the three-column audit and count the rows. Pass: 8–12 rows, each scored
+   1–5, and at least one relevance score of 2 or lower. Without that row the rebuild is a
+   preference, not a diagnosis.
+2. **Equity carry-over.** Score every asset for recognition and relevance. Pass: two of the top
+   three recognition assets survive in the new identity — count them in the new lockup. A rebuild
+   that carries one is a new brand with an old invoice.
+3. **Transitional spec.** Measure the transitional lockup: old wordmark at 60% of the new mark's
+   height, 0.5× cap height gap, and permitted only on signage, packaging and vehicles. A
+   transitional lockup on social fails on placement alone.
+4. **Surface count.** Open the sunset calendar. Pass: one row per surface with owner, cost, lead
+   time and end date, and signage and vehicles set the outer bound. A plan without either has no
+   launch date that will hold.
+5. **End date.** Find the drop-dead date for the old mark. Pass: written, and inside 6–24 months. An
+   undefined transition reads as two companies for as long as the old artwork survives.
+
 ## Related Rules
 - [`50-brand-strategy`](50-brand-strategy.md) — the positioning the mismatch is measured against.
 - [`53-logo-construction`](53-logo-construction.md) — how the new mark gets built.

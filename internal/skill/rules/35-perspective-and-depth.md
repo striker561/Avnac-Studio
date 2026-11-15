@@ -79,6 +79,19 @@ A 1920×1080 key visual for a headphones launch, on `#15171C`:
 No perspective construction is used, and the visual still reads as a room because the cues agree:
 one horizon, one size ratio, one temperature direction from foreground to background.
 
+## Verification
+1. **Horizon count.** One horizon, one vanishing point if convergence is used, and every
+   consistent edge agreeing within 1–2°. A second horizon, usually from a second photograph, reads
+   as physically impossible.
+2. **Size ratio.** Measure two depths: at twice the distance the object is half the size, ±5%.
+   Sizes placed by eye miss the ratio by 20–30% and the space flattens.
+3. **Blur bands.** Background blur at 4–8 px, near-plane separation at 0.5–2 px on a 1080 canvas,
+   subject sharp. Blur on the subject reads as a focus miss, not as depth.
+4. **Cue order.** List the cues in play: overlap first, then relative size, then position.
+   Convergence without overlap produces the starburst that competes with the headline.
+5. **Shadow agreement.** Every cast shadow runs at 45° from one light, 2–3× the base in width,
+   20–35% opacity, 6–12 px blur. Two directions and the composite fails at first glance.
+
 ## Related Rules
 - [`34-composition-techniques`](34-composition-techniques.md) — layering as a compositional device before it becomes a depth cue.
 - [`36-scale-and-proportion`](36-scale-and-proportion.md) — relative size, the second-strongest depth cue and the same mechanism as hierarchy.

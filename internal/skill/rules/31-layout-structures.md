@@ -82,6 +82,19 @@ the image on columns 1–4, the headline crossing from column 3 into column 6 at
 one element violates the column edge — the headline — and it is also the most important thing on
 the page.
 
+## Verification
+1. **Structure census.** Name the structure of each canvas: single column, multi-column, modular,
+   broken, full-bleed. One per design; a second needs a different content type, not a change of
+   mood halfway down the page.
+2. **Reading order.** Multi-column pages declare Z or N, the layer names follow it, and the render
+   agrees. Undeclared, readers split and half of them take the other route.
+3. **Module swap.** Swap two modular blocks and look again. If the design survives, the structure
+   is real; if it collapses, the blocks were a story told once.
+4. **Bleed budget.** Count the elements that reach the trim: one. The second stops 48–96 px short.
+   Two full-bleeds halve each other's claim on the canvas.
+5. **Break count.** Count the edges a deliberate break crosses: one, on the highest-value element.
+   Three violations read as an unfinished file, and worse across a series.
+
 ## Related Rules
 - [`30-grid-systems`](30-grid-systems.md) — the measurements the chosen structure is built from.
 - [`33-asymmetric-and-modular-layouts`](33-asymmetric-and-modular-layouts.md) — how modular and asymmetric structures are balanced rather than merely assembled.

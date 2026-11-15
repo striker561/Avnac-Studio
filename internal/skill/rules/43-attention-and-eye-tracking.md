@@ -43,6 +43,20 @@ Attention is a selection process. The eye lands on whichever element is locally 
 ## Practical Examples
 A 1920×1080 hero: portrait cropped so the face sits in the upper third on the right, eyes at y≈300, gaze pointing left into a 64 px headline at x=120, y=280. One `#FF5A1F` button 220×56 sits 40 px under the headline; everything else is neutral `#F5F5F4` and `#1C1917`. Grayscale check: face, headline, button are the three strongest values, in that order — acceptable because the gaze delivers the eye to the headline and the button is the only chroma in the frame.
 
+## Verification
+1. **Grayscale rank.** Desaturate the page and rank the elements by value contrast. Pass: the top
+   three are the three intended levels, in order. A stock photo or a badge in the top three is
+   attention spent on nothing.
+2. **Chroma census.** Measure every fill's chroma. Pass: one hue at full strength, every other hue
+   at 60% chroma or less, and `#FF0000` only where a real error exists. A decorative pure red eats
+   the first fixation.
+3. **Thirds map.** Divide the canvas into thirds and mark the loudest element. Pass: it sits in
+   exactly one third, and the middle third is not the emptiest. An element that spans two thirds has
+   no focal point.
+4. **Gaze vector.** With a face present, draw the line from the eyes through the pupils. Pass: it
+   lands inside the headline box, and the face is fixated within about 200 ms. A gaze leaving the
+   canvas sends the viewer with it.
+
 ## Related Rules
 - [`41-visual-perception`](41-visual-perception.md) — how the fixation forms and where it can resolve detail.
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — salience is the mechanism; hierarchy is the intent.

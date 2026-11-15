@@ -62,23 +62,46 @@ reads the rules, orders them by dependency, and produces concrete positions.
 
 ## Practical Examples
 A 256 × 256 face at board centre, solved in four passes. Ratios are chosen first (eye offset
-0.44 of the face width, nose gap 0.10 of its height) and converted to board units before the
+0.44 of the face width, nose offset 0.20 of its height) and converted to board units before the
 constraints run, because a solver works in one unit:
 
-```yaml
-objects:
-  - { id: face, type: ellipse, x: 53, y: 44, width: 150, height: 176 }   # pin, board units
-  - { id: eye-left,  type: circle, width: 15, height: 15,
-      relation: centered_on, target: face, offset: [-66, -21] }
-  - { id: eye-right, type: circle, width: 15, height: 15,
-      mirrorOf: eye-left, axis: vertical }
-  - { id: nose, type: polygon, relation: below, target: face, gap: 18, offset: [0, 0] }
-  - { id: mouth, type: capsule, relation: below, target: nose, gap: 10 }
+```json vector
+{
+  "canvas": { "width": 256, "height": 256, "background": "#F4F0E8" },
+  "objects": [
+    { "id": "face", "type": "ellipse",
+      "x": 53, "y": 44, "width": 150, "height": 176, "fill": "#F2C9A8" },
+    { "id": "eye-left", "type": "circle", "x": 47, "y": 90, "width": 15, "height": 15,
+      "fill": "#2B2B2B",
+      "constraints": [{ "relation": "centered_on", "target": "face", "offset": [-66, -21] }] },
+    { "id": "eye-right", "type": "circle", "x": 194, "y": 90, "width": 15, "height": 15,
+      "fill": "#2B2B2B", "mirrorOf": "eye-left", "axis": "vertical" },
+    { "id": "nose", "type": "ellipse", "x": 118, "y": 158, "width": 20, "height": 18,
+      "fill": "#D9A07F",
+      "constraints": [{ "relation": "centered_on", "target": "face", "offset": [0, 35] }] },
+    { "id": "mouth", "type": "capsule", "x": 110, "y": 196, "width": 36, "height": 8,
+      "fill": "#8E4A3A",
+      "constraints": [{ "relation": "centered_on", "target": "nose", "offset": [0, 32] }] }
+  ]
+}
 ```
 
-Resolution: eyes at x = 128 ∓ 66, y = 132 − 21; nose centred under the eye midpoint; mouth centred
-under the nose. Change the face size once, re-derive the two ratios, and the whole set re-solves —
-no object is re-placed by hand.
+Resolution: eyes at 128 ∓ 66, y = 132 − 21; nose on the face axis 35 units below centre; mouth 32
+below the nose. Change the face size once, re-derive the two ratios, and the whole set re-solves —
+no object is re-placed by hand. The mirror carries no constraint of its own: it reads the left eye,
+so editing one eye moves both.
+
+## Verification
+1. **One pin per group.** Exactly one object in each solved group carries absolute coordinates;
+   everything else names a relation. Two pins is a conflict, none is an unresolved group.
+2. **Cycle check.** Walk the dependency graph: it must be acyclic. Mutual `left_of` is an error to
+   report, not a tie to break arbitrarily.
+3. **Gap audit.** Every gap is a ratio or a spacing token. Search the IR for a gap that is a bare
+   number with no derivation; that is the value that will break at the next size.
+4. **Re-solve test.** Change the pin's size or position once and re-run. Every child moves with it
+   and nothing stays behind at its old coordinates.
+5. **Mirror reads one source.** A mirrored object carries no constraint of its own; edit the source
+   and both halves move, exactly.
 
 ## Related Rules
 - [`120-vector-scene-graphs`](120-vector-scene-graphs.md) — the tree the constraints resolve into.

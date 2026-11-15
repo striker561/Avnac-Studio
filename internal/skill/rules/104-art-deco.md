@@ -63,6 +63,18 @@ A 1080×1350 invitation:
   period before any ornament does.
 - Body 18 px serif `#E8DCC2`, centered, three lines; date 14 px caps +12% at y=1180.
 
+## Verification
+1. **Motif census.** One motif, repeated at three scales on a 24 px step (×1, ×3, ×9). A second
+   motif, or a repeat off the step, reads as wallpaper rather than ornament.
+2. **Axis.** The frame centre, the rule pair and the headline share one vertical centre line: 0 px
+   difference. An offset axis wearing deco ornament fails — the language is centripetal.
+3. **Palette.** Four values — `#0E0E0E`, `#C9A227`, `#F3E9D2`, optional `#1F3B34` — with brass as a
+   flat fill. One gradient stop, bevel or inner shadow on the metallic fails.
+4. **Frame arithmetic.** Border 8 px, inner rule 2 px, corner motif 48×48, text inset 1.5× the
+   border (12 px). Measure the inset; air that does not match the frame's weight looks borrowed.
+5. **Hairline floor.** No painted hairline below 0.5 pt, and 1 pt for foil. `export` the plate and
+   check the thinnest stroke against the output process.
+
 ## Related Rules
 - [`100-design-movements`](100-design-movements.md) — using a period as constraints rather than as costume.
 - [`04-balance-and-proportion`](04-balance-and-proportion.md) — symmetry and stepped balance on a center axis.

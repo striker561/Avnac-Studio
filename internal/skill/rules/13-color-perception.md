@@ -48,6 +48,18 @@ Color perception is the eye's and brain's construction of color from relative si
 
 For a 1440×900 hero used on both grounds, use `#5C6B78` and add a 1 px `#FFFFFF` at 40% between the panel and the ground. The roughly 18-point value gap holds on both.
 
+## Verification
+1. **Two grounds.** Render on `#FAFAFA` and on `#121212`. Any mid-tone carrying text holds its ratio
+   on both; a tone that passes on one ground and fails on the other was judged on the wrong
+   surround.
+2. **Neutral judge.** Place the swatch on `#808080`. The hue reads as specified; a shift there
+   proves the surround was doing the work, and the final surround will do it differently.
+3. **Edge treatment.** Where two colours vibrate at a shared edge, a 2–4 px neutral gap or a 1 px
+   `#FFFFFF` at 40% sits between them, and it survives at 100%. Two saturated fields flush together
+   with no separator is the failure.
+4. **Final-size area.** Judge the colour at the size it ships: a 10 mm swatch and a 500 mm field of
+   one hex do not match. A match at swatch size reads light and bright at banner size.
+
 ## Related Rules
 - [`10-color-theory`](10-color-theory.md) — the coordinates whose appearance this rule explains.
 - [`11-color-harmony`](11-color-harmony.md) — schemes that survive contact with real surrounds.

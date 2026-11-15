@@ -59,6 +59,20 @@ the left third, heal two seams at 8 px, clone wall texture back at 15% opacity, 
 contact shadow with Multiply at 22% in `#1A1A1A`, angled 20° from vertical to match the key light. At 100%
 the wall shows one grain structure; at 25% the bottle sits on the surface.
 
+## Verification
+1. **Black-point match.** Sample a neutral shadow and highlight in source and composite: within 2–3
+   RGB levels. A 5-level mismatch reads as a cut-out even under a perfect mask.
+2. **Light and lens agreement.** The inserted object's shadow falls within 15° of the scene key, on
+   one horizon and one vanishing point, with grain matching the source. Two of three is a composite
+   the eye catches at 25%.
+3. **Two-zoom audit.** At 100% no repeated clone pattern and no seam in the wall; at 25% no tonal
+   step at the boundary. One pass in greyscale, where colour stops masking value.
+4. **Texture survival.** At 100% skin pores and fabric weave survive; heal opacity stays at 40% or
+   less. A smoothed jaw or waist is a reshoot, not a retouch.
+5. **Non-destructive record.** The untouched original sits in a hidden group, the change on its own
+   layer and mask, and a disclosure where the change alters what a person did or looked like. A
+   flattened file proves none of this.
+
 ## Related Rules
 - [`74-masking-and-blending`](74-masking-and-blending.md) — the mask and blend mechanics behind every composite.
 - [`70-photography-and-imagery`](70-photography-and-imagery.md) — licensing and releases limit what may be altered.

@@ -79,6 +79,18 @@ Headline "NIGHT SHIFT" set at 112 px Inter Bold, date 34 px, footer 15 px — al
 behind a 40% `#121212` scrim so the type clears 4.5:1. Delivery note: "Background image generated with
 [tool], Nov 2026; all typography and layout original."
 
+## Verification
+1. **Cull record.** 8–12 candidates judged at 160 px by silhouette and value, one kept. The first
+   output accepted is not a cull, it is an anchor.
+2. **100% sweep.** Four corners and the centre at 100%: no tile seams, no near-words, no invented
+   anatomy, no warped straight lines. Any hit returns the artifact to draft.
+3. **Type is set.** Every word on the page exists as a text object in `get_canvas_summary`, typed
+   over the image. Letterforms inside the image are a defect, however good they look.
+4. **Resolution at placement.** Divide pixels by final size: 1024 px across 420 mm is 62 PPI and
+   fails. Regenerate at 2048×2560, place smaller, or accept 150 PPI for a soft background only.
+5. **Disclosure line.** The delivery note names the tool and the date for each generated artifact,
+   and the provenance row matches. Silence about the tool is the failure the client finds later.
+
 ## Related Rules
 - [`119-generated-design-artifacts`](119-generated-design-artifacts.md) — the per-format cleanup that follows this rule.
 - [`111-design-critique`](111-design-critique.md) — the critique structure you apply to generated output.

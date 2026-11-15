@@ -41,6 +41,16 @@ A color model is a coordinate system for color: RGB (additive channels), CMYK (s
 ## Practical Examples
 A festival identity built in OKLCH at H 40 is delivered as #E4572E. Seven steps from L 0.95 to 0.25 convert to hex and then to GRACoL: the two most saturated steps land at ΔE 4–6, visible in a proof. Pull C down by 0.02 on those two and the ramp returns within ΔE 2. The program then specifies PANTONE 172 C coated and 172 U uncoated, with CMYK as fallback.
 
+## Verification
+1. **Space on every value.** Each colour is recorded with its space — "sRGB `#E4572E`", "GRACoL
+   4/86/96/2", "PANTONE 172 C". A bare hex in a print file is undefined, so the press defines it.
+2. **Ramp monotonic in OKLCH.** Read the ramp's L values: 0.95 down to 0.22 in even steps, with C
+   peaking mid-ramp at 0.14–0.18. An HSL ramp shows mid-steps that desaturate and a hue that drifts.
+3. **Gamut audit.** Convert every colour with the printer's profile and list those above ΔE 3. ΔE 1
+   is invisible, 2–3 is visible side by side, 5 is a different colour.
+4. **Spot pair.** Every spot ink carries a coated and an uncoated number plus a CMYK fallback. One
+   number for both stocks is a press surprise, not a specification.
+
 ## Related Rules
 - [`10-color-theory`](10-color-theory.md) — hue, value, and chroma, the vocabulary these models formalize.
 - [`16-palette-construction`](16-palette-construction.md) — where OKLCH ramps become a working palette.

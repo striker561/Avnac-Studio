@@ -43,6 +43,20 @@ Five canonical types: wordmark (name set as type), lettermark (initials), pictor
 ## Practical Examples
 "Rill Coffee" — five files: wordmark 190×44 with 24 px cap height and +3% tracking; stacked lockup 160×120; combination 260×48 with a 40 px tall three-arc mark; icon-only 40×40 with a 24 px minimum; favicon 16 px using two arcs and no wordmark. The mark's 40 px height is identical in the combination and stacked versions, so the set reads as one logo in five lengths.
 
+## Verification
+1. **Type test.** Set the name at 24 px cap height. Pass: the chosen type survives its own test —
+   wordmark readable at 24 px and under about 12 characters, lettermark known cold, emblem kept
+   above 32 px. A wordmark that blurs fails before colour is discussed.
+2. **Ladder coverage.** Render at 200, 120, 48 and 16 px. Pass: the correct variant appears at each
+   boundary — full lockup at 200 and above, stacked 120–200, icon plus wordmark 48–120, icon only
+   below 48 — and the 16 px favicon is drawn rather than shrunk.
+3. **Proportion lock.** Measure the mark's height in every lockup. Pass: identical to 0.5 px while
+   the wordmark changes size. Drifting proportions read as several brands.
+4. **Gap equality.** Measure mark to wordmark in every lockup. Pass: equal to the clear-space unit.
+   One tight lockup in the set is the one that gets used in a hurry.
+5. **One colour first.** Render all five variations in a single colour, then inverted. Pass: each
+   holds with no second colour, which is the condition for approving colour at all.
+
 ## Related Rules
 - [`53-logo-construction`](53-logo-construction.md) — the geometry each variation is built from.
 - [`52-visual-identity-systems`](52-visual-identity-systems.md) — where the lockup ladder plugs into the wider system.

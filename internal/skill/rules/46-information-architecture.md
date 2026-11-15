@@ -43,6 +43,22 @@ Information architecture is the structure of a body of content: the items, their
 ## Practical Examples
 A 1440×900 documentation site: 264 px left nav with six sections of at most six items; the active item carries a 3 px `#1F6FEB` bar on its left edge plus Semibold weight; children indent 24 px and drop to 70% value. A 13 px breadcrumb sits above the H1, and the right column lists four to six on-page anchors. The three most-wanted pages — "Install", "Tokens", "Changelog" — all sit at level 2, two clicks from home.
 
+## Verification
+1. **Breadth and depth.** Count top-level items and the deepest nesting in the rendered structure.
+   Pass: seven or fewer top-level, three levels or fewer. An eighth top-level item is a hub or a
+   merge, never smaller type.
+2. **Path count.** Write the route to the three most-wanted destinations. Pass: three steps or fewer
+   from the entry screen. A longer route is a restructure, not a navigation fix.
+3. **Label audit.** Read every label alone, with no children visible. Pass: one to three plain
+   nouns, parallel grammar, no internal vocabulary — "Billing", not "Financial Operations". Two
+   labels for one concept is two maps.
+4. **Location mark.** Check every screen for an active state, breadcrumb, page title or section
+   number. Pass: at least one, and it agrees with the structure. A viewer who cannot say where they
+   are was lost by the architecture.
+5. **Indent and value.** Measure child indentation and value against the parent. Pass: 24 px per
+   level and children at 70% value, parents at full weight. A deeper level that differs only by bold
+   has no visible structure.
+
 ## Related Rules
 - [`42-cognitive-load`](42-cognitive-load.md) — the working-memory limit this structure is fitted to.
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — how the structure becomes visible order.

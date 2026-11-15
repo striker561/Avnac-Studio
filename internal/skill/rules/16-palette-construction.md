@@ -41,6 +41,19 @@ A palette is five to seven colors with assigned functions — ground, surface, t
 ## Practical Examples
 A 1080×1350 poster: ground #F4F1EA over 60% of the area, secondary field #1B2A41 at 30%, accent #E4572E at 10%. Text #111111 on the ground measures 16.7:1; secondary text in #1B2A41 is 12.8:1; the accent against the ground is only 3.0:1, so it carries a bar, a rule, and one 96 px word — never the 18 px details, which stay #111111.
 
+## Verification
+1. **Count and roles.** Five to seven colours, each with a role name. Twelve means none repeats
+   often enough to read as intentional; four means one of the roles is missing.
+2. **Area split.** Measure coverage: 80–90% of the pixels are neutral, the accent sits at or under
+   10%. An accent at 40% is a second ground and the hierarchy it marked is gone.
+3. **Accent at three areas.** Place the accent at 5%, 30% and 100% coverage. It still reads at 5%
+   and does not take over at 30%; if it does, drop chroma by 0.03 and render again.
+4. **Neutral tint.** Every neutral carries 0.01–0.03 chroma at the anchor hue. A neutral at C 0
+   beside a saturated anchor reads dirty and makes the set look second-hand.
+5. **Role contrast.** Every text role has a measured ratio against its ground, 4.5:1 minimum, and
+   the accent's own ratio decides what it carries. At 3.0:1 it holds a rule and one large word,
+   never an 18 px line.
+
 ## Related Rules
 - [`11-color-harmony`](11-color-harmony.md) — the scheme that supplies the hue rotations.
 - [`15-color-systems-and-models`](15-color-systems-and-models.md) — OKLCH is where the ramps are computed.

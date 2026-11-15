@@ -84,6 +84,23 @@ Pragmatics: at 25% zoom the headline and the first date still read in three seco
 foyer the season name is legible before the film titles. A decorative film-strip border read as a
 barcode at thumbnail size; it was cut in the meaning audit, not retouched later.
 
+## Verification
+1. **Element job list.** List every element with its job in one phrase. Pass: no row reads
+   "decoration". Every row that does is demoted to support or deleted, and the page is re-rendered
+   before the next check runs.
+2. **Exception count.** Audit the four relationships — heading to body size, image edges to the
+   grid, caption spec, margin ladder. Pass: one exception per page at most. A second exception means
+   the syntax is broken, not expressive.
+3. **Pragmatic five seconds.** At final size and distance, show the piece for five seconds and ask
+   "what does it say, and what do you do next?". Pass: the answer matches the semantic brief,
+   without the rationale. A viewer who needs the explanation is looking at a failed artifact.
+4. **Thumbnail read.** At 25%, the headline and the first item still read within three seconds. A
+   decorative border that reads as a barcode at that size is cut here, in the meaning audit, not
+   retouched later.
+5. **Specificity.** Name the decisions that would have to change for another client: medium, scale,
+   expression, colour, texture. Pass: the list is not empty. An element that would serve any client
+   equally is a template, not a solution to this problem.
+
 ## Related Rules
 - [`00-core-principles`](00-core-principles.md) — the tests this rule organises into an order.
 - [`01-design-process`](01-design-process.md) — where the semantic search sits in a project.

@@ -67,25 +67,44 @@ one coordinate frame (the board) and a layer partition.
 | A hidden copy of the same shape | Double paint at seams and double nodes | One instance, repeated by transform |
 
 ## Practical Examples
-A 256 × 256 rocket icon as a scene graph:
+A 256 × 256 rocket icon as a scene graph. The block is the exact payload `vector` op `draw`
+resolves (and `go test ./internal/skill` compiles it), so it cannot drift from the schema:
 
-```yaml
-canvas: { width: 256, height: 256, background: "#F4F0E8" }
-layers: [ground, subject, detail]
-objects:
-  - id: ground/shadow,  type: ellipse, parent: null,      layer: ground,  z: 0
-    center: [128, 224], size: [120, 16], fill: "#00000018"
-  - id: subject/body,   type: capsule, parent: null,      layer: subject, z: 1
-    center: [128, 118], size: [52, 116], fill: "#E85D3F"
-  - id: subject/fin-left,  type: polygon, parent: subject/body, layer: subject, z: 2
-    points: [[-26, 30], [-48, 62], [-24, 50]], fill: "#D94A36"
-  - id: subject/fin-right, type: mirror,  of: subject/fin-left, axis: vertical
-  - id: detail/window,  type: circle, parent: subject/body, layer: detail, z: 3
-    center: [0, -18], radius: 13, fill: "#9FD3E8"
+```json vector
+{
+  "canvas": { "width": 256, "height": 256, "background": "#F4F0E8" },
+  "layers": [{ "id": "ground" }, { "id": "subject" }, { "id": "detail" }],
+  "objects": [
+    { "id": "ground/shadow", "type": "ellipse", "layer": "ground",
+      "x": 68, "y": 216, "width": 120, "height": 16, "fill": "#00000018" },
+    { "id": "subject/body", "type": "capsule", "layer": "subject",
+      "x": 102, "y": 60, "width": 52, "height": 116, "fill": "#E85D3F" },
+    { "id": "subject/fin-left", "type": "polygon", "layer": "subject",
+      "x": 54, "y": 118, "width": 48, "height": 44,
+      "points": [[96, 118], [54, 162], [96, 146]], "fill": "#D94A36" },
+    { "id": "subject/fin-right", "type": "polygon", "layer": "subject",
+      "mirrorOf": "subject/fin-left", "axis": "vertical", "fill": "#D94A36" },
+    { "id": "detail/window", "type": "circle", "layer": "detail",
+      "x": 112, "y": 78, "width": 32, "height": 32, "fill": "#9FD3E8" }
+  ]
+}
 ```
 
-Leaf count 4 (plus the mirrored fin), groups 0, depth 2 — small enough to edit in one pass, and
-every part is addressable by name.
+Five nodes, three layers, depth 2 — small enough to edit in one pass, and every part is
+addressable by name. Array order is z-order: ground, then the body and fins, then the window.
+
+## Verification
+1. **Id audit.** `vector` op `read`: every part has a role-prefixed id (`rocket/body`,
+   `rocket/fin-left`), no duplicates and no `path-17`. An id you would not say aloud in an
+   edit request is the wrong id.
+2. **Depth audit.** Count board → group → shape. Three levels maximum; a group with one child is a
+   folder, not a transform, and is flattened.
+3. **Z-order read.** Array order is paint order. Remove the fills for one render: anything that
+   vanishes behind its neighbour was ordered wrong, not coloured wrong.
+4. **Edit test.** Ask for one part to change ("move the window up 4 units") and apply it with
+   `vector` op `update` by id. If any other part moves, the tree is wrong.
+5. **Layer count.** Three to five layers, named for a role. Ten layers means the file is organised
+   by accident.
 
 ## Related Rules
 - [`121-vector-coordinate-systems`](121-vector-coordinate-systems.md) — the frame every node's transform resolves in.

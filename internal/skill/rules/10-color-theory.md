@@ -47,6 +47,19 @@ A 1080×1080 tile system: `--surface-50 #F5F3EE`, `--surface-200 #E3DED4`, `--in
 
 The accent covers about 6% of the canvas and appears only on the action; the neutrals carry everything else. Swap it to `#2B4BC8` and the tile still works: the system is built on value and role, not one lucky hue.
 
+## Verification
+1. **Coordinate record.** List every fill from `get_canvas_summary`: each colour carries hue, value
+   and chroma, or L, C, H, and a role name. A hex with no coordinates cannot be reproduced; one with
+   no role gets reused by accident.
+2. **Value sequence.** Convert each adjacent pair to L*: the step is at least 15 points of
+   lightness. Under 15 the pair is one value in two hues and merges the moment hue is removed.
+3. **Hue census.** Count chromatic families on the page: one dominant, one accent, the rest neutral.
+   A third chromatic family with no area lead means no colour is doing the labelling.
+4. **Ramp depth.** Each hue in use supplies 6–10 steps. A family with three steps has no value for
+   text or border, so the design borrows one from elsewhere and the system loosens.
+5. **Grey render.** `get_canvas_image`, desaturated: the same three things read first in the same
+   order. If the order changes, value was not doing the work.
+
 ## Related Rules
 - [`11-color-harmony`](11-color-harmony.md) — which hues to combine once the model is in place.
 - [`13-color-perception`](13-color-perception.md) — why the same value looks different on different grounds.

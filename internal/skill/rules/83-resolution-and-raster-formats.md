@@ -62,6 +62,23 @@ tolerable for a soft background but not for a product shot. Shrink the image to 
 = 300 PPI) and fill the remaining bleed with a `#101010` panel, or request a 5200 px rescan. The
 Avnac canvas stays 426×600 mm; only the `image` element's width changes.
 
+## Verification
+1. **Effective PPI.** For each image, pixel width ÷ placed inches: 300 at 100% for continuous tone,
+   350 at 175 lpi, 150 at 1 m, 100 at 2 m, 30–50 at 10 m. Anything under 90% of the target is
+   flagged per image, not per document.
+2. **Pixel arithmetic.** The placement's pixel count is final width in inches × target PPI: 210 mm
+   at 300 PPI needs 2480 px, and an A4 page 2480×3508. A 1500 px file across 210 mm measures 181 PPI
+   whatever the file is called.
+3. **Upscale factor.** Compare placed width with the file's pixel width: no image exceeds 120% of
+   native. Past that the detail is invented by interpolation and the edge is softer than the file
+   supplied.
+4. **Edge check.** Rasterise at the final size and inspect a hard edge at 100%: bitmap line art and
+   scanned logos need 600–1200 PPI and show no stair-steps. Anti-aliasing on a 200 PPI logo is a
+   blur at print size, not a fix.
+5. **Format match.** The format follows the content: TIFF or PSD for press CMYK, PNG for UI and flat
+   colour, JPEG q80–90 for web photography only, SVG for vector, WebP or AVIF for page weight. A
+   JPEG of type, a screenshot or line art fails on every edge.
+
 ## Related Rules
 - [`82-bleed-trim-and-safe-areas`](82-bleed-trim-and-safe-areas.md) — the target applies across the bleed, not just inside trim.
 - [`81-print-color-management`](81-print-color-management.md) — convert to CMYK after resampling; conversion softens edges again.

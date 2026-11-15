@@ -47,6 +47,16 @@ A 1080×1080 schedule with six event rows. Row height 96 px, internal gap 12 px,
 
 The headliner row is 120 px tall with a 4 px `#FF4D2E` bar on its left edge — the single break, placed where the message is. At 270×270 the rows read as a striped texture and the orange bar is the only colored mark, so the break survives the reduction.
 
+## Verification
+1. **Interval census.** List every gap and block height. Three distinct values are enough; a fourth
+   reads as arbitrary, and a value off the unit — 13 or 17 against an 8 px unit — fails.
+2. **Break count.** Exactly one interruption in the sequence: a doubled gap, a colour, a size. A
+   second accent cancels the first, wherever it sits.
+3. **Baseline drift.** Check block tops down a column against the baseline unit: 8 px on a 1080
+   canvas, 12 px at 1920. Drift of 3–6 px per row fails.
+4. **Texture at 25%.** `get_canvas_image` at 25%: the repeated items read as one striped field and
+   the single break is the only coloured mark. Twelve identical items with no tightening fail.
+
 ## Related Rules
 - [`04-balance-and-proportion`](04-balance-and-proportion.md) — proportion applied to areas rather than intervals.
 - [`06-unity-and-variety`](06-unity-and-variety.md) — repetition as the main unity device.

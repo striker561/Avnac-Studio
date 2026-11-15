@@ -80,7 +80,7 @@ dependencies it cannot carry, and numbers a renderer can parse without guessing.
 ## Practical Examples
 Exported 256 × 256 rocket SVG:
 
-```xml
+```svg
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img">
   <title>Rocket</title>
   <path d="M104 176c0-33 11-64 24-80 13 16 24 47 24 80z" fill="#E85D3F"/>
@@ -94,6 +94,19 @@ Exported 256 × 256 rocket SVG:
 Audit: frame matches; five paths, all with explicit fill; no group that adds nothing; 4-decimal-free
 numbers; 18 anchors total; renders at 16 px with the window and flame still legible, and at 4000 px
 with no facet.
+
+## Verification
+1. **Frame assertion.** `viewBox` equals the board, origin `0 0`, `width`/`height` agree, and
+   `xmlns` is present. `vector` op `export` returns the file to inspect.
+2. **Paint audit.** Every painted element declares `fill` or `stroke`; no element relies on the
+   default black; no `style=` attributes.
+3. **Path audit.** Compound paths declare `fill-rule`, no open path carries a fill, and every id is
+   unique.
+4. **Number audit.** No `NaN`, `Infinity` or exponent notation; two decimals at most.
+5. **Render matrix.** Rasterise at 16, 24, 64, 512 and 4000 px. Small sizes test drop-out and the
+   stroke minimum; large sizes test handles and stray geometry.
+6. **Self-contained.** No external `href`, font or stylesheet; a data-URL placement that depends on
+   the network is an invisible design change.
 
 ## Related Rules
 - [`120-vector-scene-graphs`](120-vector-scene-graphs.md) — the structure the SVG serialises.

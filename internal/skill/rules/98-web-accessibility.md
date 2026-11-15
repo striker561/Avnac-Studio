@@ -61,6 +61,22 @@ A 1440×900 settings page:
 - Every input carries a visible 14 px/600 label above it, not a placeholder inside it.
 - "Save changes" 40×148 px, `#1A5FB4` with a `#FFFFFF` label (≈6.3:1), "Cancel" 8 px away.
 
+## Verification
+1. **Contrast pass.** Every text/background pair: 4.5:1 body, 3:1 for large text (≥24 px, or
+   ≥18.66 px bold) and for input borders, meaningful icons, focus rings and chart lines. `#999999`
+   at 14 px measures 2.85:1 and fails; `#767676` is the lightest grey that passes at 4.54:1.
+2. **Keyboard path.** Tab through at 200% zoom: order matches reading order, no trap, and every
+   control shows a 2 px ring at 2 px offset at 3:1 against the component and the page. Photograph
+   each focus state; an invisible one is the defect.
+3. **Target size.** 24×24 px minimum, 44×44 px for primary touch actions, 8 px between adjacent
+   targets. Measure the smallest control on the rendered screen, not the largest.
+4. **Zoom and reflow.** 200% text resize loses no content, 400% zoom reflows to one column, and
+   320 px wide has no horizontal scroll (1.4.10). Horizontal scrolling at 320 px is a failure of
+   layout, not of the browser.
+5. **Meaning without hue.** Colour never carries meaning alone: the error has an icon and a word,
+   the chart line is labelled, the alert has a sentence. Simulate deuteranopia and the state still
+   reads.
+
 ## Related Rules
 - [`18-color-accessibility`](18-color-accessibility.md) — the contrast math and colorblind-safe palettes.
 - [`94-interaction-states`](94-interaction-states.md) — focus is one state among eight to design.

@@ -56,6 +56,19 @@ A 1000×1400 portrait in Avnac: silhouette at 4 px `#12100E`, interior folds at 
 contour breaks for 80 px where the light hits, so the gap reads as light, not a mistake. At 96 px the 1 px hatch
 disappears, which is fine: the silhouette still carries the form.
 
+## Verification
+1. **Weight census.** List every distinct stroke width: two at 2:1 — 4 px silhouette, 2 px interior
+   on a 1000 px board — and three maximum. A 3 px or 6 px stroke is a fourth weight and reads as
+   noise; whole pixels only, because a 1.5 px value blurs on export.
+2. **Taper measurement.** Measure each brushed terminal at 85% of its length and at the tip: the tip
+   is 25–40% of maximum width. Under 25% is a pen flick, over 40% a worm; both read as error.
+3. **Contour count.** Every closed form closes. The only breaks are the ones placed for light — one
+   80 px gap at the chest in the example — and each break begins and ends on an edge, not mid-curve.
+4. **96 px survival.** Export at 96 px wide: interior 1 px lines either read or are absent, never
+   grey. A grey average means the line was too thin for the size and should have been dropped.
+5. **Print floor.** At final print size no stroke is below 0.25 pt (0.35 px at 300 ppi). List the
+   widths in points; a 0.2 pt stroke prints broken or not at all.
+
 ## Related Rules
 - [`61-shapes-and-forms`](61-shapes-and-forms.md) — the forms these contours describe.
 - [`63-light-and-shadow`](63-light-and-shadow.md) — where a contour is allowed to break.

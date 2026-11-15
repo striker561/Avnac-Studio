@@ -81,6 +81,20 @@ across two columns (336 px, 72 characters) and the remaining four columns carry 
 above a caption block. The image occupies y 96–630, landing on the 24 px baseline with 6 px of
 play; its caption starts at y 654, one unit below.
 
+## Verification
+1. **Column arithmetic.** Recompute content = canvas − margins, then column = (content − gutters ×
+   (n − 1)) / n. Drawn columns equal the arithmetic to the pixel; a grid that does not fill its
+   type area exactly is a guide.
+2. **Measure in the column.** Count characters in the narrowest text column: 62–72, which at 16 px
+   Inter is 480–560 px. A 158 px column at 34 characters is too narrow for body, so the text runs
+   across two columns instead.
+3. **Gutter floor.** Measure one gutter: 24 px minimum, and at least one body leading — 24 px at
+   16/24. Under the leading, two columns merge into one field at 25%.
+4. **Baseline overlay.** Overlay the 24 px unit: every baseline and every image bottom lands on it
+   within 1 px. Elements off by 4–12 px are what makes a page look almost aligned.
+5. **Grid gone.** The delivered file has no group named `GRID` and no 1 px rects at 8% opacity,
+   and the export shows no guide lines. A grid that ships is a wireframe with artwork on it.
+
 ## Related Rules
 - [`07-alignment-and-proximity`](07-alignment-and-proximity.md) — the alignment habits a grid formalises and the optical corrections it cannot make for you.
 - [`08-negative-space`](08-negative-space.md) — margins and gutters as active emptiness rather than leftover area.

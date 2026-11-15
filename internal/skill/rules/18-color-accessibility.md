@@ -43,6 +43,20 @@ Color accessibility means three measurable things: contrast sufficient to read t
 ## Practical Examples
 A 1440×900 dashboard: the "Live" status uses #0072B2 on #FFFFFF (4.8:1) plus a check icon and the word. The alert color #D55E00 measures 3.9:1, so it carries only a 3 px rule and an icon, with the number itself in #111111 (18.9:1). Series colors come from Okabe-Ito and each line is labelled at its end, so the chart reads in grayscale as separated values rather than a legend-matching exercise.
 
+## Verification
+1. **Pair table.** Every text and background pair with its ratio: 4.5:1 body, 3:1 large text and UI
+   boundaries, 7:1 where AAA is claimed. Focus indicators hold 3:1 against the component and against
+   the surround.
+2. **Four passes.** Grey, deuteranopia, 200% zoom, laser print. Any cue that disappears in one pass
+   is not yet a cue, whatever the hex says.
+3. **Series separation.** Neighbouring series sit 20+ L* apart, then differ in hue, then in pattern.
+   Two series within 20 L* are one series in grey.
+4. **Double encoding.** Every colour-carried meaning has a second carrier: icon, label, shape,
+   position or weight. Count the colour-only cues in the file; zero is the pass.
+5. **Composite ratio.** Measure text over its final composite, not its token. Text at 60% opacity
+   over a photograph has a different ratio from the hex, and a scrim that was not remeasured is a
+   guess.
+
 ## Related Rules
 - [`14-color-contrast`](14-color-contrast.md) — the computation and the value ladder.
 - [`17-limited-and-functional-palettes`](17-limited-and-functional-palettes.md) — reserving functional colors so their meaning holds.

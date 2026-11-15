@@ -43,6 +43,22 @@ A positioning statement names the audience, the need, the category the brand com
 ## Practical Examples
 Thirty-four words: "For studio owners who lose weekends to admin, Ledgerly is the bookkeeping service that closes the month in four days, because every account is handled by one named bookkeeper." Design consequences: the four-day claim becomes a repeated three-step timeline band with numerals at 28 px; "one named bookkeeper" requires a real portrait and first names on the page; "studios" sets the photographic reference to workspaces rather than stock handshakes; the anti-statement "not a marketplace" removes star ratings and browse-all grids.
 
+## Verification
+1. **Template fill.** Write the statement into its five slots — audience, need, category, benefit,
+   proof — and count the words. Pass: 35 or fewer, one audience, one category, one benefit. A second
+   benefit or a second audience cannot rank anything.
+2. **Swap test.** Replace the brand name with each of three named competitors. Pass: no sentence
+   still reads true. One that does is a category description with your name in it.
+3. **Proof inventory.** List the assets that prove the claim: a number, a process, a material, a
+   person, a date. Pass: two or more, each checkable. Fewer than two means the claim is a wish, and
+   "quality" is not an asset.
+4. **Constraint table.** Check each clause against its "must" and "must not". Pass: five rows, and
+   zero must-not violations in the built asset. A statement that has rejected nothing has not been
+   used.
+5. **Benefit rank.** On the first screen or cover, measure the reading order at 25%. Pass: the
+   benefit is read before the proof and before the category. Proof that outranks the benefit
+   contradicts the statement it exists to support.
+
 ## Related Rules
 - [`50-brand-strategy`](50-brand-strategy.md) — where audience, difference and idea come from.
 - [`52-visual-identity-systems`](52-visual-identity-systems.md) — the pieces that express each clause.

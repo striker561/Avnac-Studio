@@ -43,6 +43,23 @@ Classification groups typefaces by how they were built: serif construction, stre
 ## Practical Examples
 An A2 poster for a 1962 Swiss exhibition: neo-grotesque at three sizes — 112 px headline, 28 px subhead, 18 px details — with −2% tracking on the headline and ragged right throughout. A Didone headline was tried first and rejected: it read as a perfume advertisement, and its hairline serifs disappeared at the 3 m distance the sheet is designed for.
 
+## Verification
+1. **Category count.** List the families on the sheet: one or two categories, a third only as a
+   monospace for data. A second display category is a role a weight would have covered, and it
+   shows as two type personalities in one frame.
+2. **Cut against size.** Every text element names its cut: text cut at 9–12 pt, display cut at
+   24 px and up. Render at final size — `get_canvas_image` — because a display cut at 14 px loses
+   its hairlines and fills its counters.
+3. **Construction read.** At 400%, read five letters (a, e, g, R, t) for serif bracket, stress
+   axis, and contrast. Bracketed with oblique stress and moderate contrast is Garalde or humanist;
+   thin, unbracketed, and vertical is Didone; blocky is slab. A label that contradicts the drawing
+   is the error.
+4. **Era agreement.** The design claims a date and its faces must belong to it: Garalde 1530s,
+   Transitional 1750s, Didone 1790s, slab 1810s, grotesque 1890s, geometric 1927, neo-grotesque
+   1957. A Didone on a 1962 sheet is 170 years out and reads as pastiche.
+5. **Category discipline.** Monospace appears only in code, tables, and labels; script only in
+   lowercase at 24 px and up. Either rule broken is a category error, not a spacing one.
+
 ## Related Rules
 - [`22-type-anatomy`](22-type-anatomy.md) — what to measure once the shortlist is down to two.
 - [`23-type-pairing`](23-type-pairing.md) — combining two categories without conflict.

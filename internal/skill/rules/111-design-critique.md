@@ -78,6 +78,19 @@ A 700×1000 mm exhibition poster, third round. The critic writes six notes, tags
 Decision list: F1 and W1 to the designer by Tuesday; W2 to the producer with a 24-hour deadline for
 the new scan; P1 stays open until the print date and does not block prepress.
 
+## Verification
+1. **Tag census.** Every delivered note carries F, W or P. An untagged note is a preference wearing
+   a failure's clothes, and it will outrank the real fault in the next round.
+2. **Five-note cap.** Count the notes: five or fewer, failures first. A longer list means the
+   ranking was skipped, so the cheap items get fixed and the costly one ships.
+3. **Testable fix.** Each note names element, property and a number — "headline 112 → 132 px". A
+   note that ends in "stronger" or "cleaner" has no pass condition and cannot be closed.
+4. **Three passes recorded.** Thumbnail (order at 3 seconds), full read at 100% (copy, type,
+   contrast), inspection at final size (bleed, PPI, grid). A critique that only saw 100% has no
+   hierarchy finding.
+5. **Decision list.** Every F and W carries an owner and a date; deferred items name who decides and
+   when. A closed critique with open notes has not produced a decision.
+
 ## Related Rules
 - [`113-design-quality-checklist`](113-design-quality-checklist.md) — the pass/fail gate that handles the F list mechanically, leaving critique free for W.
 - [`01-design-process`](01-design-process.md) — where critique sits between refinement and production.

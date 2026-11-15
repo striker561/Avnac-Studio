@@ -42,6 +42,18 @@ A modular scale is a geometric series of sizes, s_n = s_0 × r^n, where s_0 is t
 ## Practical Examples
 A 1080×1350 poster, base 20 px, ratio 1.5: 20, 30, 45, 68, 101. Four steps are used — body 20/1.5, subhead 30/1.2, headline 45/1.1, and 68/1.0 with −2% tracking. The 101 px step exists for one word, "SALT", used once. At 600 px wide the two top steps drop to 45 and 30 while body stays at 20.
 
+## Verification
+1. **Ratio recovery.** Divide each adjacent pair of sizes in the file. One quotient, matching the
+   declared ratio within a few per cent; two quotients mean two scales, which is no hierarchy.
+2. **Ratio against level count.** Three levels → 1.333–1.5; four → 1.25; five or six → 1.2; dense
+   interfaces → 1.125. Six levels on a 1.5 ratio put the top step past the canvas edge.
+3. **Rounding drift.** Recompute s0 × r^n from the base and compare with the tokens: the fifth
+   step lands within 3–5%. A set rounded at every step drifts further than that at the top.
+4. **Base stability.** The body token is 16–18 px in every format, including below 600 px, where
+   the top step drops instead. Body that moved with the viewport is the failure no ratio repairs.
+5. **Small-step perception.** Any 1.2 step below 18 px is checked at 25% zoom: two levels that
+   read as one have the wrong ratio, and another weight will not separate them.
+
 ## Related Rules
 - [`20-typography-fundamentals`](20-typography-fundamentals.md) — the six values the scale fills in.
 - [`22-type-anatomy`](22-type-anatomy.md) — x-height ratios that make equal sizes read unequal.

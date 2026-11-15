@@ -79,6 +79,21 @@ On a light ground the same design needs `wght 600` for the title and `wght 380` 
 dark-on-light renders thinner; write both instances into the theme file rather than one weight and
 a hope.
 
+## Verification
+1. **Instance record.** Every text element carries numeric `wght`, `wdth`, and `opsz` in the spec
+   or the layer name. A name-only weight resolves to 400 and changes the design without a warning.
+2. **opsz against size.** `opsz` equals the rendered size at each setting: 12 px text at 12, a
+   96 px headline at 96. A display `opsz` on caption text thins stems that need the weight.
+3. **Wrap stability.** Render at 100% on three stacks: wrap points move by less than two
+   characters on a 62-character line. Beyond that, move the measure by ±2 characters, not the
+   copy.
+4. **Fallback width.** Measure the fallback against the live face: within 6% average character
+   width, with `size-adjust` in the 96–104% range. Six per cent on a 62-character line moves four
+   characters and orphans a word.
+5. **Dark-ground grade.** The theme records a different `wght` for dark and light grounds, 20–30
+   apart, because light-on-dark blooms by about one step. One weight on both grounds renders
+   heavier on the dark one, visibly.
+
 ## Related Rules
 - [`20-typography-fundamentals`](20-typography-fundamentals.md) — the size, weight, measure, and leading system these instances plug into.
 - [`26-type-scale-and-proportion`](26-type-scale-and-proportion.md) — optical sizing as part of the scale, not an afterthought.

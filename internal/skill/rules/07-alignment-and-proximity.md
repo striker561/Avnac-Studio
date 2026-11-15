@@ -47,6 +47,18 @@ A 1200×628 banner. Left axis x=64; logo 180×48 at y=48; headline baseline y=23
 
 Gaps: 24 px between logo and headline, 64 px between headline and CTA. The 2.7:1 ratio makes the first two read as one lockup and the CTA as a separate action, with no divider anywhere.
 
+## Verification
+1. **Axis census.** Count the edges and centres elements align to. One or two axes; a third means no
+   axis, and every element must reference one of them by coordinate.
+2. **Near-alignment scan.** Measure every pair of "aligned" edges. A difference under 8 px on a 1080
+   canvas fails unless it is snapped to 0 or widened past 24 px.
+3. **Gap ratio.** Divide the between-group gap by the within-group gap. Grouping needs at least
+   1.5:1, 2:1 to 3:1 is comfortable, and 1:1 means the groups are unseparated.
+4. **Dividers gone.** Delete every rule and box. If grouping collapses, the gaps were never doing
+   the work and the layout fails without its lines.
+5. **Overshoot.** A 100 px circle overshoots the alignment line by 2 px, a triangle's point by 1–2
+   px, centred type by 2–4 px. Zero correction is mathematical alignment, not optical.
+
 ## Related Rules
 - [`04-balance-and-proportion`](04-balance-and-proportion.md) — edges and axes are where balance becomes visible.
 - [`08-negative-space`](08-negative-space.md) — the space that proximity measures.

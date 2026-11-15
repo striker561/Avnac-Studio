@@ -46,6 +46,18 @@ A 1080×1080 clearance tile. Ground `#F2EEE7`, one product at 640 px wide, price
 
 At 270×270 the price is still 55 px, so the tile survives as a feed thumbnail, which is where it will actually be seen. On a 135 px-wide browser tab it finally collapses to "−40%" alone, which is still the message.
 
+## Verification
+1. **Jump measurement.** Measure rank 1 against its nearest competitor: at least 1.5× size, two
+   weight steps, 30% value, or 8× area. Below all four, the jump is a murmur, not a statement.
+2. **Ratio.** Text meets 4.5:1 against its actual ground and large shapes meet 3:1. Report the
+   measured figure; "high contrast" with no number is unverified.
+3. **Count the pops.** Blur the canvas and count what still stands out: one for a poster, two for an
+   editorial page, three for a dashboard. A fourth is contrast spent everywhere.
+4. **One axis.** Rank 1 carries one axis — size, weight, colour or isolation — not four. Each added
+   axis halves the effect of the others.
+5. **Greyscale.** `get_canvas_image` in greyscale, then at 25%: the emphasis survives both. Emphasis
+   that lives in hue alone disappears at the first step.
+
 ## Related Rules
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — the order that emphasis is used to build.
 - [`09-figure-ground`](09-figure-ground.md) — value contrast at the boundary, the hardest case.

@@ -60,6 +60,19 @@ threshold — so it becomes 64 px. Margins read 40/40/60/40 and become 96 px all
 `#12100E`, `#F4EFE6`, `#E8B54B`. The caption at `#8A8A8A` on `#F4EFE6` measures 2.9:1 and moves to `#5E5E5E` at
 5.6:1. The logo sits 24 px from the bottom edge and moves to 96 px. Five changes, no new elements, no new fonts.
 
+## Verification
+1. **Hierarchy first.** At 25% zoom name the first three things you see. If the order differs from
+   the intended order, stop: nothing else on the list can be judged until it is fixed. A 1.25× jump,
+   40 px headline over 32 px body, fails the 3×–4× step.
+2. **Gap census.** Measure every distance to an edge and to the next element. More than four
+   distinct values is fault 2; one margin and one grid replace them.
+3. **Palette count.** List the colours from memory. Three colours and two families pass; if the list
+   needs the file open, the palette is fault 3 and no contrast fix settles it.
+4. **Contrast in grey.** Body 4.5:1, 24 px and above 3:1, then flatten to grey. The caption at
+   `#8A8A8A` on `#F4EFE6` measures 2.9:1 and disappears in both views.
+5. **Detail at 200%.** Two corner radii, three shadow directions, mixed icon weights: count them at
+   200%. More than one radius family or one shadow direction is fault 6.
+
 ## Related Rules
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — the fault that accounts for most of the list.
 - [`07-alignment-and-proximity`](07-alignment-and-proximity.md) — the mechanics behind faults 2 and 5.

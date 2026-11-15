@@ -43,6 +43,21 @@ An affordance is an action an object permits; a signifier is the visible evidenc
 ## Practical Examples
 A 375×812 checkout: primary "Pay $48.00" button 343×52 at x=16, radius 8, fill `#1F6FEB`, label 17 px Semibold `#FFFFFF`; hover `#1A5FD0`; focus a 2 px `#1F6FEB` ring at 2 px offset; disabled at 40% fill with `#6B7280` helper text "Enter the card's last four digits". Secondary "Edit cart" is a 17 px `#1F6FEB` text button with no fill. The back arrow is a 44×44 target holding a 24 px `path` icon, cursor `pointer`.
 
+## Verification
+1. **State census.** Render every state of every component: nine for a button, six for an input,
+   four for a card. Pass: none missing. A missing state is a broken affordance; a focus state that
+   differs from hover only by colour fails keyboard users.
+2. **Focus ring measurement.** Tab through the page. Pass: a 2 px ring at 2 px offset on every
+   interactive element, at least 3:1 against both the control and its ground. Give the ratio; a ring
+   removed without a replacement fails outright.
+3. **Target size.** Measure every interactive box, not its icon. Pass: 44 × 44 px minimum on touch
+   and never below the 24 × 24 px floor. A 24 px icon with no padding is a 24 px target.
+4. **Disabled reason.** Trigger every disabled state. Pass: 40% opacity, `not-allowed`, no hover
+   change, and one 13 px line naming the condition. A disabled control with no explanation removes
+   the affordance and its reason at once.
+5. **State delta.** Compare default with hover. Pass: one visible step in 150 ms or less — fill
+   lightness −8%, or a shadow to 2 px blur at 8% black. Two simultaneous changes read as jitter.
+
 ## Related Rules
 - [`94-interaction-states`](94-interaction-states.md) — the full state catalogue this rule signs.
 - [`92-component-visual-design`](92-component-visual-design.md) — component anatomy and sizing.

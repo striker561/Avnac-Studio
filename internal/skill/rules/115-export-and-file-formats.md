@@ -78,6 +78,21 @@ One campaign, two canvases, five exports.
 The manifest is five lines in the same folder, so whoever opens it in six months can tell print from
 screen without opening a single file.
 
+## Verification
+1. **Receiver first.** For each file, answer four questions: who opens it, screen or substrate,
+   whether text or transparency must stay live, whether anyone edits it downstream. A PDF/X sent to
+   a CMS fails the first question.
+2. **Open the export.** `export` returns the delivered file; inspect that rather than the working
+   canvas — dimensions, colour space, fonts resolving without substitution, transparency, crops. The
+   source proves nothing.
+3. **PPI at placement.** Divide measured pixels by final size: 300 PPI for offset, 150 PPI for a
+   review file, 1×/2×/3× for screens. 1024 px across 420 mm is 62 PPI and fails.
+4. **Compression at 100%.** Type edges show no 8×8 blocking at q85. Blocking means the quality
+   dropped or the format was wrong for flat colour; JPEG belongs to continuous-tone photography
+   only.
+5. **Naming and manifest.** `client_project_medium_size_vNN.ext`, lowercase, hyphens, no "final".
+   Two files claiming final is the failure; the manifest is five lines and names what shipped.
+
 ## Related Rules
 - [`83-resolution-and-raster-formats`](83-resolution-and-raster-formats.md) — the PPI math that decides whether an export is possible at all.
 - [`81-print-color-management`](81-print-color-management.md) — profiles, conversion and output intent behind the PDF/X settings.

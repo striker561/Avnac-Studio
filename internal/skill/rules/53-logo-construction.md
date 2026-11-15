@@ -42,6 +42,22 @@ Logo construction is the disciplined geometry behind a mark. A base unit (usuall
 ## Practical Examples
 A 512 px exported mark on 1u = 16 px: outer circle r = 5u, stroke 1u, overshoot 0.08u on the curve tops, a 45° cut on the lower left at 1u width. Wordmark cap height 3u, tracking +3%, gap to the mark 1u. Clear space 1u, drawn as a dashed frame in the master. At 24 px the 1u stroke falls to 0.75 px and the counter closes, so the 16 px favicon uses a solid disc and one cut instead of the ring.
 
+## Verification
+1. **Base-unit arithmetic.** Divide every dimension in the master by 1u. Pass: each quotient lands
+   on a half-unit step — 1, 1.5, 2, 4. A dimension such as 2.3u was not built on the unit and drifts
+   by the half-pixel that never resolves.
+2. **Clear-space frame.** Draw the 1x box: cap height or 25% of the mark's height, floor 0.5x. Pass:
+   no element enters it on the tightest application. Measure the two nearest neighbours and give the
+   gap in units.
+3. **Size ladder.** `get_canvas_image` at 16, 24, 32, 64 and 400 px. Pass: each size uses its
+   assigned variant; at 24 px the 1u stroke is still a stroke, and the 16 px favicon is the
+   simplified form, not the ring with its counter closed.
+4. **Optical correction.** Measure round against flat: overshoot 1–2% of cap height, and make thin
+   45° joints 3–8% heavier. A circle geometrically equal to the square reads small at every size.
+5. **One colour, both grounds.** Render the mark in one colour at 16 px, inverted, and at 400 px.
+   Pass: the silhouette reads at 16 px and the counters stay open; a detail that survives only in
+   colour is not part of the mark.
+
 ## Related Rules
 - [`54-logo-types-and-variations`](54-logo-types-and-variations.md) — which mark types this construction serves.
 - [`22-type-anatomy`](22-type-anatomy.md) — overshoot, stroke contrast and optical correction in letterforms.

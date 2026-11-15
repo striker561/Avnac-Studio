@@ -59,6 +59,19 @@ with 40% empty space camera-right. The brief asks for 35 mm framing at f/2.8, on
 at 68×92 mm; only one keeps the face readable and the wall empty. Licensed for print and digital, 24 months,
 North America, 10,000 units.
 
+## Verification
+1. **120 px test.** At 120 px wide the subject and the claim still read. An image that only works at
+   full size is a texture; change the crop or the picture before the layout hardens.
+2. **Copy-space contrast.** At final crop and size the quiet zone carries type at 4.5:1 at the worst
+   pixel, and sits where the light falls away rather than across a highlight. In the example the
+   headline holds 12:1 on the `#8A8A86` wall.
+3. **Set temperature.** Six to twelve images side by side: temperatures within ±300 K, one key
+   direction, similar grain and casting. A 500 K outlier is a second shoot, not variety.
+4. **Licence gate.** Record media, term, territory, print run, permitted modifications and releases
+   before approval. An editorial-only frame in an advertisement fails, however well it crops.
+5. **Candidate comparison.** All six candidates placed at final size and crop, never judged on the
+   contact sheet; the chosen frame keeps the face readable at 68 × 92 mm with the wall empty.
+
 ## Related Rules
 - [`71-image-composition`](71-image-composition.md) — placing the chosen image in the layout.
 - [`72-image-treatment`](72-image-treatment.md) — unifying a set that arrived from different sources.

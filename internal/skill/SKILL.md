@@ -93,7 +93,10 @@ Every rule is shaped the same way, so you can jump to the part you need:
 - **Techniques** — the moves that satisfy them, with values.
 - **When to Use / When to Avoid** — the judgment call, not a suggestion.
 - **Common Mistakes** — the failure modes to check your own draft against.
-- **Practical Examples** — one worked case in Avnac terms (canvas px, zones, hex).
+- **Practical Examples** — one worked case in Avnac terms (canvas px, zones, hex). Examples in a
+  `json vector` or `svg` fence are executable: `go test ./internal/skill` draws or parses them.
+- **Verification** — the checks that prove the work: what to render, measure or count, and the pass
+  condition. Run these before delivery; they are the rule's acceptance test, not a summary.
 - **Related Rules / Sources** — where the claim comes from and what else constrains it.
 
 When a rule and a reference disagree about a number, the rule is authoritative and the

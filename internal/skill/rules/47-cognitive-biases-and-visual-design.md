@@ -43,6 +43,22 @@ A cognitive bias is a systematic, predictable departure from neutral judgment. T
 ## Practical Examples
 A 1200 px pricing section: three cards 360 px wide with 24 px gutters; the middle card is 380 px and 6% taller with a `#1F6FEB` 2 px border and a 12 px all-caps "Most popular" tag. Prices read `$19`, `$48`, `$129` per month; the anchor sits above the row as one line, "Agency annual: $1,380", at 13 px `#6B7280`, so the monthly figures are read against a larger number first. The annual toggle is preselected with "Save 20%" in `#0F766E`, and only the middle card's CTA is filled.
 
+## Verification
+1. **Option count.** Count the options visible at the moment of choice. Pass: three to five. Six
+   columns is a scan; 24 options cut purchase to about 3% where six reached about 30%.
+2. **Anchor order.** Read the numbers in reading order and find the first. Pass: it is the largest,
+   with its unit stated once. A "was" price needs a real prior price and a date; an invented one is
+   fraud with a design credit.
+3. **Recommended tier.** Compare the three cards. Pass: exactly one differs, by 6% size, a 2 px
+   accent border, one tag, and the row's only filled CTA. A second filled CTA turns the
+   recommendation into a question.
+4. **Default audit.** List every preselected control. Pass: each default is the one you would
+   recommend, carries a "change any time" line, and consent is unchecked. A pre-checked marketing
+   box converts once and breaches consent.
+5. **Frame consistency.** Count gain-framed and loss-framed statements. Pass: one frame on the page.
+   "90% success" in the hero and "10% failure" in the table is one fact used twice, and it reads as
+   manipulation.
+
 ## Related Rules
 - [`44-design-psychology`](44-design-psychology.md) — the evidence base and its limits.
 - [`51-brand-positioning`](51-brand-positioning.md) — what the price and the tiers are supposed to say about the brand.

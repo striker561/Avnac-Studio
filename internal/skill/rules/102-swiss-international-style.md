@@ -62,6 +62,18 @@ A 1240×1754 px poster (A4 at 150 dpi):
 - One photograph 6 columns wide from y=760, cropped to the field edge, no radius, no shadow.
 - Footer 10 px/600 uppercase, +8% tracking, at y=1680 — everything above it is air.
 
+## Verification
+1. **Column arithmetic.** Every x resolves to margin + n(column + gutter): 74 + n·139 on the 1240 px
+   poster. `list_objects` reports each x; a 3 px drift off the column fails as an error.
+2. **Baseline.** All text sits on the 4 px baseline; images, rules and captions align to the same
+   lines. Captions hang below the image, in the gutter.
+3. **Type census.** One family, three or four sizes. A fifth size is a hierarchy failure being
+   patched; a fourth weight is a second system.
+4. **Measure.** Count characters per line at final size: 60–75. A justified block below 60
+   characters fails on rivers, whatever the hyphenation.
+5. **Photography.** Every image is a grid-locked rectangle: no feather, no shadow, no rounded mask,
+   one neutral grade across the set. One image off the grade breaks the objective tone.
+
 ## Related Rules
 - [`30-grid-systems`](30-grid-systems.md) — the grid arithmetic this depends on.
 - [`33-asymmetric-and-modular-layouts`](33-asymmetric-and-modular-layouts.md) — asymmetry without chaos.

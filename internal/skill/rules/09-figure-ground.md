@@ -48,6 +48,17 @@ A 1080×1080 product tile. A white bottle on `#F4F4F2` gives roughly 1.1:1 and v
 
 The label stays `#F4F4F2` and the shadow stays soft and directional. The ground change does the work; an outline would have flattened the product.
 
+## Verification
+1. **Edge ratio.** Sample figure and ground at their shared boundary: 3:1 or a 30% lightness
+   difference for shapes, 4.5:1 for text. Report both values; 1.1:1 dissolves at thumbnail.
+2. **Silhouette at 64 px.** `get_canvas_image`: fill the figure `#000000` on `#FFFFFF` and scale to
+   64 px. A shape that is not identifiable is either too complex or too weakly separated.
+3. **Reversal.** Invert the composition to white on black and re-read it. A shape that works only
+   one way is fragile and fails the second ground.
+4. **Text plate.** Where type sits on an image, measure the plate at 70–85% opacity and re-check
+   4.5:1 through the darkest part of the ground. An outline around the letters fails as the
+   distracting figure.
+
 ## Related Rules
 - [`03-contrast-and-emphasis`](03-contrast-and-emphasis.md) — the contrast that creates the separation.
 - [`08-negative-space`](08-negative-space.md) — space as the ground a figure needs.

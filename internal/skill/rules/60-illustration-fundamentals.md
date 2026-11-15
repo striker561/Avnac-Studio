@@ -59,6 +59,21 @@ key light top-left, so every cast shadow `ellipse` is offset +24 px x and +16 px
 96×96 for four feature icons, dropping interior lines and the accent color, because at 96 px the accent averages
 into noise.
 
+## Verification
+1. **Job audit.** Each finished image answers one of the four jobs — explain, personify, set tone,
+   depict the unphotographable — in one sentence. An image that needs a second sentence is
+   decoration with a budget and leaves the set.
+2. **Eight-up render.** Eight images on one 1920 × 1080 canvas at final size: five to eight hex
+   values, one 45° top-left key, three tone steps, one line weight. A tile that needs its own ground
+   to work fails the set; the palette is counted from the file, not the style sheet.
+3. **Abstraction lock.** Label each image photoreal, semi-flat, geometric or glyph. One label across
+   the set. A second level is a second author, even when the palette and line weight agree.
+4. **96 px spot.** The spot still names its subject at 96 × 96. At that size interior lines and the
+   reserved accent average into noise, so their disappearance is intended and a smudged accent is
+   not; an image that only reads at 1200 px was designed at the wrong size.
+5. **Greyscale order.** In greyscale the image still leads with its subject. If the accent is the
+   only thing separating subject from ground, the value structure is missing and colour hides it.
+
 ## Related Rules
 - [`61-shapes-and-forms`](61-shapes-and-forms.md) — the shape vocabulary the set is built from.
 - [`66-vector-illustration`](66-vector-illustration.md) — producing these images as clean paths.

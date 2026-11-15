@@ -80,6 +80,20 @@ Three artifacts from one campaign, cleaned before export.
 
 Each artifact gets one provenance row, so the next revision knows what was rebuilt.
 
+## Verification
+1. **PPI at placement.** Recompute for every raster: 1024 px across 420 mm is 62 PPI. Regenerate,
+   place smaller or composite over a solid panel; upscaling is not a fix.
+2. **Quadrants at 100%.** Four corners and the centre on `#808080`: no tile seams, repeated motifs,
+   mush in high frequencies, watermarks or almost-words.
+3. **SVG clean.** `vector` op `export` returns the file: explicit `viewBox`, no `<metadata>`,
+   `sodipodi` or `inkscape` attributes, no `<style>` block, rounded coordinates, a `<title>`, and
+   ≤10 KB per icon or ≤50 KB per illustration. It renders at 16 px and at 512 px.
+4. **Chart honesty.** Recompute every total from the source data: bars start at zero, units are
+   labelled, labels are live text, and the lie factor sits near 1.05. A generated legend the data
+   does not support is fiction.
+5. **Provenance row.** Each artifact has one line — tool, date, prompt summary, seed, edits — so the
+   next revision knows what was rebuilt and what was merely cleaned.
+
 ## Related Rules
 - [`118-ai-assisted-design`](118-ai-assisted-design.md) — the prompting, disclosure and authorship rules this cleanup follows.
 - [`66-vector-illustration`](66-vector-illustration.md) — path construction and SVG production for the rebuild step.

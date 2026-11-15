@@ -61,6 +61,23 @@ A 1440×900 operations dashboard:
 - Row 2 at y=256: 8-column line chart, 320 px tall, 48 px threshold rule dashed 4/4 in `#B3261E`.
 - Row 3 at y=600: 10 slowest endpoints, 13 px text in 40 px rows, sorted descending.
 
+## Verification
+1. **Tile count.** `get_canvas_image`: 5–7 tiles above the fold on the 1440×900 screen; past 9
+   nothing is seen. Four 336×136 tiles with 24 px gaps is the row; twelve equal-weight tiles have no
+   entry point.
+2. **KPI anatomy.** Each tile carries label, value, comparison and definition: 12 px/600 caps label,
+   36 px/600 tabular value, 13 px delta with arrow and word, 11 px footnote. A number with no
+   comparison and no definition is decoration.
+3. **Reading order.** The most consequential number sits top-left and the logo does not; one red
+   tile means red works, three means wallpaper. The first fixation lands on the number the screen
+   exists for.
+4. **One time range.** One range per row, stated in the row header, and one timestamp — 'Updated
+   14:32 · last 24 h' — in the header. A 7-day figure compared with a 30-day one in the same row is
+   a false comparison.
+5. **Density below the fold.** Totals on top, breakdown in the middle, raw rows below: the 40-row
+   table starts at y=600 in 40 px rows and scrolls. A 40-row table above the fold is a report, not a
+   dashboard.
+
 ## Related Rules
 - [`96-data-visualization`](96-data-visualization.md) — the encoding rules each tile inherits.
 - [`42-cognitive-load`](42-cognitive-load.md) — why 7 tiles read and 20 do not.

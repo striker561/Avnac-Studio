@@ -61,6 +61,19 @@ alignment fails on two elements 3 px off the 72 px margin, now snapped. Producti
 Sign-off: "5 of 6 checks passed after fixes; the 14 px legal line stays under the 16 px floor because
 the client requires the full disclaimer — accepted by A. Reyes, 12 Nov."
 
+## Verification
+1. **Verdict, not impression.** The gate ends in a written pass list with a date, the one accepted
+   compromise and who accepted it. "Looks fine" is not a verdict and does not close the gate.
+2. **Hierarchy at 25%.** The first, second and third things seen match the intended order, and the
+   piece resolves into two or three masses, not six.
+3. **Type at 100%.** Body 14–18 px or 9–11 pt, leading 1.4–1.6, measure 45–75 characters, two
+   families at most. A widow, a one-word last line or a heading at a column foot fails the check.
+4. **Colour with ratios.** 4.5:1 body, 3:1 large text and boundaries, 3:1 focus; print at TAC ≤300%
+   coated or 260% uncoated, rich black 60/40/40/100, no four-colour black in small type.
+5. **File, not intention.** `export` returns the delivered file, and the gate runs on it: trim
+   correct, 3 mm bleed (5 mm large format), 300 PPI at 100%, fonts embedded, PDF/X-4 with an output
+   intent. The working canvas is not evidence of the export.
+
 ## Related Rules
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — the audit method behind check 1.
 - [`112-common-design-mistakes`](112-common-design-mistakes.md) — the failure catalogue this gate intercepts.

@@ -76,6 +76,23 @@ elements, and a seal that still reads at 30 mm on a 250 g bag. A is kept for the
 blend" label, where the trend is the point and the refresh date is printed in the plan. The
 invariants for B are written down: mark geometry, the 4 mm rule, the two inks, the seal size.
 
+## Verification
+1. **Lifespan sentence.** Find the written lifespan: hours, weeks, 3–5 years, or 10 years plus.
+   Pass: the number exists and the trend budget matches it — at most one marker on a 10-year asset.
+   Without the sentence the visual checks cannot be scored.
+2. **Dating-surface count.** Count typefaces, colours, effects and distinct shapes. Pass: two
+   typefaces, three colours plus neutrals, two effects, four shapes. Over any one of the four, the
+   asset has more surfaces to re-cut than the message needs.
+3. **Ten-year test.** Remove the trend markers from a copy and render both. Pass: the idea survives
+   — the mark still identifies and the reading order is unchanged. If the copy collapses, the idea
+   was the trend.
+4. **Marker inventory.** Name each trend marker and the year it reads as. Pass: at most one on an
+   identity, with a refresh date in the delivery note. Three markers reading 2025 is a season, not a
+   decade.
+5. **Primitive redraw.** Rebuild the mark or the layout from a circle, a square, a triangle and one
+   typeface. Pass: it still works, which proves the structure carries the design and the surface is
+   replaceable.
+
 ## Related Rules
 - [`56-brand-consistency`](56-brand-consistency.md) — the invariants that must not follow fashion.
 - [`58-rebranding-and-evolution`](58-rebranding-and-evolution.md) — when a durable system should change anyway.

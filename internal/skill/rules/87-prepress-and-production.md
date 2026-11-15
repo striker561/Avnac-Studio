@@ -61,6 +61,23 @@ crop marks 3 mm offset, no registration color in the artwork. The job ticket rea
 170 g/m² matte, 4/0, no finish, 500, delivery Fri 21 Nov". Prepress takes a day, proof a day, press
 and trim two days — so the signed file must reach the printer by Tuesday.
 
+## Verification
+1. **Preflight.** Open the exported file and check five things: fonts embedded or outlined, every
+   image ≥300 PPI at 100%, colours in the printer's CMYK profile or named spots, page = trim
+   + bleed, no dieline layer. One miss stops the press.
+2. **File format and intent.** The deliverable is PDF/X-4 (ISO 15930-7) with an output intent;
+   PDF/X-1a is the fallback for an older RIP. A native file with links fails regardless of how the
+   page looks on screen.
+3. **Overprint audit.** 100 K body text overprints, reversed type and white rules knock out, rich
+   black never overprints and stays off type under 6 pt. Read this in the separations, where an
+   overprint is visible and a knockout is a hole.
+4. **Four numbers.** 300 PPI at final size, TAC 300–320% coated and 240–280% uncoated, smallest line
+   0.25 pt, smallest type 5–6 pt. A 400% black build offsets onto the next sheet before the job is
+   half run.
+5. **Signed proofs.** Two proofs exist: an imposed soft proof for pagination and creep, and a
+   contract proof on the final stock at FOGRA51 or FOGRA52. The job ticket names trim, stock, inks,
+   finishes, binding, quantity, delivery date and the person who signed.
+
 ## Related Rules
 - [`81-print-color-management`](81-print-color-management.md) — profiles, rich black and spot conversion behind the PDF/X settings.
 - [`82-bleed-trim-and-safe-areas`](82-bleed-trim-and-safe-areas.md) — the geometry preflight checks first.

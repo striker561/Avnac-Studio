@@ -46,6 +46,17 @@ A six-card carousel at 1080×1080. Shared: 64 px margins, 24 px radius, Inter, p
 
 Variety: card 4 turns its label 90° and sets it at 96 px against 24 px everywhere else. One wild card, on the card whose content is the turn. At 270 px the set reads as one system with one interruption, which is exactly the intent.
 
+## Verification
+1. **Token census.** Count distinct font sizes, hex values, radii and stroke weights. More than
+   three in any one category is drift; the four fixed tokens — family, palette, radius, stroke — are
+   the shared set.
+2. **Wild-card count.** Find the deviant element and name the one property it varies. Two deviants
+   are a second system, not an accent.
+3. **Shared-property ratio.** Across the set, roughly 80% of properties are identical and 20%
+   deviate. A card set sharing four of five tokens is unified; one sharing two is a collection.
+4. **Treatment census.** Count treated and untreated photographs. One untreated image in a graded
+   set reads as an error, so the count is all or none.
+
 ## Related Rules
 - [`03-contrast-and-emphasis`](03-contrast-and-emphasis.md) — variety is contrast held in check.
 - [`05-rhythm-and-repetition`](05-rhythm-and-repetition.md) — repetition as the mechanism of unity.

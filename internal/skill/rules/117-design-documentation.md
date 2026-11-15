@@ -79,6 +79,20 @@ A six-week identity project, documented in four small files.
 
 Six months later a new designer reads those four files and knows why the red changed.
 
+## Verification
+1. **Decision shape.** Every row carries id, date, decision, alternatives, reason and owner. A
+   reason that names a constraint can be re-tested; "per client feedback" cannot, when the
+   constraint moves.
+2. **Version immutability.** v02 opens as a separate file and v01 still opens. An edited v01 has
+   destroyed the reason the change happened.
+3. **Asset schema.** Every asset has name, format, dimensions, colour space, licence, source,
+   intended use and owner. A missing licence column is a blocker, not a filing gap.
+4. **Names resolve.** Every element named in the record appears in `get_canvas_summary` under that
+   name — `poster/headline`, not "the big text". A note nobody can locate is unverifiable.
+5. **Supersession chain.** Every superseded decision points at its replacement, and following the
+   chain ends at an accepted entry. A dead instruction with no successor is how a brand book goes
+   stale.
+
 ## Related Rules
 - [`116-design-handoff`](116-design-handoff.md) — the package this record travels inside.
 - [`57-brand-guidelines`](57-brand-guidelines.md) — the client-facing document, a different artifact from the project record.

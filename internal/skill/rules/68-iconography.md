@@ -57,6 +57,20 @@ strokes, 2 px interior radii, and a 20 px live area. Export at 24, 48, and 72 px
 redrawn at 3 px stroke, not scaled, so it matches a `#F5F5F5` toolbar at 1.5× density. The ellipse
 carries its 0.5 px overshoot, so round, square, and portrait shapes read at one optical size.
 
+## Verification
+1. **Grid audit.** On the 24 px grid: geometry inside the 20 px live area, stroke 2 px, terminals
+   snapped to the keyline. An odd-width stroke sits on x.5 or it blurs at 1×.
+2. **Optical corrections.** A circle carries its 0.5 px overshoot; a triangle sits 1 px below its
+   geometric centre; round and square share one baseline. Geometrically equal shapes read unequal
+   at 24 px, which is the failure.
+3. **Small-size render.** Rasterise at 8, 16 and 24 px: silhouette legible at 8, stroke 1.5 px at
+   16 px. A 24 → 16 scale gives 1.33 px and a grey set; the 16 px file is redrawn, not scaled.
+4. **Set audit.** Twelve icons in a 6 × 2 grid at 24 px: one stroke weight, one 2 px interior
+   radius, one optical baseline, no icon that needs a caption. Contrast against the toolbar is at
+   least 3:1.
+5. **Large-size density.** The 72 px file carries a 3 px stroke, redrawn rather than scaled from
+   2 px, which would render 6 px and look heavier than the rest of the set.
+
 ## Related Rules
 - [`66-vector-illustration`](66-vector-illustration.md) — the path and boolean technique the set is built with.
 - [`62-linework-and-contours`](62-linework-and-contours.md) — stroke weight as a drawing language.

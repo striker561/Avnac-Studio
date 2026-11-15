@@ -40,6 +40,21 @@ Color contrast is the perceived difference between two adjacent colors: mostly l
 ## Practical Examples
 A 1080×1350 poster on #1B2A41 (L* ≈ 17): headline #FFFFFF at 14.4:1, subhead #949494 at 4.8:1, accent #E4572E at 4.2:1 — fine for a 64 px accent word, not for the 18 px date line, which stays #FFFFFF. White reversed out of the accent block is 3.4:1, so that block carries only 40 px+ text or a shape.
 
+## Verification
+1. **Named pairs.** Table every text and background pair with its computed ratio: body 4.5:1, large
+   text and UI boundaries 3:1, sustained reading 7:1. A pair recorded as "looks fine" has not been
+   measured.
+2. **Top of range.** One element holds the highest ratio, about 18:1; each level below sits at least
+   30 L* under it. Two elements at 18:1 means neither leads.
+3. **Adjacency measured.** Compute each pair against the ground it sits on: `#767676` is 4.54:1 on
+   white and 4.8:1 on `#1B2A41`. A ratio taken from the swatch rather than the composite is the
+   wrong number.
+4. **Dark-theme ceiling.** In the dark build text sits at or under about 15:1 and surfaces step by
+   lightness. Thin text at 21:1 halates on screen, and the light palette inverted is not a dark
+   theme.
+5. **Hue removed.** Replace every colour with its L* equivalent: functional elements still separate.
+   Anything that merges depended on hue and fails for a colour-blind reader.
+
 ## Related Rules
 - [`03-contrast-and-emphasis`](03-contrast-and-emphasis.md) — the same budget applied to size, weight, and texture.
 - [`13-color-perception`](13-color-perception.md) — why one hex reads differently against different neighbors.

@@ -48,6 +48,20 @@ Grouping: headline at y=120 and date at y=200 sit 24 px apart as one block; the 
 
 Reduction: at 270×270 the headline still dominates and the date survives, but `#8A8A8A` on `#111111` is the first casualty — raise it to `#C9C9C9` (7.4:1).
 
+## Verification
+1. **One-job sentence.** The delivery note opens with one sentence of 12 words or fewer naming the
+   audience and the single action. Two sentences, or two actions, means the canvas has two jobs.
+2. **Step audit.** List every deliberate difference against its neighbour. A 10% size step, a
+   two-step grey or a 4° hue shift fails as imperceptible; a full step or identity passes.
+3. **Three-view reduction.** `get_canvas_image` at 25%, in greyscale, and as a `#000000` silhouette.
+   Three seconds per view: the first three things seen must match the written reading order, and a
+   fourth competitor fails.
+4. **Structure test.** View the layout with colour and texture removed. Proximity, alignment and
+   scale must still group the page; if the grouping collapses, decoration was holding it up.
+5. **Conflict ledger.** Every trade between principles is recorded with the loser named — hierarchy
+   over balance, legibility over novelty, production limits over preference. An unrecorded trade is
+   a preference, not a principle.
+
 ## Related Rules
 - [`01-design-process`](01-design-process.md) — turns these constraints into a sequence of decisions.
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — "one job" made visible as an order of reading.

@@ -42,6 +42,18 @@ A limited palette constrains hue count — one or two inks, or two or three scre
 ## Practical Examples
 An A2 gig poster in black #111111 plus orange #E4572E on uncoated stock (#EDE8DC). Black on that stock measures 15.5:1, so the 96 px headline and 20 px details both hold. Orange on the stock is only 2.8:1 — a fill, not a text color — so it becomes a 120×340 px bar and a reversed numeral, with white type at 3.4:1 kept at 40 px and above.
 
+## Verification
+1. **Tint ladder.** List the screens — 100/75/50/25/10 — with their L*. At 25% zoom each step still
+   separates from its neighbour; a pair that does not is one level, not two.
+2. **Second-ink area.** Measure the second ink: under 15% of the sheet. At a third of the sheet it
+   has become the ground and the piece has lost its focal point.
+3. **Overprint delta.** Read the multiply result against both parents. Within 8 L* of either, the
+   overlap is not a third colour; use a lighter tint of the upper ink instead.
+4. **Function ration.** Each functional colour appears only on its meaning — red on error, not on a
+   headline. Count the decorative uses; the passing number is zero.
+5. **Text on stock.** Body text measures 4.5:1 against the stock. A tint that misses the floor is a
+   fill only: in the worked example white on the orange is 3.4:1 and carries 40 px and above.
+
 ## Related Rules
 - [`14-color-contrast`](14-color-contrast.md) — the value ladder that replaces missing hues.
 - [`16-palette-construction`](16-palette-construction.md) — the full-palette version of these roles.

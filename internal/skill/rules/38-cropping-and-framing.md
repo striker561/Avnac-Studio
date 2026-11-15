@@ -78,6 +78,18 @@ A 16:9 master photograph of a ceramics studio, 2400×1350 px, placed three ways:
 The bleed version for print: A5 at 300 ppi is 148×210 mm plus 3 mm bleed on all four sides, and the
 potter's hands are held at least 8 mm inside the trim so a 2 mm trim shift does not clip them.
 
+## Verification
+1. **Ratio match.** The crop's ratio is one the asset carries: 1:1, 4:5, 16:9, 3:2, or 4:3. Any
+   other ratio produces dead space or an amputated subject.
+2. **Joint audit.** Every cut line runs mid-thigh, mid-forearm, or mid-torso, 20–30% along the
+   limb. A cut through wrist, knee, or neck reads as injury rather than as framing.
+3. **Look-space ratio.** Space in front of a face or moving subject is 1.5–2× the space behind.
+   Reversed, the subject looks trapped against the edge.
+4. **Trim safety.** Print: 3 mm bleed with the subject 8–10% inside the trim. Screen: the face
+   120 px inside a 1080 px edge. A trim shift that could clip the subject fails the crop.
+5. **Horizon placement.** The structural line sits at 1/3 or 2/3 of the frame height, measured.
+   Exactly 50% halves the image and kills the depth it carries.
+
 ## Related Rules
 - [`34-composition-techniques`](34-composition-techniques.md) — the frame decisions that precede and follow the crop.
 - [`36-scale-and-proportion`](36-scale-and-proportion.md) — how much of the frame an image may occupy before it changes the scale plan.

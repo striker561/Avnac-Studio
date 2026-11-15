@@ -73,21 +73,41 @@ A transform composes frames: `world = parent × translate × rotate × scale × 
 | Rounding every intermediate step | Gaps at seams and drifting closure | Round at serialisation only |
 
 ## Practical Examples
-A 1200 × 900 board with a 64 px icon placed at `(980, 60)` and scaled to 1.5×:
+A 1200 × 900 board with a 36 px badge at `(980, 60)`. Every number is a board unit; the block draws
+through the same resolver the `vector` tool uses:
 
-```yaml
-canvas: { width: 1200, height: 900 }
-object:
-  id: badge/check
-  type: symbol
-  source: icons/check      # authored in a 24 × 24 frame
-  at: [980, 60]            # board units, top-left anchor
-  scale: 1.5               # 36 × 36 drawn size
-  strokeWidth: 2           # 2 user units, so 3 at 1.5× unless non-scaling
+```json vector
+{
+  "canvas": { "width": 1200, "height": 900 },
+  "objects": [
+    { "id": "badge/ring", "type": "circle", "x": 980, "y": 60, "width": 36, "height": 36,
+      "fill": "none", "stroke": "#1B1B1B", "strokeWidth": 2 },
+    { "id": "badge/tick", "type": "path", "start": [988, 79],
+      "segments": [
+        { "type": "line", "to": [994, 85] },
+        { "type": "line", "to": [1008, 70] } ],
+      "closed": false, "stroke": "#1B1B1B", "strokeWidth": 2, "lineCap": "round" }
+  ]
+}
 ```
 
-Exported root: `<svg xmlns="…" width="1200" height="900" viewBox="0 0 1200 900">`. The symbol keeps
-its own `viewBox="0 0 24 24"`, so the same definition drops into a 16 px favicon without edits.
+Exported root: `<svg xmlns="…" width="1200" height="900" viewBox="0 0 1200 900">`. A reusable part
+authored in its own frame keeps that frame when it is serialised as a `<symbol viewBox="0 0 24 24">`
+and placed with `<use>`; the board frame above is what the editor, hit-test and exporter share.
+
+## Verification
+1. **Frame assertion.** `vector` op `export`: root `viewBox` equals the board, origin `0 0`, and
+   `width`/`height` match. This is the check that catches most "the SVG looks wrong" reports.
+2. **Unit scan.** Path data is unitless and `viewBox` carries four bare numbers; `width`/`height`
+   carry none either unless the consumer needs a physical size. A unit suffix in path data or
+   `viewBox` is a bug.
+3. **Bounds check.** Every painted bound sits inside the board with a 2% margin. Geometry
+   outside the frame is debris even when it is invisible.
+4. **Two-size render.** Open the export at 24 px and at 4000 px. A stroke that changes apparent
+   weight, or a detail that disappears, is a frame or non-scaling-stroke decision left unmade.
+5. **Transform order.** For one rotated object, compare the resolved matrix with
+   `translate(cx,cy) rotate(a) scale(sx,sy) translate(-cx,-cy)`. A different order is a different
+   drawing.
 
 ## Related Rules
 - [`120-vector-scene-graphs`](120-vector-scene-graphs.md) — the tree these frames resolve through.

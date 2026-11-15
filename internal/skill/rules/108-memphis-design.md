@@ -62,6 +62,16 @@ A 1080×1080 record sleeve:
 - "SIDE A" 128 px/800 `#111111` at x=64 y=120, tilted −6°, with a 4 px `#7B4BFF` offset copy behind
   it at (+8, +8); the track list below is 20 px/600, horizontal, untilted — one readable block.
 
+## Verification
+1. **Hue ranking.** Measure each hue's coverage: a clear largest, a second, a third, and one accent.
+   Hues at equal area give the eye no anchor and the piece fails.
+2. **Angle set.** Every rotated element's angle is in {−12°, −6°, 0°, 6°, 12°}, and all text is
+   horizontal. An angle outside the set turns composition into vibration.
+3. **Outline weight.** Every black contour measures 4–6 px. Thinner reads as a border and thicker
+   eats the shape; either way the clash has lost its moderator.
+4. **Pattern budget.** Two or three tiles at different scales — 12, 24, 48 px motif — one pattern
+   per surface, never two inside one shape.
+
 ## Related Rules
 - [`100-design-movements`](100-design-movements.md) — the constraint method applied to a decade rather than a doctrine.
 - [`107-postmodernism`](107-postmodernism.md) — the same quotation impulse with irony attached.

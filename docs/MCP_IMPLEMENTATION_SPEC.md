@@ -169,6 +169,7 @@ hundred KB — keep them.
 ## When to Avoid
 ## Common Mistakes
 ## Practical Examples
+## Verification
 ## Related Rules
 ## Sources
 ```
@@ -177,7 +178,8 @@ Rules of the shape:
 
 | Constraint | Why |
 |---|---|
-| Exactly those ten H2s, once each, in order | The router and tests index by heading; a renamed heading is a silent gap |
+| Exactly those eleven H2s, once each, in order | The router and tests index by heading; a renamed heading is a silent gap |
+| `Verification` = 3–6 numbered checks, each with a pass condition | SpriteWare's review loop, ported: the agent applying the rule must be able to prove the result |
 | Header ID must equal the file stem | Lookup by id is O(1) and unambiguous |
 | `Related Rules` = markdown links with relative paths (`24-…md`) | Rewritten to MCP URIs at publication |
 | `Sources` = bullet lines | Provenance is a delivery requirement, not decoration |
@@ -320,7 +322,7 @@ md     = route.body + "\n\n---\n\n" + each rule body
 | Entry | `skill://avnac-design` | 1 | routing table |
 | Task skill | `skill://<folder>` | 21 | `skill://poster` |
 | Reference | `references://<stem>` | 14 | `references://typography` |
-| Rule | `rules://<stem>` | 117 | `rules://24-typographic-hierarchy` |
+| Rule | `rules://<stem>` | 125 | `rules://24-typographic-hierarchy` |
 | Index | `rules://index` | 1 | every rule by domain |
 
 All are `text/markdown`. Descriptions: frontmatter description truncated to 150 runes at a word

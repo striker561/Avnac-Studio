@@ -31,8 +31,9 @@ task needs rather than guessing:
 | `rules://<id>` | 125 authoritative principles, e.g. `rules://24-typographic-hierarchy`, `rules://82-bleed-trim-and-safe-areas` |
 | `rules://index` | Every rule by domain, with counts |
 
-Start at `skill://avnac-design`, then the task workflow, then the 4–8 rules it links. Cite the
-rule you followed when you report a design decision.
+Start at `skill://avnac-design`, then the task workflow, then the 4–8 rules it links. Each rule
+ends with `## Verification`: run those checks before delivery, and cite the rule you followed when
+you report a design decision.
 
 ---
 

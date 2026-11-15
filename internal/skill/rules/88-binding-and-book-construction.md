@@ -73,6 +73,23 @@ the fold, so it is rebuilt as a single page plus bleed with the caption on the f
 client insists on the spread image, the job is resewn to open flat, and the extra binding cost is
 quoted against the extra page-count and production time rather than absorbed silently.
 
+## Verification
+1. **Extent.** The page count is a multiple of 4 and inside the method: saddle stitch under about 64
+   pages of 120 g/m², perfect bound or PUR from 40, and under 8 pages the object is a folded sheet.
+   A 96-page saddle-stitch is a different job with a different cost.
+2. **Spine arithmetic.** Pages ÷ 2 × caliper, plus the cover allowance: 128 pages at 0.12 mm is
+   64 × 0.12 = 7.7 mm, plus 2 × 1 mm, so 9.7 mm. The cover file's spine guide measures that number,
+   not a guess from a shelf sample.
+3. **Gutter.** Inner margin 15–20 mm perfect bound, 10–12 mm saddle stitch, 8–10 mm lay-flat, with
+   the grid built inside what remains. A 12 mm inner margin on perfect binding loses the first
+   characters into the gutter.
+4. **Creep.** Caliper × sheets: 0.1 mm stock over 16 sheets shifts the innermost page about 1.6 mm.
+   Either the outer margin absorbs it or the imposition carries creep compensation; check it in the
+   dummy.
+5. **Cross-spread.** On perfect binding, faces and key content sit 10 mm clear of the gutter, and a
+   full-bleed image crosses the fold only on lay-flat, sewn or a saddle-stitched centre. Fold the
+   dummy and look at the fold before approving the spread.
+
 ## Related Rules
 - [`30-grid-systems`](30-grid-systems.md) — the grid built inside the binding's margins.
 - [`32-editorial-layout`](32-editorial-layout.md) — spreads and the gutter the fold creates.

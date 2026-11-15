@@ -59,6 +59,20 @@ clip-art. Three attributes map: precision (the line never doubles), continuity (
 only at the keyhole). The 6 px line sits on `#F2EDE4`, with the headline "Every door is different" 120 px below
 it, so the image finishes the sentence the type starts.
 
+## Verification
+1. **Mapping table.** Three claim attributes in one column, the visual evidence for each beside it:
+   at least two cells filled. One attribute is decoration; a blank cell is filled with the wrong
+   meaning by the viewer.
+2. **One-step read.** At 16 px, in one colour, inverted and with no caption, four of five viewers
+   name the claim rather than the object. Two steps of inference halve the audience that arrives.
+3. **Caption test.** Write the caption the image would need. If it is required, rebuild from the
+   attributes; if it would change the meaning, the metaphor is ambiguous.
+4. **Cliché census.** Zero objects from the list — lightbulb, handshake, puzzle, gear, target,
+   rocket, circuit-brain. One is a find-and-replace, two means no idea was spent.
+5. **Symbol audit.** Flags, hands, eyes, keys, arrows and crosses are checked against each market,
+   and the image is tested in three applications — poster, 16 px favicon, one-colour print. A
+   symbol that only reads in colour has been decorated, not chosen.
+
 ## Related Rules
 - [`60-illustration-fundamentals`](60-illustration-fundamentals.md) — executing an illustrated idea and keeping a set consistent.
 - [`12-color-psychology`](12-color-psychology.md) — cultural loading of color, with the same limits on what it can promise.

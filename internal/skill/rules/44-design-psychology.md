@@ -44,6 +44,20 @@ Design psychology is the evidence about how people judge visual work before and 
 ## Practical Examples
 A 1440×900 hero for a bookkeeping service: H1 "Books closed by the 5th. Every month." at 56 px; one proof line "312 studios since 2016" at 16 px `#4B5563`; a real photo of two named bookkeepers at a desk, cropped 4:5, on the right 40%; one `#0F766E` button "Book a 15-minute call". No badges, no star ratings, no gradient overlay. Every item in the trust stack is checkable, which is the whole argument.
 
+## Verification
+1. **Trust stack.** In the first viewport count four things: one specific claim, one checkable
+   proof, one human artifact, one contact route. Pass: four of four. A badge or a star rating is not
+   proof — only a name, a number, a date or a photograph is.
+2. **Restraint census.** Count the type sizes, the accent colours, and the margin as a percentage of
+   the canvas. Pass: three sizes, one accent, margins 8–12%. A fourth size or a second accent is
+   decoration spent against the trust argument.
+3. **Five-person read.** Show the page for five seconds, then ask what it is, who it is for, and how
+   it felt. Pass: no more than one of five wrong on the first two questions. Two wrong is a failure
+   of the design, not of the sample.
+4. **Convention count.** Check logo top-left, navigation top, primary action right. Pass: all three
+   held, with novelty spent on exactly one element. Two departures read as risk taken in the wrong
+   place.
+
 ## Related Rules
 - [`12-color-psychology`](12-color-psychology.md) — the color claims, and how far they actually hold.
 - [`43-attention-and-eye-tracking`](43-attention-and-eye-tracking.md) — what the first 200 ms of a layout is spent on.

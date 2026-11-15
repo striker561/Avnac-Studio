@@ -63,6 +63,23 @@ A settings screen at 1440×900, matching the app's other 14 screens:
 - The audit found four button heights and five grays; they collapsed to two (32/40 px) and three
   (`#111111`, `#5C5C5C`, `#D8D8D8`).
 
+## Verification
+1. **Primitive inventory.** `get_canvas_summary` lists the objects; the twelve primitives — button,
+   input, select, checkbox, radio, toggle, tab, table, modal, toast, tooltip, nav — each appear once
+   and are reused. A second button drawn inside a screen is drift.
+2. **Distinct values.** Sort by element type and count: button heights two (32/40 px), greys three
+   (`#111111`, `#5C5C5C`, `#D8D8D8`), radii `{0, 4, 8, 999}`. Four button heights or five greys is
+   the audit output, and the merge list.
+3. **Placement map.** Primary action bottom-right of a form, search top-right of the nav, account
+   menu top-right, logo top-left to go home, dismiss top-right. A deviation costs one relearn per
+   screen and has to be deliberate.
+4. **One verb.** The button, the confirmation and the toast use the same word: 'Publish' →
+   'Published', never 'Saved'. Count the verbs for a single action across the screens; three is two
+   too many.
+5. **Token discipline.** No raw hex in a screen file; spacing from 4/8, radius from the four-value
+   set, elevation from three levels. Search the file for `#` outside the token layer — each hit is a
+   value that drifts at the next edit.
+
 ## Related Rules
 - [`90-ui-design-principles`](90-ui-design-principles.md) — consistency as a screen-native fundamental.
 - [`91-design-systems`](91-design-systems.md) — the tokens and components that make consistency structural.

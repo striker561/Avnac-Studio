@@ -61,6 +61,19 @@ columns (383 px), the detail panel 8 (767 px), 24 px between them. Vertically: 4
 24 px under the detail header, 16 px between field rows, 8 px between label and value, 4 px between
 icon and text. Body copy caps at 720 px inside the detail panel, leaving 47 px unused on purpose.
 
+## Verification
+1. **Scale audit.** List every gap, padding and margin: 4, 8, 12, 16, 24, 32, 48, 64, 96. A 10, 14,
+   18 or 22 px value is the noise this rule exists to remove; snap it to the nearest step.
+2. **Column arithmetic.** (container − 2 × margin − (n−1) × gutter) ÷ n reproduces the measured
+   column: at 1280 px with 32 px margins and 24 px gutters, 79.3 px, and a 4-column card 389 px. Off
+   by a pixel means a gutter moved.
+3. **Line length.** Count characters per line in the prose container: 45–75, which is 480–720 px at
+   16 px, capped at 720 px. A body line running to 1920 px passes 120 characters and collapses.
+4. **Vertical steps.** Section 48, block 24, field 16, label 8, icon 4, with adjacent levels at
+   least 2× apart. Two separations both at 16 px make two different relationships read as one.
+5. **One edge.** Overlay a vertical guide per region: headings, body and controls share one left
+   edge. Two edges 8 px apart read as a wobble, not a hierarchy.
+
 ## Related Rules
 - [`30-grid-systems`](30-grid-systems.md) — the print column-grid math this scale inherits.
 - [`95-responsive-interface-design`](95-responsive-interface-design.md) — how these containers reflow across widths.

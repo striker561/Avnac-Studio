@@ -46,6 +46,19 @@ Pairing is the deliberate combination of families across roles — display, text
 ## Practical Examples
 A poster pairs a high-contrast display serif at 120 px for "SALT" with a neutral grotesque at 20 px/1.5 for the details, plus a monospace at 13 px for the date and price. Measured x-heights are 66% and 72%, so the grotesque sits at 0.92× the serif's size wherever the two share a line. Three voices, three roles, one skeleton.
 
+## Verification
+1. **Voice count.** One family per role — display, text, data. Two families is the working
+   maximum, three only with a monospace for figures and code; a fourth subtracts from all of them.
+2. **x-height correction.** Measure both faces' x-height against cap height: at 63% and 71%, the
+   second is set at 0.89× the first's size. A pair needing a correction outside 0.89–1.13 is not
+   sharing a skeleton, whatever the description says.
+3. **Stem weight.** Compare the "l" stems at equal cap height: within about 15%. A secondary more
+   than 15% heavier reads as the more important voice and needs a weight dropped.
+4. **Forty-word grey.** Set the same 40-word paragraph in both at matched size and view at 25%.
+   One block darker is a weight mismatch, not a personality difference.
+5. **Role collision.** No family serves two roles. A face used for display and body has spacing
+   built for neither; the single-family system is the exception, and it needs three weights.
+
 ## Related Rules
 - [`20-typography-fundamentals`](20-typography-fundamentals.md) — the six values each family has to satisfy.
 - [`21-type-classification`](21-type-classification.md) — which categories are far enough apart to pair.

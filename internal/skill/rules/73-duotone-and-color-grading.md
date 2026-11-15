@@ -58,6 +58,21 @@ is desaturated, black point 6 and white 248, then mapped `#0B1A24` → `#2E5A6B`
 ground. The same recipe on the support act's portrait keeps a two-sheet series consistent without a second
 shoot.
 
+## Verification
+1. **Lightness spread.** Measure the greyscale before the map: at least 40% between the darkest
+   meaningful tone and the lightest. Less and the duotone is two flat colours with no form; the same
+   40% is what keeps the two inks apart in a colour-vision simulation.
+2. **Stop count.** The gradient map carries three stops minimum at 0, 50 and 100 — `#0B1A24` →
+   `#2E5A6B` → `#F2A65A` in the example. Two stops produce a single-hue sepia midtone.
+3. **Ink containment.** Highlight ink stays at 0–15% in the shadows and shadow ink at 0–10% in the
+   highlights; about 75% of the image sits in the shadow range and 25% in the highlight. A sample
+   outside those bands is a tint, not a duotone.
+4. **Press build.** Each ink is a spot channel with a CMYK build; total coverage is at or under 240%
+   uncoated and 300% coated, and small type sits in one ink only. Arbitrary RGB values will not
+   survive conversion.
+5. **Two-scale check.** At 100% no banding in sky or skin; at 25% the head still reads against the
+   `#111111` ground and skin near `#A9705C` stays credible.
+
 ## Related Rules
 - [`17-limited-and-functional-palettes`](17-limited-and-functional-palettes.md) — the two-color logic a duotone serves.
 - [`72-image-treatment`](72-image-treatment.md) — the general treatment recipe this rule specializes.

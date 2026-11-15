@@ -48,6 +48,17 @@ A 1080×1350 gallery invitation. Three lines at the top — title 44 px, date 20
 
 Active area is about 21%, which is correct for a single-message piece: at 270 px, the invitation still reads as three lines and a gold rule, and the emptiness is what makes it read as a gallery rather than a flyer.
 
+## Verification
+1. **Density count.** Overlay a 4×4 grid and count filled cells. The count must sit in the band the
+   piece claims: 55–75% for information-dense work, 25–45% for premium and editorial, and under 20%
+   for a single-message poster.
+2. **Margin ladder.** The smallest margin is at least 8% of the short edge — 64 px on 800, 108 px on
+   1350 — with the bottom largest, then the outer edge, then the top. Equal margins fail.
+3. **Padding.** Every container's padding measures 1–2× the body size: 16–32 px around 16 px text,
+   one line-height of 22–26 px minimum on all sides. Text at the edge fails as clipping.
+4. **Group gap.** With the divider deleted, the between-group gap is 3× the within-group gap. A 1:1
+   ratio means the space is passive and the rule was carrying the structure.
+
 ## Related Rules
 - [`04-balance-and-proportion`](04-balance-and-proportion.md) — margins are the proportion decision the viewer reads first.
 - [`09-figure-ground`](09-figure-ground.md) — space as the ground that lets a figure exist.

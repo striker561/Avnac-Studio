@@ -88,6 +88,41 @@ final path has 6 anchors: two cusp points at the lens ends and two smooth joins 
 produced by circle intersections. Stem is a 6-unit capsule at 12° with a 3-unit taper. Nothing in
 the file was placed by dragging a handle.
 
+The same discipline at icon scale, as IR. Guides are objects, so they stay editable during the work
+and are deleted before delivery:
+
+```json vector
+{
+  "canvas": { "width": 256, "height": 256, "background": "#F4F0E8" },
+  "objects": [
+    { "id": "guide/outer", "type": "circle", "x": 16, "y": 16, "width": 224, "height": 224,
+      "fill": "none", "stroke": "#9AA0A6", "strokeWidth": 0.5, "strokeOpacity": 0.4 },
+    { "id": "guide/inner", "type": "circle", "x": 56, "y": 56, "width": 144, "height": 144,
+      "fill": "none", "stroke": "#9AA0A6", "strokeWidth": 0.5, "strokeOpacity": 0.4 },
+    { "id": "mark/ring", "type": "circle", "x": 40, "y": 40, "width": 176, "height": 176,
+      "fill": "none", "stroke": "#1B1B1B", "strokeWidth": 24 },
+    { "id": "mark/star", "type": "star", "x": 96, "y": 96, "width": 64, "height": 64,
+      "sides": 5, "innerRatio": 0.44, "fill": "#E85D3F" }
+  ]
+}
+```
+
+One radius family (224, 176, 144, 24), one star ratio, and no point placed by eye: the star's inner
+radius is a parameter, so it can be tuned without redrawing the points.
+
+## Verification
+1. **Primitive audit.** `vector` op `read`: a circle reports 4 anchors, a rounded rectangle 8
+   (four lines and four corner arcs), a five-point star 10. More anchors than the primitive needs
+   means it was hand-drawn.
+2. **Radius family.** List every distinct corner radius in the file. Four or fewer; more means the
+   eye will read the corners as unrelated.
+3. **Tangency at 400%.** Where an arc meets a line, the join shows no kink. A kink is a construction
+   error — the radius centre is not on the perpendicular — not an anti-aliasing artifact.
+4. **Feature floor.** At final size, no painted feature is under 0.5 px on screen or 0.25 pt in
+   print. Anything smaller is deleted or enlarged, never left to chance.
+5. **Guides gone.** The delivered file contains no construction circles or guide layers; guides that
+   ship are read as artwork.
+
 ## Related Rules
 - [`120-vector-scene-graphs`](120-vector-scene-graphs.md) — where each primitive lives in the tree.
 - [`123-spatial-constraints-and-relationships`](123-spatial-constraints-and-relationships.md) — deriving placement from relationships instead of numbers.

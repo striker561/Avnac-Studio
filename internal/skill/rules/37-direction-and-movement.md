@@ -78,6 +78,20 @@ A 1080×1080 tile for a running club, ground `#F4F1E8`:
 The eye goes: runner → chevrons → headline → route line back to the start. Three stops, one
 dominant vector (left to right), no crossing arrows.
 
+## Verification
+1. **Vector ownership.** Annotate every cue that carries direction, including each text rag, and
+   name the one that owns the focal point. Two diagonals crossing at the focal point cancel, and
+   the page is left with no path.
+2. **Gaze containment.** The figure looks into the frame; the headline sits inside the gaze cone
+   in the right 55% of the canvas, with nothing competing behind the sightline. A subject looking
+   out of the frame sends the eye to the edge.
+3. **Stop count.** Trace the path from entry to exit: three or four stops. More than four and the
+   eye picks the loudest element and stays there, which is rarely the intended one.
+4. **Leading-edge crop.** A moving subject is cut so 20–25% of it exits the frame in its direction
+   of travel. Under 20% the crop reads as a misfit; over 25% the subject is gone.
+5. **Progression arithmetic.** A repetition series has 5–12 repeats, each rotated 2–4° further or
+   4–6% larger. Below that it is a static pattern; above it, a fan that reads as one more object.
+
 ## Related Rules
 - [`05-rhythm-and-repetition`](05-rhythm-and-repetition.md) — repeated intervals as the mechanism behind progression and motion.
 - [`34-composition-techniques`](34-composition-techniques.md) — the thumbnail stage where the reading path is chosen.

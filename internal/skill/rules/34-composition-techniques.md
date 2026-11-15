@@ -78,6 +78,18 @@ eye at (200, 430) — left third intersection. Headline at 120 px Inter Bold, `#
 380, three lines at 0.9 line-height. Date line at 20 px, x 604, y 1160. The eye lands on the face,
 travels right along the gaze, hits the headline, and drops to the date: three stops, no detour.
 
+## Verification
+1. **Focal ratio.** Compare the focal element with the runner-up: 1.5–3× in visual weight. At
+   1:1.1 the eye flickers between them and the frame has no entry point.
+2. **Centre distance.** Every element is on an axis or edge, or 60 px and more off it; nothing is
+   4 px off centre. Near-centre reads as a slip, while 6–24 px from an edge reads as tension.
+3. **Thumbnail collapse.** Downscale the render to 120×160: the mass distribution still reads and
+   there is still one focal point. A frame that turns into a grey rectangle was a list.
+4. **Three-value read.** Block the frame into 10%, 50%, and 90% grey. If it reads as one value, no
+   plane separates and the composition was never in the file.
+5. **Stop count.** Trace the path from the focal point: the second element sits 30–40° off the
+   line and the total is three or four stops. A fifth stop is where the eye abandons the route.
+
 ## Related Rules
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — the ordering the focal point and the reading path must produce.
 - [`04-balance-and-proportion`](04-balance-and-proportion.md) — mass and distribution, which the thumbnails are testing.

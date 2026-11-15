@@ -79,6 +79,18 @@ A 1080×1080 album sleeve, ground `#101014`:
 The image's mass is answered by the orange square's density; the type block's low position keeps
 the vertical split from reading as two equal halves.
 
+## Verification
+1. **Lever balance.** Measure each mass and its distance from the axis: m1 × d1 against m2 × d2.
+   More than 2:1 between the products means the page is unbalanced, not asymmetric.
+2. **Split ratio.** Divide at the dominant vertical and compare with a stated ratio: 62/38, 2:3,
+   or 3:5, within 2%. A 52/48 split reads as a near-miss, because the eye expects a decision.
+3. **Unit audit.** Every block size and gutter is a multiple of U from one family — 1, 2, 3, 5,
+   8 × 24 px. A 30 px gap or a 100 px block belongs to no unit and aligns with nothing made later.
+4. **Exception count.** Exactly one element is rotated, offset, or differently sized; everything
+   else is aligned to the pixel. Two exceptions cancel and read as noise.
+5. **Counterweight area.** The answer to the heaviest mass sits in the opposite quadrant at about
+   1/5 its area. Equal areas in opposite corners produce symmetry by accident.
+
 ## Related Rules
 - [`04-balance-and-proportion`](04-balance-and-proportion.md) — the theory of visual weight these splits approximate.
 - [`06-unity-and-variety`](06-unity-and-variety.md) — how much variation a modular system can absorb before it dissolves.

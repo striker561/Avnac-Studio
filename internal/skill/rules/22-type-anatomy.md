@@ -44,6 +44,22 @@ Anatomy is the set of named parts and metrics of a letter: baseline, x-height, c
 ## Practical Examples
 A 900×1200 poster sets "HARVEST" at 140 px in a Didone; the hairlines hold. The same face at 18 px in the caption loses its thin strokes, so the caption switches to a low-contrast grotesque, set at 0.94× nominal because its x-height measures 72% against the Didone's 68%.
 
+## Verification
+1. **Ratio measured.** Render "x" and "H" at 100 px, measure both pixel heights, divide. 63% and
+   71% are two faces at one nominal size; a spec that does not record the measured ratio cannot
+   correct apparent size later.
+2. **Apparent-size correction.** Where two faces share a line, the 63% face is set at 1.13× the
+   71% face, or the 71% face at 0.89×. Equal nominal sizes leave one block 6–10% smaller.
+3. **Extender clearance.** At display sizes the leading is 1.1× or more: ascender plus descender
+   commonly measures 1.09 em, so a 1.0 line ratio closes the gap to nothing. Measure the tightest
+   line pair in the file rather than reading the panel.
+4. **Size floor by contrast.** A high-contrast face is never set below 24 px in print or 28 px on
+   screen; a low-contrast face with open counters holds at 11–12 px. Find the smallest text
+   element and read its thinnest stroke.
+5. **Terminal test.** Ball terminals and fine spurs are legible at 72 px and above; at 12 px they
+   have merged into the stem in the render. Terminals at the smallest size are texture, not
+   information.
+
 ## Related Rules
 - [`21-type-classification`](21-type-classification.md) — narrowing the list before you measure.
 - [`23-type-pairing`](23-type-pairing.md) — matching two faces by these ratios.

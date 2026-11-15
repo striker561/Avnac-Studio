@@ -42,6 +42,18 @@ Context is what changes a color's appearance without changing its value: adjacen
 ## Practical Examples
 A six-sheet series for a venue lit at 2700 K: the cream ground #F4F1EA turns yellow indoors, so it becomes #FFFFFF, and #1B2A41 replaces black so the shadows do not crush. Ground and type stay fixed across all six; only the accent rotates at matched L 0.58, from #E4572E through #4C6FA5 to #2E7D5B, so the set reads as one system whether the sheets hang together or apart.
 
+## Verification
+1. **Pair at final size.** View the pair on both grounds at 100% and at 25%. A step under 10 L*
+   reads as decoration, not as an interval.
+2. **Material proof.** A 100 mm swatch on the actual stock, or the uncoated simulation of +8% black
+   and −10% chroma. A screen approval of a paper colour is not a proof.
+3. **Series recipe.** Six accents at matched L 0.58 with hues 40° apart, ordered by hue. A series
+   with drifting L has no sequence and collapses in grey.
+4. **Two lights.** View at 2700 K and at 5000 K. Type separates from its ground under both; a blue
+   that reads navy at noon and black at 2700 K has failed the venue, not the print.
+5. **Area match.** Compare the 10 mm mark with the large field of the same hex: the field is 5–8 L*
+   lighter. A logo and a full-bleed wash of one value do not match.
+
 ## Related Rules
 - [`13-color-perception`](13-color-perception.md) — simultaneous contrast and adaptation, the mechanism behind these shifts.
 - [`14-color-contrast`](14-color-contrast.md) — the ratios that must still hold after context is accounted for.

@@ -61,6 +61,22 @@ loading holding 44 px with a 16 px white spinner; error returning the button to 
 `#B3261E` inline banner; empty applying to the drafts list — "No drafts yet · Start a draft" with a
 96 px illustration and one text button.
 
+## Verification
+1. **State coverage.** Eight states for every clickable element — default, hover, active, focus,
+   disabled, loading, error, empty. Default and hover only cannot answer 'did that work?' or 'why
+   can't I click this?'.
+2. **Transition time.** Each state change runs 100–150 ms on one property. A 400 ms transition, or
+   three properties animating at once, makes a registered click feel like a failure.
+3. **Disabled legibility.** Fill at 38–45% opacity with the label still at 3:1 and helper text
+   naming the reason. At 20% opacity the label measures about 1.6:1, which is the dead end the rule
+   forbids.
+4. **Geometry held.** `get_canvas_image` on the default and loading frames: the width is unchanged,
+   the label is replaced by a 16 px spinner or the row by a three-bar skeleton at final row height.
+   A spinner that replaces the page loses the context.
+5. **Error and empty.** The error appears under the field or as a summary at the top of a long form,
+   not only as a toast; the empty state is a first-run screen with one line, one action and at most
+   a 96 px illustration. 'No data' in a blank panel fails.
+
 ## Related Rules
 - [`92-component-visual-design`](92-component-visual-design.md) — the craft each state is drawn within.
 - [`45-affordances-and-signifiers`](45-affordances-and-signifiers.md) — why a state change signifies that the system heard you.

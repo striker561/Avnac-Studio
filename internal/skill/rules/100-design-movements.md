@@ -64,6 +64,20 @@ Brief: a 1970s jazz-night poster, 700×1000 px.
 - Headline 96 px caps, tracked +2%, at x=64 y=620 w=520; artist line 28 px italic serif beneath; a
   2 px rule at y=600 divides type from image; date 16 px/600 caps `#2F5D50` bottom-left.
 
+## Verification
+1. **Constraint card.** Six lines exist before the composition: palette of 3–5 hex, type families
+   and weights, geometry, grid, texture, and stance in one sentence. A piece without a card cannot
+   be audited against its own movement.
+2. **Deletion test.** Duplicate the artwork and remove every signature gesture. If the structure,
+   rank order and grid still hold, the constraints were doing the work; if the piece collapses, it
+   was a costume.
+3. **Motif budget.** Count signature gestures: two at most, one dominant and one supporting. A third
+   is a theme party and fails.
+4. **Process values.** Where the era claims a process, measure it: 45–65 lpi halftone, 1–2 px
+   misregistration on one plate. A clean gradient in a 1960s piece fails the period.
+5. **One movement.** Count the historical languages: one, plus at most one borrowed gesture. Two
+   full languages produce a third, accidental one.
+
 ## Related Rules
 - [`101-bauhaus`](101-bauhaus.md) — geometry as a constraint set, not a look.
 - [`102-swiss-international-style`](102-swiss-international-style.md) — the grid taken to a full system.

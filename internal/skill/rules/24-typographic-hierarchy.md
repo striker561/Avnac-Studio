@@ -83,6 +83,19 @@ The headline is 5× body, so the first fixation is guaranteed; the 34 px subhead
 distinctly heavier than the 22 px body, so level 2 reads as a caption to the headline rather than
 as another body line.
 
+## Verification
+1. **Level census.** List every text level with all four values: size, weight, colour, leading.
+   Four is the norm, five the poster maximum, three on a social post; two levels sharing all four
+   values are one level.
+2. **Step measurement.** Each adjacent pair differs by a full step: 1.3×–1.5× size, two weight
+   steps, or 30% lightness. An 18/20/22 px ladder is 1.11 and 1.10 and reads as one size.
+3. **Three-second read.** Render with `get_canvas_image`, view at 25%, and name the levels
+   top-down in three seconds. The pair that costs a second is the pair that needs a full step.
+4. **Value floor.** Secondary at 70% of the primary's value, tertiary at 55%, and no text level
+   below 4.5:1 on its actual ground. Measure the tertiary over the composite, not over white.
+5. **Proximity ratio.** Space above every heading is about 2× the space below it. Equal space
+   makes the heading float between two blocks and belong to neither.
+
 ## Related Rules
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — the same ordering logic across all elements, not just type.
 - [`03-contrast-and-emphasis`](03-contrast-and-emphasis.md) — contrast is the mechanism hierarchy uses.

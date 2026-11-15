@@ -43,6 +43,23 @@ A visual identity system is the fixed set of marks and rules — logo and lockup
 ## Practical Examples
 A three-touchpoint system: primary `#0F3D3E` on `#F4EFE6`, secondary `#C86B3C`, neutrals `#111111`/`#4B4B4B`/`#E5E5E5`. Type: Inter 700 for headings, 400 for body, no third face. Device: an 8 px rule set at 45°, used as the divider under every heading. Image rule: desaturated with a warm highlight, 4:5 crops, subject at the left third. Motion: 240 ms ease-out. Across a 1080×1080 post, a 1200×628 card and an A5 flyer, the constants are the rule, the grade and the ink color — the logo appears in only two of the three.
 
+## Verification
+1. **Six-part census.** Name the carrier for mark, type, colour, imagery, graphic device and motion.
+   Pass: six named, all six specified with a rule. Two anchored and four improvised is drift,
+   however good each part looks alone.
+2. **Colour field.** Count brand fills across three applications: one primary, two secondary, four
+   neutrals. Pass: seven fills or fewer in the system. An eighth is a mood the next application
+   re-balances.
+3. **Three-application line-up.** Place a 1080 × 1080 post, a 1200 × 628 card and an A5 flyer side
+   by side at 400 px. Pass: mark geometry, primary colour, image grade and device identical; only
+   crop, density and format change.
+4. **Image grade.** Check every photograph in the three applications against the same curve or
+   duotone. Pass: 100% treated. One untreated image is the largest area in the layout breaking the
+   system.
+5. **Device derivation.** Measure the graphic device against the mark — its angle, radius or
+   proportion. Pass: the device is one of the mark's measured values, such as a 15° cut, a 4:3 crop
+   or an 8 px rule. A device drawn independently will not survive the next designer.
+
 ## Related Rules
 - [`55-brand-color-and-typography`](55-brand-color-and-typography.md) — choosing the two parts that do the most identifying.
 - [`56-brand-consistency`](56-brand-consistency.md) — auditing whether the system is actually being followed.

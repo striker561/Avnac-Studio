@@ -59,6 +59,19 @@ A guide character on 1080×1080: 3.5 head units tall, silhouette built from a `p
 outline, so it reads at 24 px. Six expressions on one 96 px base, eyes fixed as `#12100E` circles of r=4. The prop
 — a clipboard — is 1.4× the hand width and sits at the same angle in all four spots.
 
+## Verification
+1. **Silhouette sheet.** Five poses filled black at 400 px tall, at 10% zoom: all five can be named,
+   and the same character is named each time. A pose that needs its interior to be recognised fails.
+2. **Proportion audit.** Divide each drawing by head units: one ratio for the cast, 1:3–1:4 for
+   explainer work, 3.5 units in the example. A drawing at 3.4 or 3.6 units is another character.
+3. **Expression set.** Six faces at 96 px from one base: eye coordinates identical, brow and mouth
+   the only changes, every expression distinguishable without a label. A mouth moved 10% of head
+   width changes the read; a new eye position breaks the person.
+4. **24 px reduction.** Three shapes, no outline, at 24 px; the identifying shape — hood, hair mass,
+   prop — survives. When detail carries the read it will not survive a favicon.
+5. **Prop ratio.** Measure the prop against the drawn hand: 1.4× hand width in the example, and the
+   same ratio and angle in every spot. A prop rescaled by eye looks unholdable at a second size.
+
 ## Related Rules
 - [`61-shapes-and-forms`](61-shapes-and-forms.md) — the shape vocabulary behind a silhouette.
 - [`62-linework-and-contours`](62-linework-and-contours.md) — how the contour carries the character.

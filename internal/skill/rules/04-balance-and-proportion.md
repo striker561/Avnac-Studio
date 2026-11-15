@@ -48,6 +48,19 @@ A 1080×1350 invitation (4:5). A dark block 1080×480 is anchored at the bottom 
 
 Margins are unequal by design: 120 px top, 96 px sides, 0 px bottom because the block bleeds. The 620 px type block is 0.57 of the width, close to 3:5, so the type area echoes the canvas rather than sitting on it arbitrarily.
 
+## Verification
+1. **Weight map.** Overlay a 4×4 grid and count dark cells per quadrant. The main mass and its
+   counterweight sit in opposite quadrants across the diagonal; two dark masses on one side mean the
+   piece tips.
+2. **Split arithmetic.** Measure where the composition divides: 0.57 of the width in the example,
+   never at 50/50. A split between 1/3 and 2/3 recurs in the blocks; a second split line is a
+   second system.
+3. **Margin ladder.** Measure all four margins: bottom largest, then outer, then top, and no two
+   equal. Equal margins fail on the evidence, not on taste.
+4. **Optical centring.** Centred type sits 2–4 px above its bounding-box centre at 100 px size, and
+   the optical centre about 5% above the geometric one. A 0 px offset means it was centred
+   mathematically and will read low.
+
 ## Related Rules
 - [`05-rhythm-and-repetition`](05-rhythm-and-repetition.md) — proportion applied to intervals rather than areas.
 - [`08-negative-space`](08-negative-space.md) — margins as the proportion decision the viewer reads first.

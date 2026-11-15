@@ -84,6 +84,23 @@ pack is specified on the warm stock. The cap is soft-touch plastic, so "sage" th
 Pantone-matched masterbatch, not a CMYK build, and the foil-blocked logo is priced as a separate
 line rather than implied by the word "gold".
 
+## Verification
+1. **Row audit.** Take every colour in the file and find its row. Pass: five columns filled — role,
+   name, hex, print build, reference — and the name is a role (`accent`, `surface-raised`), never an
+   appearance (`sage-300`). A colour with no row is an intention.
+2. **Coordinate agreement.** Compare the hex, the CMYK build and the Pantone reference. Pass: all
+   three name one colour, the coordinate is written as the authority, and the proof on the specified
+   stock matches it. Print the delta; a hex and a build a visible step apart are two colours.
+3. **Three-name test.** Put the client's word, the dictionary's other names and the trade name
+   beside one coordinate. Pass: all three land on it, or a swatch pair was shown and the client
+   chose the coordinate rather than the word.
+4. **Material claim.** Check every material word in the brief. Pass: each has ink, stock, finish and
+   a price, and none ships as a hex. Gold on uncoated stock appears brown; CMYK cannot make the
+   shine.
+5. **Neighbour proof.** Render the approved swatch on warm white `#F4F1EA` and on pure `#FFFFFF`,
+   then on the named substrate. Pass: it reads as intended on the stock it ships against, and the
+   pair goes into the approval.
+
 ## Related Rules
 - [`10-color-theory`](10-color-theory.md) — hue, value, and chroma behind the word.
 - [`12-color-psychology`](12-color-psychology.md) — the learned and cultural associations a name carries.

@@ -52,6 +52,22 @@ runs from x=−3 to x=157 and is overscanned to x=−6 and x=160. The 96 mm text
 1.5 mm of trim drift never touches it. Page 8 shifts 0.5 mm in imposition, which the 8 mm bottom margin absorbs.
 Crop marks are 5 mm long at 0.25 pt, offset 3 mm, on a layer the printer can toggle.
 
+## Verification
+1. **Canvas arithmetic.** The canvas is trim plus 2× bleed: A4 becomes 216×303 mm or 2551×3579 px at
+   300 PPI, A5 becomes 154×216 mm. A canvas equal to trim has no bleed, and the first 1.5 mm of
+   drift shows paper.
+2. **Bleed crossing.** At 100%, every full-bleed element crosses the bleed line by at least 2 mm and
+   each photograph is overscanned 2–3 mm past it. An image sized exactly to bleed fails a ±1.5 mm
+   guillotine drift.
+3. **Safe margin.** Measure trim to the nearest text or logo: 5 mm for text, 3 mm for backgrounds,
+   10 mm on posters and site signage cut by hand. Text 1 mm inside trim is cut, not merely crowded.
+4. **Crop marks.** `export` op `svg` returns the mark geometry: 5 mm long at 0.25 pt, offset 3 mm
+   from trim, registration marks outside them, none on the bleed. A mark that prints on the sheet is
+   artwork the printer did not order.
+5. **Creep.** Saddle-stitch creep is 0.5 mm per 8-page step at 100 g/m², 1 mm at 16 pages, about
+   2 mm at 32 pages on 130 g/m². The innermost page's outer margin absorbs the shift or imposition
+   compensates it.
+
 ## Related Rules
 - [`80-print-design-fundamentals`](80-print-design-fundamentals.md) — sheet choice and margins that precede trim.
 - [`81-print-color-management`](81-print-color-management.md) — ink coverage at the edges you just defined.

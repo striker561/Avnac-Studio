@@ -64,6 +64,17 @@ A 700×1000 exhibition poster:
   y=910, above a 1 px `#111111` rule at y=880.
 - Grid: 4 columns, 56 px margins, 24 px gutters — columns 129 px wide, so every x is 56 + n(153).
 
+## Verification
+1. **Ornament test.** For every triangle, circle and rule, name the content it holds or the field it
+   divides. A shape that does neither is decoration and is deleted.
+2. **Area ranking.** Measure the colour areas: warm white largest, black second, primaries least,
+   with one primary dominant where two appear. Three primaries at full area fail — the triad fights
+   itself.
+3. **Type audit.** Display is lowercase geometric sans at 72–120 px with −2% tracking; body is 16–18
+   px sentence case. Count centred display lines: zero.
+4. **Asymmetry.** Measure the horizontal centre of each major mass. Nothing sits on the canvas
+   centre line, and weight is carried off-axis by mass rather than by symmetry.
+
 ## Related Rules
 - [`102-swiss-international-style`](102-swiss-international-style.md) — the grid discipline this started, taken to a system.
 - [`105-de-stijl`](105-de-stijl.md) — the orthogonal, primary-color parent.

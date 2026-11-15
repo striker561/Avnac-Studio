@@ -59,6 +59,21 @@ mean lightness reads 118, 121, and 114 — inside the ±10 window, against 156 f
 gradient scrim from 55% black to 0 covers y=0–420, where the 72 px headline in `#F5F1E8` holds 7.9:1 at its
 darkest point. Three sources, one voice.
 
+## Verification
+1. **Recipe conformance.** Every image logs the same numbers: black 8, white 245, contrast +12,
+   saturation −15%, `#1B2A4A` at 18%, grain 4% at 1.5 px. An exception is written down; an
+   unwritten one is drift and shows in the set.
+2. **Mean lightness.** Measure the set: within ±10 levels — 118, 121 and 114 pass, the untreated 156
+   does not. Saturation within ±8%. Numbers, not mood, decide whether the set is graded.
+3. **Native colour retention.** 20–30% of original chroma survives. Sample skin, food or product
+   before and after; below 20% the grade has become a 2012 filter and those colours stop being
+   trusted.
+4. **Worst-pixel contrast.** Type over image holds 4.5:1 against the worst pixel behind it; the
+   scrim runs 55% black to 0 across the text zone (y=0–420), not across the whole photograph.
+   7.9:1 at the darkest point in the example.
+5. **Greyscale pass.** In greyscale no image is markedly lighter or flatter than its neighbours. One
+   rescued by its overlay shows as a flat midtone exactly where the type sits.
+
 ## Related Rules
 - [`73-duotone-and-color-grading`](73-duotone-and-color-grading.md) — the two-ink construction this rule stops short of.
 - [`75-visual-effects`](75-visual-effects.md) — grain, glow, and blur as separate decisions.

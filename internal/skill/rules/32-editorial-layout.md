@@ -82,6 +82,20 @@ On the centre spread the full-bleed photograph runs from the outer edge of the l
 column 4 of the right page, so the image crosses the gutter and the remaining two columns hold a
 standing sidebar at exactly the y-position used on pages 4 and 6.
 
+## Verification
+1. **Furniture coordinates.** Overlay the pages: folio, running head, rule, and caption block sit
+   at identical x and baseline, within 1 px. One page 4 px out is the drift that reads as a
+   binding error.
+2. **Furniture weight.** Folio at 11–12 px / 8–9 pt, caption at 8.5 pt / 11 px on 1.25, running
+   head at 8–10 pt caps. A running head larger than the body competes with the page it labels.
+3. **Gutter band.** Draw the 48 px band centred on the fold: no face, horizon, or straight
+   architectural edge inside it. Those lines disappear into the binding, not into the design.
+4. **Caption hang.** Caption left edge on the image's left edge, 8–12 px below, measure capped at
+   the widest column the image spans, second line indented by the label width. Centred captions
+   under unequal images leave a ragged left edge across the spread.
+5. **Column endings.** Divide each column's height by its leading: a whole number, no stretched
+   leading. A padded last column shows as uneven grey before it shows as an error.
+
 ## Related Rules
 - [`25-spacing-and-typesetting`](25-spacing-and-typesetting.md) — hyphenation and widow control inside the columns this layout creates.
 - [`30-grid-systems`](30-grid-systems.md) — the baseline and column measurements the furniture sits on.

@@ -63,6 +63,17 @@ A 1440×900 landing page:
   motion on the page.
 - Focus is a 3 px `#000000` outline at 4 px offset, visible against both fills.
 
+## Verification
+1. **Shadow measurement.** `get_object_properties` on each element: offset 4–8 px at 45°, blur 0.
+   treatment into a 2010s drop shadow and fails.
+2. **Border census.** Two widths only — 3 px containers, 2 px controls — and radius 0 everywhere. A
+   third width reads as unfinished rather than raw.
+3. **State set.** Four states exist for every control: default, hover (shadow at 4/4), pressed
+   (shadow removed, translated +8/+8), focus (3 px outline at 4 px offset). A missing focus ring
+   fails accessibility, not style.
+4. **Type and contrast.** Body at 16–18 px on 1.5 line-height, black on the saturated fill at 4.5:1
+   or better. "Raw" is not an exemption from either.
+
 ## Related Rules
 - [`100-design-movements`](100-design-movements.md) — the method for using any movement as constraints.
 - [`92-component-visual-design`](92-component-visual-design.md) — component anatomy and state sets.

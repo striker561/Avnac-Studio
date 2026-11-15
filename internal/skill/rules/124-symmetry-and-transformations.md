@@ -75,6 +75,46 @@ axis = canvas-centre)` with its point order reversed; the right antenna is the m
 Total leaf nodes: 5 instead of 9. Editing the left wing's scallops updates the right side exactly —
 including the handle angles, which is what makes the wing silhouette read as one creature.
 
+The five-node version as IR; the right half exists only as `mirrorOf`, so it cannot fall out of sync:
+
+```json vector
+{
+  "canvas": { "width": 256, "height": 256, "background": "#F4F0E8" },
+  "objects": [
+    { "id": "body", "type": "capsule", "x": 122, "y": 58, "width": 12, "height": 140,
+      "fill": "#3D2B1F" },
+    { "id": "wing-left", "type": "path", "start": [122, 96],
+      "segments": [
+        { "type": "cubic", "control1": [96, 100], "control2": [70, 76], "to": [58, 52] },
+        { "type": "cubic", "control1": [44, 78], "control2": [52, 120], "to": [74, 150] },
+        { "type": "cubic", "control1": [90, 166], "control2": [112, 160], "to": [122, 150] } ],
+      "closed": true, "fill": "#E9C46A" },
+    { "id": "wing-right", "type": "path", "mirrorOf": "wing-left", "axis": "vertical",
+      "fill": "#E9C46A" },
+    { "id": "antenna-left", "type": "path", "start": [120, 60],
+      "segments": [
+        { "type": "cubic", "control1": [112, 46], "control2": [104, 40], "to": [98, 34] } ],
+      "closed": false, "stroke": "#3D2B1F", "strokeWidth": 2, "lineCap": "round" },
+    { "id": "antenna-right", "type": "path", "mirrorOf": "antenna-left", "axis": "vertical",
+      "stroke": "#3D2B1F", "strokeWidth": 2, "lineCap": "round" }
+  ]
+}
+```
+
+The mirror line defaults to the board centre; move it with `axisValue` when the axis is not the
+canvas midline. Winding is reflected with the points, so a cut-out stays a cut-out.
+
+## Verification
+1. **Axis overlay.** Show the mirror axis at 400%. Every point is either on the axis or has an exact
+   counterpart. An "almost" pair is the failure this rule exists to prevent.
+2. **Exactness.** `vector` op `read`: the mirrored object's resolved bounds are the exact reflection
+   of its source across the axis, not a copy a few units off.
+3. **Winding.** Cut a hole in the source and mirror it. The hole stays a hole; if it fills
+   solid, the contour direction was not reflected.
+4. **Node budget.** The mirrored half adds no anchors. If it does, it is a second drawing.
+5. **Text check.** No glyph is mirrored. Mirror the layout and set real type; reversed letterforms
+   are unreadable at any size.
+
 ## Related Rules
 - [`120-vector-scene-graphs`](120-vector-scene-graphs.md) — instancing repeated parts.
 - [`121-vector-coordinate-systems`](121-vector-coordinate-systems.md) — the frames transforms compose through.

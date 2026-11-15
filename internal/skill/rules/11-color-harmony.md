@@ -48,6 +48,19 @@ A 1080×1350 poster, split-complementary: base `#1B3A4B` (cool blue-green, 62% o
 
 The accent is the only high-chroma element and sits on the call to action. The split keeps the orange from vibrating against the blue because the neutral carries the middle, which a straight complementary pair would not do at these areas.
 
+## Verification
+1. **Hue intervals.** Measure the hue angle of every pair: 0 for monochrome, up to 30 for analogous,
+   150/210 split-complementary, 180 complementary, 120 triadic. A pair at 75° is a scheme nobody
+   named and nobody can repeat.
+2. **Area shares.** Measure coverage. One colour owns the majority, the second supports, the accent
+   stays small — the worked example runs 62 / 30 / 8. Equal thirds fail before any other test.
+3. **Value spread.** Desaturate: the palette still separates into four or more values. An analogous
+   scheme held at one value is mud, and no hue change repairs it.
+4. **Three sizes.** Render at 32 px, 256 px and full canvas. At 32 px the accent still registers as
+   the accent; a harmony that only works at full size collapses in a feed.
+5. **Edge vibration.** An edge between near-complements with neither a neutral gap nor a value shift
+   shimmers at 100%; the shimmer is the finding, not a defect of the render.
+
 ## Related Rules
 - [`10-color-theory`](10-color-theory.md) — hue, value, and chroma as the coordinates harmony moves in.
 - [`12-color-psychology`](12-color-psychology.md) — what a hue is expected to mean once chosen.

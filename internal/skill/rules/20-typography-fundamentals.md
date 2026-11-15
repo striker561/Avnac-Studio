@@ -42,6 +42,20 @@ Typography is control of those six variables, plus case and color, at a stated v
 ## Practical Examples
 A 1080×1350 poster in Inter: headline 96 px/1.0 with −2% tracking in #111111; subhead 32 px/1.2; body 20 px/1.5 in a 620 px frame (about 62 characters); footer 14 px/1.4, all caps, +6% tracking. The body frame is the only measured width on the sheet, and every other element aligns to its left edge.
 
+## Verification
+1. **Six-value inventory.** List every text element's family, weight, size, measure, leading, and
+   alignment. One family, three weights at most, one measure, one alignment: a second alignment or
+   a fourth weight means the system was never fixed.
+2. **Character count.** Count characters on three full body lines at final size: 45–75, 66 the
+   target. At 16 px Inter that is a 600–680 px frame; the same 16 px across 1440 px runs 130+ and
+   fails on the width, not on the words.
+3. **Leading by size.** Divide each element's line box by its size: 1.45–1.55 at 16–20 px, 1.2 at
+   32 px, 1.0–1.05 at 96 px. A 16 px body on 20 px leading measures 1.25 and fails its own band.
+4. **pt and px reconciled.** Every size is declared in one unit: 12 pt body is 16 px, 9 pt is
+   12 px. A 12 px element that was specified as 12 pt ships 25% small.
+5. **Grid multiple.** Every leading value divides by 4 or 6 px — 16/24, 20/30, 24/36. A 22 px
+   leading is not a rounding, it is a baseline that will never align with the next block.
+
 ## Related Rules
 - [`24-typographic-hierarchy`](24-typographic-hierarchy.md) — the levels this system has to support.
 - [`25-spacing-and-typesetting`](25-spacing-and-typesetting.md) — tracking, hyphenation, and paragraph detail.

@@ -56,6 +56,20 @@ lightness −8%, and +150 K, then sits behind the cut-out subject, which keeps 0
 is the depth. One 3% monochrome grain layer at 2 px covers image and flat `#12100E` ground so both share a noise
 floor. The 96 px headline gets nothing, because a shadow on type is the first thing a viewer reads as amateur.
 
+## Verification
+1. **Effect budget.** Count effects per element and per composition: two and three. Name the
+   question each answers — focus, depth, material or mood. A fourth effect answers none and is
+   decoration.
+2. **Glow source.** Sample the pixels the glow is built from: only above 85% lightness emits,
+   blurred 20–40 px, screened at 40–60%. A glow sourced from a midtone reads as fog.
+3. **Depth stack.** Three planes at blur 0 / 6 / 14 px, lightness 0 / −8 / −16%, temperature +0 /
+   +150 / +350 K at a 1080 px canvas. The plane holding the subject stays at 0 px; 14 px on the
+   subject is fake depth of field.
+4. **Grain scale.** 2–6% at 1–2 px. At 300 ppi, 1 px grain vanishes, so the layer scales to output
+   size; 8% hides banding, 15% reads as damage.
+5. **Off switch.** Switch each effect off in turn. If nothing is lost, delete it. Text carries one
+   10% shadow at 2 px offset, 0 blur, and nothing else.
+
 ## Related Rules
 - [`63-light-and-shadow`](63-light-and-shadow.md) — the light logic every effect has to imitate.
 - [`35-perspective-and-depth`](35-perspective-and-depth.md) — depth cues at layout scale, before pixels.

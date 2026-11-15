@@ -61,6 +61,22 @@ checkbox, table row, card, badge, modal. Release 0.1 ships the tokens plus four 
 follow-up audit reports 82% of screens on system components and 11 raw hex values left, which is
 exactly what release 0.2 targets.
 
+## Verification
+1. **Token audit.** Search the screens for a raw hex, a px radius or a literal shadow: every colour,
+   radius and space resolves to a primitive, semantic or component token. One raw `#1F6F4A` in a
+   screen file is a bug, not an exception.
+2. **Scale membership.** List the values in use: space 0/4/8/12/16/24/32/48/64, type
+   12/14/16/20/24/32, radius 0/4/8/16/full, shadow 0–3. An off-scale value is a missing step; add
+   the step or snap the value.
+3. **Component count.** Count distinct button styles: the target is 9, three variants × three sizes.
+   Fourteen means release one is the merge list, not a fourteenth component.
+4. **Adoption.** Report the same three numbers the audit reports: % of screens on system components,
+   raw hex values left, local overrides. 82% adoption with 11 hex values left is a target for 0.2,
+   not a finish line.
+5. **Deprecation.** Every component page carries status (draft, stable, deprecated), a version and a
+   replacement path, and the system has one named owner and a five-business-day review window. A
+   deprecated component with no replacement is the fork the system exists to prevent.
+
 ## Related Rules
 - [`92-component-visual-design`](92-component-visual-design.md) — the anatomy and state detail each documented component carries.
 - [`93-interface-layout-and-spacing`](93-interface-layout-and-spacing.md) — the spacing scale the space tokens encode.

@@ -2,7 +2,7 @@
 
 The authoritative half of the library. Each file is one applied principle, written to be used on
 a canvas rather than quoted: purpose, definition, core principles, techniques, when to use and
-avoid, common mistakes, a worked example, related rules and sources.
+avoid, common mistakes, a worked example, the checks that prove it, related rules and sources.
 
 Read the rule that the routed task skill links. Read this index when you need to know what else
 exists, or when a decision has no obvious owner.
@@ -11,7 +11,8 @@ exists, or when a decision has no obvious owner.
 - **Authority**: when a rule and a reference disagree about a number, the rule wins — fix the reference.
 - **Ceiling**: this library holds at most 128 rule files so an agent can hold the index in context.
 - **Adding a rule**: follow the template in any existing rule exactly; the H2 headings and their
-  order are enforced by `go test ./internal/skill`.
+  order are enforced by `go test ./internal/skill`. A rule whose example is a fenced `json vector`
+  or `svg` block is compiled by that test, so a stale example fails the build.
 - **Regenerating**: `node scripts/gen-rule-index.mjs` rewrites this file from the rule headers.
 
 ## Index

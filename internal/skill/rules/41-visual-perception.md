@@ -41,6 +41,23 @@ Perception runs on fixations (pauses of 200–300 ms) joined by saccades (jumps 
 ## Practical Examples
 A 1200×628 link card: headline "Ship your first print run" at 44 px Semibold, x=80, y=210; subhead 18 px at y=268, so both sit inside one 340×340 fixation zone on the left. The product photo fills the right 40%, cropped at the canvas edge so its silhouette reads in the glance. Logo 120 px wide, 40 px from the bottom-left corner — a peripheral cue that only needs to register. At 25% zoom the headline survives and the subhead blurs to a gray band, which is acceptable: the headline carries the message.
 
+## Verification
+1. **Gist pass.** Show the page at 25% for one glance, look away, then write the message it carried.
+   Pass: the written message is the intended first message. Anything else means the hierarchy is
+   inverted, not the colour.
+2. **Fixation grouping.** Measure the headline box to its subhead, edge to edge. Pass: both sit
+   inside 350 × 350 px, one fixation. At 900 px the pair costs a saccade and a beat of
+   comprehension.
+3. **Blur ladder.** Render with 16, 8 and 4 px of blur — the poster, shelf and first-screen reads.
+   Pass: the same first message survives at each step. A message that appears only at the sharpest
+   step is being read, not seen.
+4. **Periphery budget.** Mark the outer 10% on all four sides. Pass: it holds only peripheral cues —
+   logo, folio, "continued inside" — and nothing that must be read. A price or a caption in that
+   band is never fixated.
+5. **Distance ratio.** Measure the headline's cap height and the viewing distance. Pass: the type is
+   roughly 3× the 1 m proof for a 3 m read. A poster that matches the 1 m proof is a proof, not a
+   poster.
+
 ## Related Rules
 - [`43-attention-and-eye-tracking`](43-attention-and-eye-tracking.md) — what wins the fixation once it lands.
 - [`02-visual-hierarchy`](02-visual-hierarchy.md) — the order these glimpses produce.

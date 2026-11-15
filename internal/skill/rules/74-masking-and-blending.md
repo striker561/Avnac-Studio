@@ -57,6 +57,19 @@ path, 1 px feather, contracted 1 px, then given 12% spill of `#E8E2D6` along the
 30% plus a 55% core sits under the feet, and 3% grain at 2 px runs over the composite so cut-out and ground
 share one noise floor. At 400% the hair edge shows no light halo.
 
+## Verification
+1. **Feather measurement.** The mask edge measures 0.5–1.5 px at final size. Above 3 px the edge
+   glows and the glow is visible from across the room; measure the edge at 400%, not at fit.
+2. **Shadow build.** A broad Multiply at 25–35% plus a core at 45–60%. One flat ellipse at 80% is
+   the pasted-object tell, and no grade hides it.
+3. **Depth triangulation.** Three planes at blur 0 / 6 / 14 px, lightness 0 / −8 / −16%, temperature
+   +0 / +150 / +350 K. A plane that moves on one cue only reads as a filter, not as distance.
+4. **Fringe audit.** Invert the mask: leaks show as solid regions; contract 1 px and inspect three
+   edges at 400%. A 1 px white fringe is invisible at fit and obvious on press.
+5. **Edge integration.** Spill is 10–15% of the ground colour, one grain runs over the whole
+   composite, and black and white points match within ±2 levels. A cut-out missing any of the three
+   reads as a sticker at 25%.
+
 ## Related Rules
 - [`69-image-manipulation`](69-image-manipulation.md) — the retouching that precedes and follows a composite.
 - [`75-visual-effects`](75-visual-effects.md) — blur and glow used deliberately rather than as a fix.

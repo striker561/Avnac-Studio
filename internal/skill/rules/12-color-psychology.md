@@ -48,6 +48,21 @@ A 1080×1080 clinic tile. Ground `#EAF4F1` (light, low chroma, so calm), primary
 
 Green matches the category convention, so the tile reads as medical without explanation. The red appears once in the whole system, which is what makes it read as an exception rather than as the brand's voice.
 
+## Verification
+1. **Category position.** Lay the piece beside the 8–10 competitor marks from the audit: it either
+   sits in the category's dominant hue or it is visibly the exception. Neither means it has a colour
+   but no position.
+2. **Ten-second read.** Show it for 10 seconds and ask "what is this selling?". The answer names the
+   category unprompted; "a poster", or the colour's name, means the association is not carrying it.
+3. **Affect band.** Measure the dominant colour: calm and premium sit at 85–95% lightness with
+   chroma under 20%, urgency under 45% lightness with chroma above 60%. A premium build at C 40% is
+   outside the band whatever the hue.
+4. **Hue removal.** Desaturate: every state, error and required field keeps a word, icon, shape or
+   position. A meaning that exists only in hue fails this and SC 1.4.1 together.
+5. **Claim audit.** Read the rationale: every colour claim names its context and carries no
+   percentage. "Blue matches the category convention" is checkable; "blue increases trust 34%" is a
+   statistic nobody can reproduce.
+
 ## Related Rules
 - [`11-color-harmony`](11-color-harmony.md) — the palette-level decisions this rule sits on top of.
 - [`18-color-accessibility`](18-color-accessibility.md) — the constraint that overrides meaning.

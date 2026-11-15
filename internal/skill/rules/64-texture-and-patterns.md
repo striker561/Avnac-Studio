@@ -58,6 +58,19 @@ A 1080×1080 poster: base `#12100E`, a 135 px tile of 2 px dots at 12% `#F4EFE6`
 cut off hard at the headline block by a `rect` edge rather than a fade. Coverage reads at 14% at 100% zoom and
 vanishes at 25%, which is the intent: a tooth, not a picture. Tiled 3×3 in a test file, the joins are invisible.
 
+## Verification
+1. **Coverage measurement.** Measure the textured zone: 8–20% for a tooth on flat colour, 30–50%
+   when texture becomes the figure, above 60% it is a pattern. The example reads 14% at 100%.
+2. **Tile arithmetic.** The tile divides both artboard dimensions: 135 px into 1080 is 8, 120 is 9,
+   100 leaves 80 and a seam. Tile 3 × 3 and inspect the joins at 400%; a join is a remainder.
+3. **2 px floor.** At final size the smallest texture element is above 2 px. Below that it averages
+   into flat tone, costs file size and invites moiré; measure at 100%, not at fit.
+4. **Type contrast.** Where texture sits behind copy, contrast holds 4.5:1 at the worst pixel and
+   coverage stays under 10%. A pattern at full strength behind type is a 10–15% opacity or a moved
+   type block, not a heavier weight.
+5. **Texture count.** One texture, one role in a piece. Three surfaces mean nothing reads as
+   material any more, and the third is usually decoration.
+
 ## Related Rules
 - [`61-shapes-and-forms`](61-shapes-and-forms.md) — the forms being textured.
 - [`63-light-and-shadow`](63-light-and-shadow.md) — tone and texture together build depth.

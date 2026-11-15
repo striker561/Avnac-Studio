@@ -58,6 +58,21 @@ in `#3C4A3E` holds the 30%, carrying 18 px Inter Medium `#F4EFE6` at 70%.
 Fraunces runs 72–120 px only, axis locked to `wght 600 / SOFT 40`; Inter covers 14–32 px. Fallback is declared as
 Inter → system sans and both web licenses are logged.
 
+## Verification
+1. **Palette count.** List brand fills by role: one hero, two supports, three neutrals. Pass: six. A
+   seventh saturated colour is a mood the next editor re-balances.
+2. **Hue spread.** Convert every fill to OKLCH and measure its hue distance from the hero. Pass:
+   within ±10° for every support, with value and chroma carrying the difference. State the spread in
+   degrees; 30° is a second palette.
+3. **60-30-10 area.** Measure painted area on the 1920 × 1080 application. Pass: 60% neutral, 30%
+   support, 10% hero, and the hero's hue is still nameable when the page is rendered 240 px wide. A
+   hero that dies at 240 px sits too close to the neutral in value.
+4. **Three-size proof.** Set one sentence at 96, 32 and 14 px in every weight in use. Pass: no
+   closed counter at 14 px, no gappy spacing at 96 px, and the same line breaks in the declared
+   fallback stack.
+5. **Adjacent-brand check.** Six competitor swatches at 200 × 200 px. Pass: where a competitor sits
+   within about 10° of the hero's hue, the value or chroma differs measurably — print the delta.
+
 ## Related Rules
 - [`10-color-theory`](10-color-theory.md) — the hue/value/chroma vocabulary the anchor is chosen in.
 - [`13-color-perception`](13-color-perception.md) — why the same hex changes identity on a different ground.

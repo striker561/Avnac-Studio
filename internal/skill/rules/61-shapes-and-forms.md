@@ -60,6 +60,18 @@ A 1200×1200 canvas on a 24 px module: four `ellipse` elements at r=96, centers 
 (240, 600), radius 0, filled `#E8B54B`, with the circles subtracted from it so they read as in front. Every
 radius in the file is 0 or 999 px.
 
+## Verification
+1. **Shape census.** Count the distinct forms in the drawing: five to seven. Twenty is a scrapbook;
+   the count is of drawn forms, not of the three primitives they are built from.
+2. **Radius scale.** Every corner radius is 0, 4, 16 or 999 px. A 6, 7, 9 or 11 px value is a
+   mistake to snap to the nearest step, not a variation to keep.
+3. **Proportion family.** Every rectangle's width : height matches one of 1:1, 4:5, 2:3, 3:2. A box
+   that misses all four is a second family; measure the ratio, not the pixel size.
+4. **Silhouette at 5%.** Fill all forms black and zoom to 5%: the composition separates into
+   clusters. Two forms merged into one blob need scale or gap, not colour.
+5. **Grid residue.** Every position divides by the 24 px module or sits on a 12-column line; a
+   coordinate of 37 or 241 px is a nudge and reads as accidental spacing at 100%.
+
 ## Related Rules
 - [`60-illustration-fundamentals`](60-illustration-fundamentals.md) — the set-level decisions these forms serve.
 - [`62-linework-and-contours`](62-linework-and-contours.md) — how the edges of these forms get described.

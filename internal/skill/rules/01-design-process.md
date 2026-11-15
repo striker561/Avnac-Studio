@@ -51,6 +51,20 @@ Refinement: numerals at 460 px, tracked −4%, cropped 40 px past the edge; body
 
 Production: PNG at 1080×1350 for the feed, plus an A4 master at 2480×3508 px with 35 px bleed (3 mm at 300 ppi) for the run.
 
+## Verification
+1. **Five-line brief.** Audience, one message, canvas in px, constraints, and a success test that
+   names a distance and a size ("the date reads at 250 px wide"). A missing line, or a test that
+   cannot be measured, sends the job back a stage.
+2. **Divergence count.** At least ten thumbnails at 1:4 exist before the first refinement — 270 px
+   wide for a 1080 px canvas; 20 at 90 seconds is the target. One first draft, refined, is a fail.
+3. **Gate record.** Each stage ends with the decision and the alternative rejected. If the runner-up
+   cannot be named, no selection happened and the stage did not close.
+4. **Slice propagation.** One section is finished to final quality and tested at 25%. List the type
+   size, margin and colour it fixed; a later section carrying a different value for the same role is
+   unfinished.
+5. **File check.** `export` returns the dimensions the brief names: 2480×3508 px with 35 px bleed
+   for the A4 master, 1080×1350 for the feed. Compare the file, not the intention.
+
 ## Related Rules
 - [`00-core-principles`](00-core-principles.md) — the constraints the brief has to encode.
 - [`34-composition-techniques`](34-composition-techniques.md) — what thumbnails are actually for.

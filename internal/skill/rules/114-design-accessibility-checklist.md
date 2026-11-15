@@ -77,6 +77,19 @@ icon, a message and a border, not color alone. Passes contrast, tab order, 200% 
 Verdict on the delivery note: 11 of 12 checks pass; the poster body sits at 14 pt because the curator cut
 to that size — accepted by the client, with the venue address moved to the web listing at 16 px.
 
+## Verification
+1. **Pair table.** Every text and background pair with its ratio: 4.5:1 body, 3:1 large text and UI
+   boundaries, 3:1 focus ring against the component and its surround. Print aims for ΔL* ≥ 40.
+2. **Size at distance.** Cap height ≈ distance ÷ 120 — 25 mm at 3 m, 80 mm at 10 m — and body 16 px
+   on screen or 12 pt on paper. Measure the rendered type, not the spec: 10 pt at 3 m is 3.5 mm.
+3. **Two channels.** Desaturate: every state, error and required field keeps a word, shape or
+   position. A cue that exists only as hue fails this and SC 1.4.1 together.
+4. **Text alternatives.** One row per information-bearing image. Title, date, venue, price and
+   access information exist as real text, and alt text names the information, not "image of a
+   chart".
+5. **Reflow and focus.** At 320 px and at 200% zoom nothing clips, tab order follows the reading
+   order, and the focus indicator is visible on every interactive element.
+
 ## Related Rules
 - [`98-web-accessibility`](98-web-accessibility.md) — the full screen rule this gate extracts its screen checks from.
 - [`18-color-accessibility`](18-color-accessibility.md) — contrast math and colorblind-safe palettes.

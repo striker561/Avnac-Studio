@@ -57,6 +57,23 @@ gutters fill 128 mm exactly. The headline runs 36 pt on 40 pt leading; body sits
 measure, about 38 characters — right for a flyer read at arm's length. A `#12100E` band bleeds off the top at
 8 mm of solid, well inside the ink budget for 170 gsm uncoated, and no solid crosses the fold at 99 mm.
 
+## Verification
+1. **Sheet and margins.** The trim is a standard sheet — A4 210×297 mm, A5 148×210 mm, A3
+   297×420 mm, US Letter 215.9×279.4 mm. Measure the margins: 12–20 mm on an A4 text page, 20–30 mm
+   on a poster, 5 mm clear of every fold. A trim that is not one of those sheets has no standard
+   imposition behind it.
+2. **Type at final size.** Print at 100% and measure the smallest setting: 9–10 pt body read at
+   300–400 mm, 24–36 pt body at 1 m, 100 pt headline at 3 m. Below 6 pt for type, 8 pt for reversed
+   type or 0.25 pt for a rule fails at press.
+3. **Ink budget.** The darkest point sums to 240–300%, with 300% the coated ceiling, and
+   full-coverage areas stay under 30% of a printed side on uncoated stock. A point above 300%, or a
+   solid crossing the fold, is the reprint.
+4. **Page count.** The count is a multiple of 4, and an 8-page A4 self-cover resolves to two A3
+   sheets printed both sides. An odd count is a blank page or a four-page section with nothing in
+   it.
+5. **Show-through.** Below 90 g/m², hold the sheet to the light: a dark flood on the reverse must
+   not read through body text. Ghosted type means the stock or the coverage changes.
+
 ## Related Rules
 - [`81-print-color-management`](81-print-color-management.md) — the ink side of the same sheet.
 - [`82-bleed-trim-and-safe-areas`](82-bleed-trim-and-safe-areas.md) — the exact geometry around the trim.

@@ -63,6 +63,18 @@ A 1080×1350 transit-strike poster:
 - "01" at 240 px `#D7261E`, x=680 y=1060 — the numeral marks the diagonal the eye already takes.
 - Caption 15 px caps, +10% tracking, at y=1280, so the red band and the caption share one baseline.
 
+## Verification
+1. **Axis measurement.** One dominant diagonal at 30–45°; every other element sits on it or at
+   exactly 90° to it. A second competing angle turns the energy into noise.
+2. **Palette count.** `#D7261E`, `#111111`, `#F2EDE4` and nothing else, with red covering under 10%
+   of the canvas. A tint of the red turns an argument into a mood.
+3. **Scale ratio.** Headline to body is at least 8:1 — 200 px against 25 px. Below that the body
+   reads as text rather than texture and stops carrying at distance.
+4. **Feather.** Every photographic edge has 0 px feather and is clipped to a rectangle. A soft mask
+   fails the montage.
+5. **Rotation.** Rotated type is display only: no text below 24 px is rotated, and body copy stays
+   horizontal.
+
 ## Related Rules
 - [`100-design-movements`](100-design-movements.md) — the method for using any movement as constraints.
 - [`37-direction-and-movement`](37-direction-and-movement.md) — how a diagonal controls reading order.

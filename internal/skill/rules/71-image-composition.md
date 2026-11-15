@@ -59,6 +59,19 @@ line sits at y=380 and the horizon at y=505, a third of the image height. The he
 `#111111`, starts at y=560 on the calm shoulder below the horizon, and 34% of the left image area stays empty
 because the subject looks right. At 25% zoom the gaze leads from the left third into the headline.
 
+## Verification
+1. **Look-space measure.** Empty space ahead of the gaze is 1.5–2× the face width, taken from the
+   frame edge, not the subject. Space behind the head pulls the eye off the page as surely as none.
+2. **Weight ratio.** The hero is at least 60% of canvas height; supporting images are 30% or less.
+   Two images at 40% each cancel the entry point and the layout has no first read.
+3. **Crop audit.** List each crop edge and the body part it crosses: mid-forearm, mid-thigh and
+   above the elbow pass; wrist, neck and ankle read as injury. Check at 100%, not at thumbnail.
+4. **Alignment proof.** Headline baseline sits on the eye line or horizon (y=380 and y=505), the
+   image edge on a column edge, and the horizon on a thirds line rather than the centre. A centred
+   horizon needs symmetry as the argument.
+5. **No stretch.** Placed aspect and source aspect agree; the box uses `cover`, never `fill`. A 4%
+   non-uniform stretch is invisible on a wall and obvious on a face.
+
 ## Related Rules
 - [`38-cropping-and-framing`](38-cropping-and-framing.md) — aspect ratios and crop logic for images alone.
 - [`08-negative-space`](08-negative-space.md) — why the empty 34% is doing work, not wasting paper.

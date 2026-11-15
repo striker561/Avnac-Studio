@@ -77,6 +77,20 @@ The steps are 12 → 26 → 96 → 420: ratios of roughly 2.2, 3.7, and 4.4, all
 threshold, so each level is unmistakable at 25% zoom. The 26 px body is 2.2× the source, which is
 the smallest ratio in the set and still legible as a separate level.
 
+## Verification
+1. **Step quotients.** Divide each adjacent pair of sizes in the file: every pair is 1.15× or
+   more, and the set matches its declared ratio. 18/20/22 gives 1.11 and 1.10 — one size set
+   three times.
+2. **Medium threshold.** Largest to next: 1.25–1.4× for editorial, 3–8× for a poster, and above 4×
+   the design stops reading as a document. A 1.25× poster has no image element; an 8× report
+   shouts.
+3. **Spacing factor.** When type doubles, gaps grow about 1.4× — 70% of the type factor. Gaps that
+   double with the type inflate the layout and lose the density that made it work.
+4. **Two-zoom test.** At 25% every level is still separate; at 400% the detail rewards the zoom. A
+   frame that only works at 100% has scale but no structure.
+5. **Canvas split.** The frame divides on a stated ratio — 540/810 (2:3), 506/844 (3:5), 670/410
+   (1.618:1) — measured on the canvas rather than estimated under a grid overlay.
+
 ## Related Rules
 - [`04-balance-and-proportion`](04-balance-and-proportion.md) — the proportion systems these ratios come from.
 - [`24-typographic-hierarchy`](24-typographic-hierarchy.md) — scale as the first mechanism of type hierarchy.

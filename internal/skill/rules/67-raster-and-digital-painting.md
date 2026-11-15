@@ -60,6 +60,19 @@ A 1080×1350 px gig poster carries a painted portrait in a 620×930 px zone at (
 grain layer at 3 px ties the portrait to the flat `#12100E` ground. At 25% zoom the silhouette still
 reads — pass that before any color decision.
 
+## Verification
+1. **Pixel footprint.** The document is 2× the placement box: 620 × 930 px needs 1240 × 1860 px,
+   as in the example. A file at 1× loses the 2× export before any crop, and no filter restores it.
+2. **Value count at 25%.** In greyscale at 25% the block-in shows four values — `#1A1A1A`,
+   `#4D4D4D`, `#999999`, `#E6E6E6` — and the silhouette reads. A fifth flat before colour means the
+   value structure has drifted.
+3. **Layer census.** One layer per job: block-in, shadow, light, texture, line, eight maximum. Two
+   layers labelled "fix" mean the change happened in the wrong layer; flatten only on export.
+4. **Brush scale.** At 1080 px width: mass 40–80 px, form turns 12–20 px, detail 3–6 px, and no mark
+   wider than 1.5% of the short side (16 px), which reads as mud at poster distance.
+5. **Edge audit at 100%.** Hard edges on light turns and cast shadows; soften only occlusion at a
+   20–40 px edge. Every edge above 20 px makes every surface rubber.
+
 ## Related Rules
 - [`66-vector-illustration`](66-vector-illustration.md) — the sibling mode for anything that must scale cleanly.
 - [`63-light-and-shadow`](63-light-and-shadow.md) — supplies the light logic the brush marks describe.

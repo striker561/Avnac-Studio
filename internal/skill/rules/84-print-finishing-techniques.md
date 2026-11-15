@@ -62,6 +62,21 @@ sides, spot UV on the wordmark, 0.3 mm deboss on a 12 mm seal. In Avnac the canv
 sits 8 mm from trim so the deboss cannot crack at the cut. Finishing adds about 40% to unit cost at
 500 units and 12% at 5000.
 
+## Verification
+1. **Plate separation.** `export` op `svg` on the finish group returns spot UV, foil and emboss as
+   named layers at 100% K. A finish drawn as light grey inside the CMYK art has no plate, so nothing
+   is varnished or stamped.
+2. **Tool minimums.** Measure in the file: foil lines 0.25 pt or thicker, foil type 6 pt or larger,
+   die-cut inside radius 2 mm or more, foil edge 3 mm from any crease, emboss 5 mm clear of the
+   fold, foil 0.3 mm back from trim. One number under its floor is redrawn, not proofed.
+3. **Choke and spread.** The spot-UV knockout is spread 0.2 mm and the foil carries a 0.2 mm white
+   base on dark stock. At the quoted ±0.1 mm register the render shows no white sliver at either
+   edge.
+4. **Finish count.** One finish carries the idea and no object takes more than two; a third is the
+   line that disappears when the quote is cut. Count the plates touching the wordmark.
+5. **Bindery edge.** Saddle stitch loses 3–5 mm at the spine, perfect binding 5–7 mm, and creep
+   moves inner pages up to 2 mm per signature. Artwork inside those bands is gone at the trimmer.
+
 ## Related Rules
 - [`85-paper-and-material-selection`](85-paper-and-material-selection.md) — the stock decides whether a finish is possible at all.
 - [`82-bleed-trim-and-safe-areas`](82-bleed-trim-and-safe-areas.md) — trim, crease and tolerance numbers the finish must clear.

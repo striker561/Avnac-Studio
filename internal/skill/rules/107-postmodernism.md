@@ -63,6 +63,18 @@ A 1200×1600 magazine cover on "the return of the logo":
 - Top: "THE RETURN" in 210 px Didone, `#E8478B`, x=90 y=140, cropped by the right edge.
 - Bottom: a 12 px mono caption block at y=1500 in three conventional columns, so the joke has a floor.
 
+## Verification
+1. **Layer count.** Three to five planes, each with its own internal rules, and an explicit overlap
+   order. One unified space means the piece was composed, not layered.
+2. **Straight man.** Exactly one element is played completely straight: unrotated, untinted,
+   conventionally set. Zero leaves no baseline to break from; two leave the joke without a foil.
+3. **Named break.** Each broken rule is written down with the rule it breaks. An unlisted wrongness
+   reads as an error — the one failure irony cannot survive.
+4. **Dislocation magnitude.** A quotation is displaced by an order of magnitude: a 12 pt ornament at
+   400 px, a headline at 14 px. A subtle shift reads as a mistake, not as a quote.
+5. **Body readable.** Body copy, captions and navigation stay horizontal, one family, conventional
+   measure, at final size. Rotated or overlapped body copy turns criticism into illegibility.
+
 ## Related Rules
 - [`100-design-movements`](100-design-movements.md) — the constraint method this movement deliberately inverts.
 - [`108-memphis-design`](108-memphis-design.md) — the same decade, without the irony.

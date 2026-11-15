@@ -79,6 +79,19 @@ Same three critical elements in the same order in all three, different structure
 verticals, side-by-side in the horizontal. The 22 px supporting line becomes 26–28 px in the larger
 formats, not because the canvas grew but because the reading distance did.
 
+## Verification
+1. **Concept sentence.** The concept is stated in one sentence and holds in every format. Two
+   formats that need different sentences are two designs, not one concept adapted twice.
+2. **Critical inventory.** Each format carries the same critical elements — three at most — in the
+   same order. A format missing one, or adding a fourth, has been re-decided rather than adapted.
+3. **Body floor.** Body text is 14–16 px or more in the smallest format and unchanged as the
+   canvas grows, while the display drops about 25%. Body that scaled to 10 px is a resized
+   artboard.
+4. **Structure change.** Side-by-side becomes stacked at portrait ratios and back again at 16:9. A
+   format that keeps the arrangement and scales to 56% has the pixels and has lost the reading.
+5. **Margin proportion.** Margins are 5–8% of the short side in every format, not a fixed px
+   value. The same 96 px on a 320 px panel leaves nothing; on 1920 it looks mean.
+
 ## Related Rules
 - [`30-grid-systems`](30-grid-systems.md) — the column set that gets rebuilt per format while keeping its proportions.
 - [`31-layout-structures`](31-layout-structures.md) — the structural choice that changes between formats.

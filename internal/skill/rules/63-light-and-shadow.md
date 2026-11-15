@@ -58,6 +58,19 @@ filled `#1A1A2E` at 28% multiply. The sphere's highlight sits −28 px x and −
 background plane `#3C4A3E` is 55% contrast against the foreground `#12100E`, which sets two depth planes without
 a single gradient.
 
+## Verification
+1. **Azimuth read.** Measure every cast-shadow offset against the stated key: top-left 45° means +x,
+   +y. A shadow pointing toward the light is a flipped asset, and every offset in the set agrees on
+   one direction.
+2. **Shadow census.** Count form and cast shadows per object. Both exist on anything standing on a
+   surface; form shadow alone leaves the object floating, cast shadow alone leaves it pasted on.
+3. **Tone count.** Count tones on one surface: 3 for flat and cel, 5 for soft shading, 7 or more for
+   realism. The file's count matches its stated style; five tones in a three-tone piece is mud.
+4. **Shadow recipe.** Sample each shadow: base at 70% value, shifted +8° toward blue, multiplied at
+   20–40%. A neutral black at 30% is a dead hole in the colour, not a shadow.
+5. **Two-plane contrast.** Background contrast is 60% of foreground, 55% in the example. Sample both
+   planes in greyscale; equal contrast means the image has one plane, not two.
+
 ## Related Rules
 - [`61-shapes-and-forms`](61-shapes-and-forms.md) — the forms the light is falling on.
 - [`62-linework-and-contours`](62-linework-and-contours.md) — where tone replaces a contour line.

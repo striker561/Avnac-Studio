@@ -51,6 +51,7 @@ var ruleSections = []string{
 	"When to Avoid",
 	"Common Mistakes",
 	"Practical Examples",
+	"Verification",
 	"Related Rules",
 	"Sources",
 }
@@ -638,6 +639,9 @@ func (l *Library) Validate() error {
 		}
 		if seen != len(ruleSections) {
 			return fmt.Errorf("skill: %s has the wrong section set", r.Path)
+		}
+		if strings.TrimSpace(r.Sections["Verification"]) == "" {
+			return fmt.Errorf("skill: %s has an empty Verification section", r.Path)
 		}
 		if len(r.Related) < 2 {
 			return fmt.Errorf("skill: %s links %d related rules; link at least 2", r.Path, len(r.Related))

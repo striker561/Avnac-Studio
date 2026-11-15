@@ -356,8 +356,9 @@ var content embed.FS
 `skill.Load()` reads every file once and builds a `Library`:
 
 - `skills` — frontmatter `name`/`description`, body, the rule and reference links it declares.
-- `rules` — title from `# Rule:`, domain and ID from the metadata line, the ten H2 sections,
+- `rules` — title from `# Rule:`, domain and ID from the metadata line, the eleven H2 sections,
   related IDs, source bullets.
+- `Verification` — the per-rule acceptance checks, served with the rule over MCP.
 - `references` — title from the first H1.
 - `ruleIndex` — `rules/README.md`, kept out of the rule map.
 - `docFreq` — per-token document frequency over skill descriptions, used for IDF routing.
@@ -486,8 +487,8 @@ Client                          Avnac MCP                                    Lib
 `Server.AddResourceTemplate` is supported by go-sdk v1.6.0. The alternative design exposes
 `rules://{id}` as a template and only lists `rules://index`, which keeps `resources/list` short.
 It is not used because explicit resources work in every client, while template support varies.
-If the rule count grows past the point where a 154-entry list is unwieldy, the migration is:
-register the index explicitly, add one template, and drop the 117 individual registrations —
+If the rule count grows past the point where a 164-entry list is unwieldy, the migration is:
+register the index explicitly, add one template, and drop the 125 individual registrations —
 `designResources` is the single place to change.
 
 ---
@@ -504,15 +505,19 @@ The library is code-adjacent data, so its shape is enforced rather than trusted.
 **Domain:** <domain> · **ID:** `<file stem>`
 
 ## Purpose / Definition / Core Principles / Techniques / When to Use / When to Avoid
-## Common Mistakes / Practical Examples / Related Rules / Sources
+## Common Mistakes / Practical Examples / Verification / Related Rules / Sources
 ```
 
-- The ten H2 headings must exist, exactly once, in that order.
+- The eleven H2 headings must exist, exactly once, in that order.
 - The header line must name the same ID as the file stem, and a domain from the fixed set
   (`foundations`, `color`, `typography`, `layout`, `psychology`, `branding`, `illustration`,
   `imagery`, `print`, `ui`, `history`, `production`).
 - `Related Rules` and `Sources` must not be empty, and every related link must resolve.
-- At most 120 rule files (`skill.MaxRules`).
+- `Verification` must not be empty; it is the rule's acceptance test, not a summary.
+- A fenced `json vector` example is decoded into the real IR and drawn by
+  `vector.Draw`, and a fenced `svg` example is parsed and audited against rule 127's frame and
+  paint contract. A stale example fails `go test ./internal/skill`.
+- At most 128 rule files (`skill.MaxRules`).
 
 ### Skill files
 
@@ -529,6 +534,7 @@ An H1 and lookup material; at least one H1 is enforced.
 |---|---|
 | `skill.Validate()` | Contract violations, broken links, unknown domains, rule ceiling |
 | `internal/skill/skill_test.go` | Runs `Validate`, checks routing, plan assembly, section access |
+| `internal/skill/rules_artifact_test.go` | Compiles every executable rule example, audits SVG, and requires three numbered Verification checks per rule |
 | `.dsh/scratch/validate.py` | Per-file lint during authoring (not part of the build) |
 | `rules/README.md` | Generated index; regenerate after adding or renaming a rule |
 

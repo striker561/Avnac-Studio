@@ -64,6 +64,18 @@ A 1080×1350 reissue poster:
 - Footer 16 px/600 caps `#1A1712` at y=1260: "Reissue · 1974 · 250 copies" — that specificity is what
   keeps it from reading as generic nostalgia.
 
+## Verification
+1. **Era card.** Six fields: years, type category with two real faces, four hex values from the
+   gamut, print process, image treatment, layout habit. Two decades in one piece cancel each other.
+2. **Ink count.** Two spot inks plus black for a 1960s–70s job, four-colour process for the 1990s. A
+   third spot ink means the process never constrained the palette.
+3. **Gamut extremes.** Sample the darkest and lightest value: never `#000000` or `#FFFFFF` — the
+   darkest sits around `#1A1712` on `#F0E6D2`. Pure black and white date the piece to now.
+4. **Process values.** Halftone at 45–65 lpi, 1–2 px misregistration on one plate, ink spread of
+   +0.3 px, paper tone with 8% noise. Values outside those bands are a filter, not a process.
+5. **Distress floor.** Distressed type only above 36 px; smaller text keeps a clean edge and 4.5:1.
+   Texture under 18 px fails contrast however period it looks.
+
 ## Related Rules
 - [`100-design-movements`](100-design-movements.md) — the constraint method this rule's era card applies.
 - [`72-image-treatment`](72-image-treatment.md) — halftone, duotone, and grain that read as process.

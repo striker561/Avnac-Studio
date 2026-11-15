@@ -79,6 +79,18 @@ A 1080×1350 gig poster where the type is the image:
 The reader gets a shape in 0.3 s, the date in 2 s, the bill in 6 s. Nothing small carries a
 display treatment, which is why the single cropped word still works.
 
+## Verification
+1. **Regime line.** Every text element is display — cap height above 40 px, about 60 px and up in
+   size — or text. A display treatment on anything under that is a level error, not an effect.
+2. **Tracking at size.** Measure the set: −2…−4% at 100–200 px, −5…−7% above 200 px. Default
+   tracking at 300 px shows as gaps that read like missing letters.
+3. **Violation budget.** Count the treatments on each word: one. Crop, distortion, and layering
+   together read as a mistake, and a shadow on top of a shear reads as a broken file.
+4. **Legibility insurance.** The word appears once whole and uncropped, and every crop leaves its
+   first counter closed. A name that only exists half-bleeding is a shape, not a name.
+5. **Bleed arithmetic.** On 1080 px the cropped element runs x −180 to −320, so 25–40% sits
+   outside the edge. Under 25% the type looks misplaced; over 40% the counter is gone.
+
 ## Related Rules
 - [`22-type-anatomy`](22-type-anatomy.md) — counters and terminals decide whether a cropped letter survives.
 - [`24-typographic-hierarchy`](24-typographic-hierarchy.md) — where display sits as level one of a ranked system.

@@ -61,6 +61,23 @@ A 1200×800 "Weekly signups" card:
 - No legend, no vertical gridlines; x-labels 12 px `#6B6B6B`, every other one suppressed.
 - Data labels on the max and current bars only: 14 px `#111111`, 8 px above the cap.
 
+## Verification
+1. **Zero baseline.** Every bar, column and area starts at zero, and the baseline is drawn 1 px
+   `#D4D4D4` — y=600 in the 1200×800 example. A cropped bar axis does not zoom in, it misstates the
+   ratio.
+2. **Lie factor.** (percent change shown) ÷ (percent change in the data) lands in 0.95–1.05. Measure
+   the tallest and shortest bar against the baseline: 4,200 units at 448 px sets the scale, and 8
+   bars at 72 px with 38 px gaps fill 842 of 880 px.
+3. **Data-ink floor.** `export` op `svg`: no vertical gridlines, no frame, no plot fill; one 1 px
+   zero baseline, 4–5 horizontal gridlines at 12%, axis labels 12 px `#6B6B6B`, data labels 14 px
+   `#111111`. Every other mark is erasable ink.
+4. **Encoding order.** Position or length carries the quantity, not angle or area: no 3D extrusion,
+   no pie past 2–3 slices, no twelve-hue categorical palette. A rainbow where one hue in value steps
+   would do hides the ranking.
+5. **Label count.** Series are labelled directly at the line's end with the legend deleted, and
+   points are labelled first, last, max and min only. Nine 240×160 px panels on one shared scale
+   beat nine hues in one frame.
+
 ## Related Rules
 - [`97-dashboard-design`](97-dashboard-design.md) — these charts assembled into one screen.
 - [`18-color-accessibility`](18-color-accessibility.md) — palettes that survive color-blindness.

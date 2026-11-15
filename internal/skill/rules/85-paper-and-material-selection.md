@@ -62,6 +62,23 @@ the same sheet printed both sides, keeping the piece on one stock and one make-r
 page is 148×210 mm plus 3 mm bleed; the spec line reads "A5, 24 pp self-cover, 100 g/m² uncoated warm
 white, saddle-stitch, 2 staples".
 
+## Verification
+1. **Spec line.** The file header carries grammage, surface, caliper, shade and opacity — '350 g/m²
+   matte-coated, 1 side, FSC, 0.42 mm caliper, warm white'. A spec reading 'thick card' cannot be
+   quoted, so it will be substituted.
+2. **Weight against handling.** Text pages 90–120 g/m², brochure covers and hand-held posters
+   130–170, cards 250–350, business cards and packaging board 350–450. A 120 g/m² cover on a 96-page
+   book is a text sheet doing a cover's job.
+3. **Caliper against grammage.** Ask for caliper where thickness matters: 300 g/m² coated measures
+   about 0.35 mm, 300 g/m² uncoated about 0.45 mm. A fold, postage band or box fit quoted from
+   grammage alone is out by a tenth of a millimetre.
+4. **Opacity and reverse.** Below 100 g/m², opacity is 88–92% on 90 g/m² uncoated: hold the dummy to
+   the light and confirm no dark flood on the reverse reads through body text. A flood behind 9 pt
+   type shows as grey noise.
+5. **Dot gain on the stock.** Dot gain is 18–25% uncoated, 12–16% silk, 8–12% gloss, so a 60% tint
+   prints visibly darker on uncoated. Read the 50% and 60% patches on a proof pulled on the
+   specified sheet; a desktop inkjet proves nothing about gain.
+
 ## Related Rules
 - [`84-print-finishing-techniques`](84-print-finishing-techniques.md) — which finishes the chosen surface can actually take.
 - [`81-print-color-management`](81-print-color-management.md) — stock and finish determine the profile and the proof.

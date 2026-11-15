@@ -154,3 +154,27 @@ func TestSkillRuleNotesCarryTheQualifier(t *testing.T) {
 		t.Errorf("note keeps its trailing period: %q", note)
 	}
 }
+
+func TestGatesAreParsedFromTheEntryDocument(t *testing.T) {
+	lib := testLibrary(t)
+	gates := lib.Gates()
+	if len(gates) != 6 {
+		t.Fatalf("gates = %d, want the six always-on checks", len(gates))
+	}
+	for i, gate := range gates {
+		if gate.Check == "" || strings.Contains(gate.Check, "**") {
+			t.Errorf("gate %d is not a plain line: %q", i, gate.Check)
+		}
+		if len(gate.Rules) == 0 {
+			t.Errorf("gate %d names no rule: %q", i, gate.Check)
+		}
+		for _, id := range gate.Rules {
+			if _, ok := lib.Rule(id); !ok {
+				t.Errorf("gate %d links missing rule %q", i, id)
+			}
+		}
+	}
+	if !strings.Contains(gates[4].Check, "Check it degraded") {
+		t.Errorf("gate 5 = %q, want the degraded-output check", gates[4].Check)
+	}
+}

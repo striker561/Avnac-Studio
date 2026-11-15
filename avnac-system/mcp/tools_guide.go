@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"Avnac/internal/skill"
@@ -173,6 +174,7 @@ func guidePayload(g *skill.Guide) map[string]any {
 		confidence = "high"
 	}
 	checks := guideChecks(g)
+	gates := guideGates(g)
 	return map[string]any{
 		"matched":    true,
 		"task":       g.Task,
@@ -186,11 +188,12 @@ func guidePayload(g *skill.Guide) map[string]any {
 		"references":    references,
 		"checks":        checks,
 		"moreChecks":    len(g.Rules) - len(checks),
+		"gates":         gates,
 		"matchedTokens": g.Matched,
 		"note": "Run these checks before the next render, not after delivery. " +
 			"Each line is the rule's own Verification item; open the rules:// URI when a check needs the reasoning. " +
-			"When you report the result, name the rule you followed. This route is a starting point: " +
-			"matching is lexical, so read other rules:// or references:// resources by URI once the work moves past it.",
+			"When you report the result, name the rule you followed. The route is a sample chosen by word overlap: " +
+			"gates apply whatever it says, and rules://index lists the rules it did not name.",
 	}
 }
 
@@ -229,6 +232,49 @@ func guideChecks(g *skill.Guide) []map[string]any {
 	}
 	return out
 }
+
+// guideGates ships the entry document's always-on checks with every route.
+//
+// The route is a sample of the library chosen by keyword overlap; these six
+// checks are the part that applies whatever the sample says, and leaving them
+// behind a "read the index when you feel unsure" trigger meant they were never
+// read at all. Only gates whose rules the route does not already carry are
+// printed, so a vector task does not repeat the vector gate.
+func guideGates(g *skill.Guide) []map[string]any {
+	if g == nil || g.Skill == nil {
+		return nil
+	}
+	lib, err := skill.Default()
+	if err != nil {
+		return nil
+	}
+	routed := make(map[string]bool, len(g.Rules))
+	for _, r := range g.Rules {
+		routed[r.ID] = true
+	}
+	out := make([]map[string]any, 0, 6)
+	for _, gate := range lib.Gates() {
+		covered := len(gate.Rules) > 0
+		for _, id := range gate.Rules {
+			if !routed[id] {
+				covered = false
+				break
+			}
+		}
+		if covered {
+			continue
+		}
+		out = append(out, map[string]any{
+			"check": truncateText(gate.Check, guideGateChars),
+			"rules": gate.Rules,
+		})
+	}
+	return out
+}
+
+// guideGateChars keeps a gate to one readable line. Unlike a rule digest, a
+// gate has no shorter form: it is already the whole check.
+const guideGateChars = 220
 
 // truncateText shortens on a word boundary so a digest line never ends
 // mid-word; the ellipsis signals that the rule file has the full sentence.
@@ -322,22 +368,15 @@ func (m *AvnacMCP) attachGuideReceipt(data any) {
 	}
 
 	measured := make(map[string]bool)
-	switch checks := response["checks"].(type) {
-	case []any:
-		for _, item := range checks {
-			entry, ok := item.(map[string]any)
-			if !ok {
-				continue
-			}
-			if rule, _ := entry["rule"].(string); rule != "" {
-				measured[rule] = true
-			}
+	failed := make(map[string]string)
+	for _, entry := range structuredChecks(response["checks"]) {
+		rule, _ := entry["rule"].(string)
+		if rule == "" {
+			continue
 		}
-	case []map[string]any:
-		for _, entry := range checks {
-			if rule, _ := entry["rule"].(string); rule != "" {
-				measured[rule] = true
-			}
+		measured[rule] = true
+		if entry["status"] == "warn" {
+			failed[rule] = stringField(entry, "id")
 		}
 	}
 
@@ -351,12 +390,74 @@ func (m *AvnacMCP) attachGuideReceipt(data any) {
 		pending = append(pending, r.ID)
 	}
 	response["guideReceipt"] = map[string]any{
-		"skill":   "skill://" + g.Skill.Name,
-		"checked": checked,
-		"pending": pending,
+		"skill":    "skill://" + g.Skill.Name,
+		"checked":  checked,
+		"pending":  pending,
+		"readNext": readNextRules(g, failed),
 		"note": "checked rules were measured by this validate. pending rules are prose: " +
-			"validate cannot see them, so apply them yourself before the next render.",
+			"validate cannot see them, so apply them yourself before the next render. " +
+			"readNext names the rule that owns a failing check when that rule was not in the route.",
 	}
+}
+
+// readNextRules answers the route's blind spot with evidence: a check failed,
+// and the rule that defines the check was not in the list the agent was given.
+// That names the missing rule from the artifact instead of asking the agent to
+// notice that its route is a sample.
+func readNextRules(g *skill.Guide, failed map[string]string) []map[string]any {
+	if len(failed) == 0 {
+		return nil
+	}
+	lib, err := skill.Default()
+	if err != nil {
+		return nil
+	}
+	routed := make(map[string]bool, len(g.Rules))
+	for _, r := range g.Rules {
+		routed[r.ID] = true
+	}
+	ids := make([]string, 0, len(failed))
+	for id := range failed {
+		if !routed[id] {
+			ids = append(ids, id)
+		}
+	}
+	sort.Strings(ids)
+	if len(ids) > 4 {
+		ids = ids[:4]
+	}
+	out := make([]map[string]any, 0, len(ids))
+	for _, id := range ids {
+		entry := map[string]any{
+			"rule":    "rules://" + id,
+			"check":   failed[id],
+			"because": "this check failed and the rule that owns it was not in the route",
+		}
+		if r, ok := lib.Rule(id); ok {
+			entry["title"] = r.Title
+			entry["read"] = truncateText(r.CheckTitleLine(), 140)
+		}
+		out = append(out, entry)
+	}
+	return out
+}
+
+// structuredChecks reads the checks array a validate response carries, which
+// arrives as []any after JSON decoding and as []map[string]any in tests.
+func structuredChecks(value any) []map[string]any {
+	switch checks := value.(type) {
+	case []any:
+		out := make([]map[string]any, 0, len(checks))
+		for _, item := range checks {
+			if entry, ok := item.(map[string]any); ok {
+				out = append(out, entry)
+			}
+		}
+		return out
+	case []map[string]any:
+		return checks
+	}
+	return nil
 }
 
 // taskTextFromPayload collects the human-meaningful strings a client sent:

@@ -122,6 +122,15 @@ type Rule struct {
 	Sources []string
 }
 
+// Gate is one of the entry document's always-on checks: a sentence to run and
+// the rules that own it.
+type Gate struct {
+	// Check is the gate as one plain line, markdown links reduced to ids.
+	Check string
+	// Rules are the rule ids the gate links, in reading order.
+	Rules []string
+}
+
 // Reference is a compact lookup note from references/.
 type Reference struct {
 	// Name is the file stem, e.g. "typography".
@@ -149,6 +158,12 @@ type Library struct {
 	// ruleIndex is rules/README.md: the generated index of every rule by
 	// domain. It is served as rules://index over MCP and is not itself a rule.
 	ruleIndex string
+
+	// gates are the entry document's "Always-on gates": the checks that apply
+	// to every deliverable whatever the routed skill says. They are parsed
+	// because a route is a sample, and these are the part of the library that
+	// must arrive without being asked for.
+	gates []Gate
 
 	// docFreq counts how many skills contain a token, used for IDF weighting.
 	docFreq map[string]int
@@ -225,6 +240,7 @@ func Load() (*Library, error) {
 		Body:        body,
 		References:  referenceLinks(body),
 	}
+	lib.gates = parseGates(body)
 
 	skillDirs, err := content.ReadDir(".")
 	if err != nil {
@@ -330,6 +346,13 @@ func (l *Library) indexSkills() {
 
 // Root returns the entry-point skill, or nil when the library is empty.
 func (l *Library) Entry() *Skill { return l.Root }
+
+// Gates returns the entry document's always-on checks, in document order.
+//
+// They are data rather than a resource an agent might open: the route to a
+// skill is a sample of the library, and these checks are the part that applies
+// even when the sample is right, so a guide ships them with every route.
+func (l *Library) Gates() []Gate { return append([]Gate(nil), l.gates...) }
 
 // SkillNames returns the sub-skill names in alphabetical order.
 func (l *Library) SkillNames() []string { return append([]string(nil), l.skillOrder...) }
@@ -718,6 +741,16 @@ func (r *Rule) Checks() []string {
 	return out
 }
 
+// CheckTitleLine is the rule's first verification item, e.g. "Margin ladder —
+// The smallest margin is at least 8% of the short edge". It names the fault the
+// rule owns in the words of the check rather than the title of the virtue.
+func (r *Rule) CheckTitleLine() string {
+	if checks := r.Checks(); len(checks) > 0 {
+		return checks[0]
+	}
+	return r.Title
+}
+
 // Markdown returns the reference body.
 func (ref *Reference) Markdown() string { return strings.TrimSpace(ref.Body) }
 
@@ -771,9 +804,10 @@ var (
 	numberRe     = regexp.MustCompile(`^(\d+)-`)
 	digitsRe     = regexp.MustCompile(`^(\d+)`)
 
-	checkItemRe  = regexp.MustCompile(`^\d+\.\s+`)
-	checkLabelRe = regexp.MustCompile(`^\*\*([^*]+)\*\*\s*`)
-	ruleBulletRe = regexp.MustCompile("^[-*]\\s+\\[\\x60([^\\x60]+)\\x60\\]\\([^)]*\\)\\s*(?:—|–|-)?\\s*(.*)$")
+	checkItemRe        = regexp.MustCompile(`^\d+\.\s+`)
+	spaceBeforePunctRe = regexp.MustCompile(`\s+([.,;:!?])`)
+	checkLabelRe       = regexp.MustCompile(`^\*\*([^*]+)\*\*\s*`)
+	ruleBulletRe       = regexp.MustCompile("^[-*]\\s+\\[\\x60([^\\x60]+)\\x60\\]\\([^)]*\\)\\s*(?:—|–|-)?\\s*(.*)$")
 )
 
 // parseFrontmatter splits a YAML frontmatter block from the markdown body.
@@ -873,6 +907,55 @@ func linksIn(fragment string) []string {
 		out = append(out, target)
 	}
 	return out
+}
+
+// parseGates splits the entry document's "Always-on gates" section into
+// numbered items, keeping the rule ids each one links.
+func parseGates(body string) []Gate {
+	section := sectionText(body, "Always-on gates")
+	if section == "" {
+		return nil
+	}
+	var items []string
+	for _, raw := range strings.Split(section, "\n") {
+		line := strings.TrimSpace(raw)
+		if line == "" {
+			continue
+		}
+		if checkItemRe.MatchString(line) {
+			items = append(items, strings.TrimSpace(checkItemRe.ReplaceAllString(line, "")))
+			continue
+		}
+		if len(items) > 0 {
+			items[len(items)-1] += " " + line
+		}
+	}
+	out := make([]Gate, 0, len(items))
+	for _, item := range items {
+		check := plainMarkdown(item)
+		if check == "" {
+			continue
+		}
+		out = append(out, Gate{Check: check, Rules: dedupe(linksIn(item))})
+	}
+	return out
+}
+
+// plainMarkdown flattens one sentence of the library for a tool payload: bold
+// markers go, rule links become their bare ids, other links are dropped, and
+// the whitespace of a wrapped line collapses.
+func plainMarkdown(s string) string {
+	s = strings.ReplaceAll(s, "**", "")
+	// Links go entirely: the gate's rules travel in their own field, and an id
+	// in the middle of the sentence only makes it harder to read.
+	s = linkRe.ReplaceAllString(s, "")
+	s = strings.Join(strings.Fields(s), " ")
+	s = spaceBeforePunctRe.ReplaceAllString(s, "$1")
+	s = strings.TrimRight(s, " .,;:!?—–-")
+	if s == "" {
+		return ""
+	}
+	return s + "."
 }
 
 func ruleLinks(body string) []string {

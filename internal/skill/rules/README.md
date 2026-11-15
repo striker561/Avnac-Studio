@@ -4,8 +4,9 @@ The authoritative half of the library. Each file is one applied principle, writt
 a canvas rather than quoted: purpose, definition, core principles, techniques, when to use and
 avoid, common mistakes, a worked example, the checks that prove it, related rules and sources.
 
-Read the rule that the routed task skill links. Read this index when you need to know what else
-exists, or when a decision has no obvious owner.
+Read the rule that the routed task skill links. Read this index once after the route and before the
+first render: the route is a sample chosen by word overlap, not the set. Read it again when a
+decision has no obvious owner — but do not wait to feel lost, because that feeling never arrives.
 
 - **Reading order**: `SKILL.md` → `<task>/SKILL.md` → the 4–8 rules it links → a reference for numbers.
 - **Authority**: when a rule and a reference disagree about a number, the rule wins — fix the reference.

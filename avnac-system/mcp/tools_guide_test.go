@@ -295,3 +295,83 @@ func TestReceiptIsSilentWithoutARoute(t *testing.T) {
 		t.Error("receipt attached without a routed guide")
 	}
 }
+
+func TestGuideShipsAlwaysOnGatesOutsideTheRoute(t *testing.T) {
+	m := NewAvnacMCP(nil, nil, nil)
+	_, data, err := m.handleGuide(map[string]any{"task": "design an A2 gig poster for a jazz trio"})
+	if err != nil {
+		t.Fatalf("handleGuide: %v", err)
+	}
+	gates, _ := data.(map[string]any)["gates"].([]map[string]any)
+	if len(gates) == 0 {
+		t.Fatal("route carries no always-on gates")
+	}
+	found := false
+	for _, gate := range gates {
+		if len(gate["rules"].([]string)) == 0 {
+			t.Errorf("gate has no rules: %v", gate)
+		}
+		for _, id := range gate["rules"].([]string) {
+			if strings.HasPrefix(id, "113-") {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Error("the poster route omits 113; its gate must still arrive with the route")
+	}
+}
+
+func TestGuideSkipsGatesTheRouteAlreadyCovers(t *testing.T) {
+	m := NewAvnacMCP(nil, nil, nil)
+	_, data, err := m.handleGuide(map[string]any{"task": "draw a fox as clean vector paths with mirrored ears"})
+	if err != nil {
+		t.Fatalf("handleGuide: %v", err)
+	}
+	gates, _ := data.(map[string]any)["gates"].([]map[string]any)
+	for _, gate := range gates {
+		for _, id := range gate["rules"].([]string) {
+			if strings.HasPrefix(id, "125-") {
+				t.Errorf("vector route repeats the vector gate: %v", gate)
+			}
+		}
+	}
+}
+
+func TestReceiptNamesTheRuleThatOwnsAFailingCheck(t *testing.T) {
+	m := NewAvnacMCP(nil, nil, nil)
+	if _, _, err := m.handleGuide(map[string]any{"task": "design an A2 gig poster for a jazz trio"}); err != nil {
+		t.Fatalf("handleGuide: %v", err)
+	}
+	response := map[string]any{"success": true, "checks": []any{
+		map[string]any{"id": "alignment", "rule": "07-alignment-and-proximity", "status": "warn"},
+		map[string]any{"id": "margin_ladder", "rule": "08-negative-space", "status": "pass"},
+	}}
+	m.attachGuideReceipt(response)
+	receipt := response["guideReceipt"].(map[string]any)
+	next, _ := receipt["readNext"].([]map[string]any)
+	if len(next) != 1 {
+		t.Fatalf("readNext = %v, want the one failing rule outside the route", next)
+	}
+	if next[0]["rule"] != "rules://07-alignment-and-proximity" || next[0]["check"] != "alignment" {
+		t.Errorf("readNext entry = %v", next[0])
+	}
+	if next[0]["title"] == "" {
+		t.Error("readNext entry has no title")
+	}
+}
+
+func TestReceiptDoesNotAskForRulesAlreadyRouted(t *testing.T) {
+	m := NewAvnacMCP(nil, nil, nil)
+	if _, _, err := m.handleGuide(map[string]any{"task": "design an A2 gig poster for a jazz trio"}); err != nil {
+		t.Fatalf("handleGuide: %v", err)
+	}
+	response := map[string]any{"success": true, "checks": []any{
+		map[string]any{"id": "margin_ladder", "rule": "08-negative-space", "status": "warn"},
+	}}
+	m.attachGuideReceipt(response)
+	receipt := response["guideReceipt"].(map[string]any)
+	if next, ok := receipt["readNext"].([]map[string]any); ok && len(next) > 0 {
+		t.Errorf("readNext asked for a routed rule: %v", next)
+	}
+}

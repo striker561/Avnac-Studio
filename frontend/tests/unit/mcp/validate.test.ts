@@ -173,6 +173,7 @@ describe("validateScene", () => {
       "margin_ladder",
       "density",
       "level_census",
+      "alignment",
       "optical_centring",
       "contrast_floor",
     ]);
@@ -223,6 +224,27 @@ describe("validateScene", () => {
     );
     const report = validateScene(scene);
     expect(report.checks.find((entry) => entry.id === "type_steps")?.status).toBe("pass");
+  });
+
+  it("flags a near-miss off the centre axis", () => {
+    const headline = text("headline", { x: 252, y: 80, width: 300, fontSize: 64 });
+    const report = validateScene(sceneWith(headline));
+    const check = report.checks.find((entry) => entry.id === "alignment");
+    expect(check?.status).toBe("warn");
+    expect(check?.detail).toContain("2px off the artboard axis");
+    const issue = report.issues.find((entry) => entry.code === "near_alignment");
+    expect(issue?.rule).toBe("07-alignment-and-proximity");
+  });
+
+  it("accepts a deliberate off-axis or an exact centre", () => {
+    const wide = text("headline", { x: 320, y: 80, width: 300, fontSize: 64 });
+    expect(
+      validateScene(sceneWith(wide)).checks.find((entry) => entry.id === "alignment")?.status,
+    ).toBe("pass");
+    const exact = text("headline", { x: 250, y: 80, width: 300, fontSize: 64 });
+    expect(
+      validateScene(sceneWith(exact)).checks.find((entry) => entry.id === "alignment")?.status,
+    ).toBe("pass");
   });
 
   it("flags display type centred mathematically", () => {

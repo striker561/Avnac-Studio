@@ -24,7 +24,8 @@ Four kinds of files, with one job each:
 The split is deliberate. A skill tells you *how to run the task*; a rule tells you *what is
 true*; a reference gives you *the numbers*. Reading all 125 rules is wasteful and flattens your
 attention. Read the routed skill, then the four to eight rules it links, then a reference only
-when you need a value table.
+when you need a value table. The route is a sample, not the set: the always-on gates below apply
+whatever it says, and `rules/README.md` is where the rules it did not name are listed.
 
 ## Routing table
 

@@ -345,6 +345,41 @@ function ruleChecks(
     }
   }
 
+  // rules://07-alignment-and-proximity — a near-miss on the centre axis.
+  const display = texts
+    .map((node) => ({ node, size: Number((node as any).fontSize ?? 0) }))
+    .filter((entry) => entry.size >= 20)
+    .sort((a, b) => b.size - a.size)[0];
+  let slip = 0;
+  let slipId: string | undefined;
+  if (display && width > 0) {
+    const b = getNodeBounds(display.node as any);
+    const offset = b.x + b.width / 2 - width / 2;
+    if (Math.abs(offset) > 0 && Math.abs(offset) < 8) {
+      slip = offset;
+      slipId = display.node.id;
+    }
+  }
+  checks.push({
+    id: "alignment",
+    rule: "07-alignment-and-proximity",
+    status: slipId ? "warn" : "pass",
+    detail: slipId
+      ? "Display text centre is " + round1(Math.abs(slip)) + "px off the artboard axis; rules://07 calls an under-8px offset a slip — snap to 0 or widen past 24px."
+      : "No display text sits 0-8px off the artboard axis; edges are either aligned or deliberately apart.",
+  });
+  if (slipId) {
+    issues.push({
+      code: "near_alignment",
+      severity: "warning",
+      nodeId: slipId,
+      rule: "07-alignment-and-proximity",
+      message:
+        "Display text centre is " + round1(Math.abs(slip)) + "px off the artboard centre; rules://07-alignment-and-proximity " +
+        "treats an offset under 8px as a slip: snap it to 0 or move it past 24px on purpose.",
+    });
+  }
+
   // rules://04-balance-and-proportion — optical centring.
   const centred = texts.filter((node) => {
     const b = getNodeBounds(node as any);

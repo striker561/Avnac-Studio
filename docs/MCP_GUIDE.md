@@ -166,6 +166,12 @@ vector drawing, critique — even when the user did not ask for guidance. The de
 are not read. `inline=true` returns the full workflow and rule text for clients that cannot read
 resources.
 
+Every route also carries the entry document's **always-on gates** (`gates`): the six checks that
+apply to any deliverable — hierarchy, measured contrast, production values, stated rationale,
+degraded-output test, constructed vectors. They ride with the route because the route is a sample
+of the library chosen by keyword overlap, and the gates are the part that applies whatever the
+sample says. A gate whose rules the route already carries is dropped.
+
 The server also attaches a compact `guide` field to composition results (`canvas` op=create/add-page,
 `elements` op=render/measure/modify, `vector` op=draw) whenever the payload is a clear match — once
 per route. Repeating the same URI list on every render is what taught agents to skim past it, so a
@@ -192,7 +198,7 @@ repeat is skipped; `validate` reports the debt instead (see `guideReceipt` below
 - `snapshot` / `restore` (`token`) — capture every page, then return to that checkpoint. Tokens are session-scoped.
 - `undo` / `redo` — object-level and page-level history.
 - `status` — connected `clientId`, `actionHandlerId`, `revision`, active document/page, undo state and implemented capabilities. Call this first when an action looks stale.
-- `validate` — structured audit for out-of-bounds objects, low contrast, tiny type, thin strokes, duplicate names, near tangencies and unloaded fonts, plus rule-backed `checks` with measured numbers: `margin_ladder` (8% of the short edge, bottom largest), `density` (4×4 coverage), `level_census` (four levels, five on a poster), `type_steps` (1.3×–1.5×), `optical_centring` (2–4px high at 100px) and `contrast_floor`. When a route has been handed out, the response also carries `guideReceipt`: which routed rules this validate actually measured, and which are prose the agent still has to apply.
+- `validate` — structured audit for out-of-bounds objects, low contrast, tiny type, thin strokes, duplicate names, near tangencies and unloaded fonts, plus rule-backed `checks` with measured numbers: `margin_ladder` (8% of the short edge, bottom largest), `density` (4×4 coverage), `level_census` (four levels, five on a poster), `type_steps` (1.3×–1.5×), `optical_centring` (2–4px high at 100px) and `contrast_floor`. When a route has been handed out, the response also carries `guideReceipt`: which routed rules this validate actually measured, which are prose the agent still has to apply, and `readNext` — the rule that owns a failing check when that rule was not in the route. So the artifact names the rule the route missed, instead of waiting for the agent to wonder what else exists.
 - `clear` — removes every object **on the current page**, returns `clearedCount`.
 - `background` (`backgroundColor`/`color`) — sets the current page background.
 - `preset` (`presetId`/`preset`) — `ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`.

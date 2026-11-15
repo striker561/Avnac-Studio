@@ -5,11 +5,11 @@ import {
   Delete02Icon,
 } from "@hugeicons/core-free-icons";
 import {
-  AVNAC_VECTOR_BOARD_DRAG_MIME,
+  VECTOR_BOARD_DRAG_MIME,
   emptyVectorBoardDocument,
   vectorDocHasRenderableStrokes,
   type VectorBoardDocument,
-} from "@/lib/avnac-vector-board-document";
+} from "@/lib/avnac-vector";
 import type { AvnacVectorBoardMeta } from "@/lib/avnac-vector-boards-storage";
 import {
   editorSidebarPanelLeftClass,
@@ -83,7 +83,7 @@ export default function EditorVectorBoardPanel({
                           return;
                         }
                         e.dataTransfer.setData(
-                          AVNAC_VECTOR_BOARD_DRAG_MIME,
+                          VECTOR_BOARD_DRAG_MIME,
                           b.id,
                         );
                         e.dataTransfer.effectAllowed = "copy";

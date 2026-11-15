@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { AvnacDocumentV1 } from "@/lib/avnac-document";
 import { mergeStoredPages } from "@/lib/avnac-multi-page-storage";
-import { buildMultiPageDocument } from "@/lib/avnac-multi-page-document";
+import {
+  buildMultiPageDocument,
+  parseMultiPageDocument,
+} from "@/lib/avnac-multi-page-document";
 
 function makeDoc(page: number): AvnacDocumentV1 {
   return {
@@ -30,6 +33,38 @@ function makeDoc(page: number): AvnacDocumentV1 {
     },
   };
 }
+
+describe("page names", () => {
+  it("round-trips page names through build/parse", () => {
+    const built = buildMultiPageDocument(
+      [makeDoc(1), makeDoc(2)],
+      1,
+      ["Main", "Test — layout"],
+    );
+    expect(built.pageNames).toEqual(["Main", "Test — layout"]);
+
+    const parsed = parseMultiPageDocument(built);
+    expect(parsed?.pageNames).toEqual(["Main", "Test — layout"]);
+  });
+
+  it("reads documents written before page names existed", () => {
+    const built = buildMultiPageDocument([makeDoc(1), makeDoc(2)], 0);
+    const legacy = { ...built } as Record<string, unknown>;
+    delete legacy.pageNames;
+
+    const parsed = parseMultiPageDocument(legacy);
+    expect(parsed?.pageNames).toEqual(["", ""]);
+  });
+
+  it("pads and trims names to the page count", () => {
+    const built = buildMultiPageDocument(
+      [makeDoc(1), makeDoc(2)],
+      0,
+      ["  Cover  ", "Extra", "Ignored"],
+    );
+    expect(built.pageNames).toEqual(["Cover", "Extra"]);
+  });
+});
 
 describe("mergeStoredPages", () => {
   it("does not overwrite stored page content with stale IDB doc", () => {

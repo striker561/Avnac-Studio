@@ -11,6 +11,13 @@ Tests are arranged by **unit** (pure logic, fast) and **features** (cross-module
 | Scene engine (Saraswati) | `frontend/src/lib/saraswati/` | `frontend/tests/unit/saraswati/` |
 | Canvas render path | `frontend/src/components/scene-workspace/stage.tsx` | `frontend/tests/features/saraswati/render-performance.test.ts` |
 | Scene editor store | `frontend/src/features/scene-editor/store/` | `frontend/tests/unit/scene-editor/` |
+| Page lifecycle + naming | `frontend/src/lib/avnac-multi-page-document.ts`, `store/paging/` | `frontend/tests/unit/scene-editor/page-recipes.test.ts`, `frontend/tests/unit/storage/` |
+| MCP page targeting | `frontend/src/lib/mcp/pages.ts` | `frontend/tests/unit/mcp/pages.test.ts` |
+| Vector board engine (v3) | `frontend/src/lib/avnac-vector/` | `frontend/tests/unit/vector/`, `frontend/tests/features/vector/` |
+| Vector IR + MCP vector tool | `internal/vector/`, `avnac-system/mcp/tools_vector.go` | `internal/vector/vector_test.go`, `avnac-system/mcp/tools_vector_test.go`, `avnac-system/mcp/vector_e2e_test.go` |
+| Vector knowledge + routing eval | `internal/skill/vector/`, `internal/skill/rules/120-127` | `internal/skill/vector_eval_test.go`, `avnac-system/mcp/vector_resources_test.go` |
+| Vector board editor UI | `frontend/src/components/editor/vector-boards/` | `frontend/tests/e2e/vector-board.e2e.ts` |
+| MCP server instructions/tools | `avnac-system/mcp/` | `avnac-system/mcp/*_test.go` |
 | Multi-page persistence | `frontend/src/lib/avnac-multi-page-storage.ts` | `frontend/tests/unit/storage/`, `frontend/tests/features/storage/` |
 | Remove background UI | `frontend/src/lib/use-remove-bg.ts` | `frontend/tests/unit/rembg/` |
 
@@ -30,6 +37,9 @@ frontend/tests/
   features/
     storage/                        # multi-MiB workspace envelopes + Wails mocks
     saraswati/                      # render command + drag-frame budgets
+    vector/                         # vector engine perf budgets + MCP placement
+  e2e/
+    vector-board.e2e.ts             # Wails-browser Playwright suite
 ```
 
 ## Commands
@@ -42,12 +52,39 @@ cd frontend && npm run test
 # Split suites (matches CI)
 cd frontend && npm run test:unit
 cd frontend && npm run test:features
+
+# End-to-end (needs the Wails browser dev server)
+wails dev -browser
+cd frontend && npm run test:e2e
 ```
 
 ## CI gates
 
 - **Push / PR** — `.github/workflows/ci.yml` runs Go tests, typecheck, unit + feature Vitest.
 - **Release tags** — `.github/workflows/release.yml` runs the same test job before any platform build.
+
+## End-to-end (Wails browser)
+
+`wails dev -browser` serves the real app with the Go bindings intact at the Wails dev URL
+(`http://localhost:34115` by default). Use it for end-to-end checks that need the actual editor,
+MCP bridge and native storage:
+
+```bash
+wails dev -browser
+# in another terminal, drive the MCP server and the browser page
+```
+
+Point Playwright (or a browser) at the dev URL, read the bearer token from
+`window.go.avnacsecrets.SecretsManager.GetKey("mcp")`, then exercise the MCP server on the URL
+shown by `window.go.mcp.AvnacMCP.GetMCPInfo()`. A page created through MCP must switch the
+visible page tab and active canvas in that browser session.
+
+**One frontend at a time.** `mcp:action` is broadcast to every connected app frontend, and every
+one of them applies the action before replying. `wails dev -browser` opens a browser tab *in
+addition to* the native window, so two live tabs would apply each page/render twice. Close one
+of them before driving mutating tools, or keep Playwright read-only and verify the live page in
+the native window (capture it with `PrintWindow`/`CopyFromScreen`). Do not use this to create a
+new project per test: add a named page in the open project and delete it afterwards.
 
 ## Known hot paths under test
 

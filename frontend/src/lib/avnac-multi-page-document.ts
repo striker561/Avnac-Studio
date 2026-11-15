@@ -7,10 +7,21 @@ import { toAvnacDocument } from "@/lib/saraswati/compat/to-avnac";
 export const AVNAC_MULTI_PAGE_DOC_KIND = "avnac-multi-page-document" as const;
 export const AVNAC_MULTI_PAGE_DOC_VERSION = 1 as const;
 
+/** Longest accepted page name, in characters. */
+export const MAX_PAGE_NAME_LENGTH = 120;
+
 export type AvnacMultiPageDocumentV1 = {
   kind: typeof AVNAC_MULTI_PAGE_DOC_KIND;
   v: typeof AVNAC_MULTI_PAGE_DOC_VERSION;
   currentPage: number;
+  /**
+   * Optional user-facing name for each page, index-aligned with `pages`.
+   * Missing/empty entries fall back to "Page N" in the UI.
+   *
+   * Added after v1 shipped, so it is optional on read: documents written
+   * before pages could be named parse cleanly and get empty names.
+   */
+  pageNames: string[];
   pages: AvnacDocumentV1[];
 };
 
@@ -23,6 +34,32 @@ function cloneDoc(doc: AvnacDocumentV1): AvnacDocumentV1 {
   return JSON.parse(JSON.stringify(doc)) as AvnacDocumentV1;
 }
 
+/** Trim and bound one page name. Empty means "use the page-number fallback". */
+export function normalizePageName(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_PAGE_NAME_LENGTH);
+}
+
+/** Index-aligned page names, padded/truncated to `count`. */
+export function normalizePageNames(raw: unknown, count: number): string[] {
+  const values = Array.isArray(raw) ? raw : [];
+  const safeCount = Math.max(0, Math.trunc(count));
+  return Array.from({ length: safeCount }, (_, index) =>
+    normalizePageName(values[index]),
+  );
+}
+
+/** The label shown in tabs and MCP responses when a page has no name. */
+export function pageDisplayName(
+  pageNames: readonly string[] | undefined,
+  index: number,
+): string {
+  return normalizePageName(pageNames?.[index]) || `Page ${index + 1}`;
+}
+
 export function clampPageIndex(pageCount: number, index: number): number {
   if (pageCount <= 1) return 0;
   if (!Number.isFinite(index)) return 0;
@@ -32,6 +69,7 @@ export function clampPageIndex(pageCount: number, index: number): number {
 export function buildMultiPageDocument(
   pages: readonly AvnacDocumentV1[],
   currentPage: number,
+  pageNames: readonly string[] = [],
 ): AvnacMultiPageDocumentV1 {
   const safePages =
     pages.length > 0 ? pages.map(cloneDoc) : [cloneDoc(createEmptyPage())];
@@ -39,6 +77,7 @@ export function buildMultiPageDocument(
     kind: AVNAC_MULTI_PAGE_DOC_KIND,
     v: AVNAC_MULTI_PAGE_DOC_VERSION,
     currentPage: clampPageIndex(safePages.length, currentPage),
+    pageNames: normalizePageNames(pageNames, safePages.length),
     pages: safePages,
   };
 }
@@ -56,9 +95,15 @@ export function parseMultiPageDocument(
     return null;
   }
 
-  const pages = candidate.pages
-    .map((page) => migrateAvnacDocument(page))
-    .filter((page): page is AvnacDocumentV1 => Boolean(page));
+  const pages: AvnacDocumentV1[] = [];
+  const pageNames: string[] = [];
+  candidate.pages.forEach((page, index) => {
+    const migrated = migrateAvnacDocument(page);
+    if (!migrated) return;
+    pages.push(migrated);
+    // Keep names aligned with their source page even if one is dropped.
+    pageNames.push(normalizePageName(candidate.pageNames?.[index]));
+  });
   if (pages.length === 0) return null;
 
   return {
@@ -68,6 +113,7 @@ export function parseMultiPageDocument(
       pages.length,
       Number(candidate.currentPage ?? 0),
     ),
+    pageNames,
     pages,
   };
 }
@@ -95,7 +141,22 @@ export function parseAvnacImport(raw: unknown): ParsedAvnacImport | null {
   return null;
 }
 
-export function createEmptyPage(from?: AvnacDocumentV1): AvnacDocumentV1 {
+export type EmptyPageOptions = {
+  width?: number;
+  height?: number;
+  backgroundColor?: string;
+};
+
+function pageDimension(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 100 || n > 16000) return null;
+  return Math.round(n);
+}
+
+export function createEmptyPage(
+  from?: AvnacDocumentV1,
+  options?: EmptyPageOptions,
+): AvnacDocumentV1 {
   const base = from
     ? cloneDoc(from)
     : {
@@ -105,11 +166,21 @@ export function createEmptyPage(from?: AvnacDocumentV1): AvnacDocumentV1 {
         fabric: { objects: [] },
       };
 
+  const width = pageDimension(options?.width) ?? base.artboard.width;
+  const height = pageDimension(options?.height) ?? base.artboard.height;
+  const requestedBackground =
+    typeof options?.backgroundColor === "string" &&
+    options.backgroundColor.trim().length > 0
+      ? options.backgroundColor.trim()
+      : "#ffffff";
+
   return {
     ...base,
-    // A new page keeps the artboard size from the current page, but starts
-    // with the default background — not the previous page's fill.
-    bg: { type: "solid", color: "#ffffff" } as AvnacDocumentV1["bg"],
+    // A page keeps the current artboard size unless a caller explicitly asks
+    // for another one. The background starts fresh rather than inheriting the
+    // previous page's fill.
+    artboard: { ...base.artboard, width, height },
+    bg: { type: "solid", color: requestedBackground } as AvnacDocumentV1["bg"],
     fabric: { objects: [] },
   };
 }
@@ -132,6 +203,7 @@ function parseV2WorkspaceImport(raw: unknown): AvnacMultiPageDocumentV1 | null {
 
   const pages: AvnacDocumentV1[] = [];
   const pageIds: string[] = [];
+  const pageNames: string[] = [];
   for (const pageRaw of doc.pages) {
     if (!pageRaw || typeof pageRaw !== "object") continue;
     const page = pageRaw as Record<string, unknown>;
@@ -149,6 +221,8 @@ function parseV2WorkspaceImport(raw: unknown): AvnacMultiPageDocumentV1 | null {
     if (!scene) continue;
     pages.push(toAvnacDocument(scene));
     pageIds.push(pageId ?? "");
+    // Web workspaces carry a per-page name; keep it when importing.
+    pageNames.push(normalizePageName(page.name || page.title));
   }
 
   if (pages.length === 0) return null;
@@ -164,5 +238,5 @@ function parseV2WorkspaceImport(raw: unknown): AvnacMultiPageDocumentV1 | null {
           typeof doc.currentPage === "number" ? doc.currentPage : 0,
         );
 
-  return buildMultiPageDocument(pages, currentPage);
+  return buildMultiPageDocument(pages, currentPage, pageNames);
 }

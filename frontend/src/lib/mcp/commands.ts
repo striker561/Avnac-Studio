@@ -17,12 +17,14 @@ import {
   normalizeImageCredit,
   type SaraswatiColor,
   type SaraswatiCommand,
+  type SaraswatiImageNode,
   type SaraswatiNode,
   type SaraswatiRenderableNode,
   type SaraswatiScene,
   type SaraswatiShadow,
 } from "@/lib/saraswati";
 import { getRenderableNodeBounds } from "@/lib/editor/overlays";
+import { computeImageCrop, type CropPixels, type ImageSize } from "@/lib/mcp/image-fit";
 import {
   normalizeFontStyle,
   normalizeFontWeight,
@@ -105,12 +107,21 @@ export function buildRenderElementsCommands(
   scene: SaraswatiScene,
   elements: unknown[],
   measure?: TextMeasurer,
-): { commands: SaraswatiCommand[]; created: CreatedElementInfo[] } {
+  imageSizes?: Map<string, ImageSize | null>,
+): {
+  commands: SaraswatiCommand[];
+  created: CreatedElementInfo[];
+  skipped: Array<{ index: number; type: string; reason: string }>;
+} {
   const rootId = scene.root || SARASWATI_ROOT_ID;
   const commands: SaraswatiCommand[] = [];
   const created: CreatedElementInfo[] = [];
+  // Elements the node builder could not turn into a node. Reported instead of
+  // dropped: an agent that sends an unsupported type must not be told the batch
+  // rendered when nothing appeared on the canvas.
+  const skipped: Array<{ index: number; type: string; reason: string }> = [];
 
-  for (const raw of elements) {
+  for (const [index, raw] of elements.entries()) {
     const el = (raw ?? {}) as LooseRecord;
     const id = el.id || crypto.randomUUID();
     const name = el.name || el.type;
@@ -141,6 +152,17 @@ export function buildRenderElementsCommands(
       };
     }
 
+    const imageCrop =
+      el.type === "image" && typeof el.url === "string"
+        ? computeImageCrop({
+            natural: imageSizes?.get(el.url) ?? null,
+            target: { width, height },
+            fit: el.fit,
+            focalPoint: el.focalPoint,
+            crop: el.crop,
+          })
+        : null;
+
     const node = buildElementNode(el, {
       id,
       rootId,
@@ -154,6 +176,7 @@ export function buildRenderElementsCommands(
       blur,
       fill,
       shadow,
+      crop: imageCrop,
     });
 
     if (node && isSaraswatiRenderableNode(node)) {
@@ -167,10 +190,17 @@ export function buildRenderElementsCommands(
           ? { left: b.x, top: b.y, width, height: measured.height }
           : { left: b.x, top: b.y, width: b.width, height: b.height },
       });
+    } else {
+      skipped.push({
+        index,
+        type: typeof el.type === "string" ? el.type : "unknown",
+        reason:
+          "unsupported element type or missing required fields; use rect, ellipse, circle, polygon, star, line, text, image, or sticker",
+      });
     }
   }
 
-  return { commands, created };
+  return { commands, created, skipped };
 }
 
 function baseNodeFields(input: {
@@ -217,6 +247,7 @@ function buildElementNode(
     blur: number;
     fill: SaraswatiColor;
     shadow: SaraswatiShadow | null;
+    crop?: CropPixels | null;
   },
 ): SaraswatiNode | null {
   const stroke = el.stroke ? parseColor(el.stroke) : null;
@@ -315,14 +346,14 @@ function buildElementNode(
     };
   }
   if (el.type === "image" && el.url) {
+    const crop = input.crop ?? { cropX: 0, cropY: 0 };
     return {
       ...baseNodeFields(input),
       type: "image",
       width: input.width,
       height: input.height,
       src: el.url,
-      cropX: 0,
-      cropY: 0,
+      ...crop,
       clipPath: null,
       borderRadius: el.cornerRadius ?? el.radius ?? 0,
       // The Go side stamps credit onto image elements whose URL came from
@@ -348,44 +379,279 @@ function buildElementNode(
 
 // ─── modify_elements ──────────────────────────────────────────────────────────
 
+/** A compact, serializable snapshot of a node for before/after audit trails. */
+export type NodeSnapshot = {
+  id: string;
+  type: string;
+  name?: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  rotation?: number;
+  opacity?: number;
+  text?: string;
+  src?: string;
+  fill?: unknown;
+  stroke?: unknown;
+  strokeWidth?: number;
+};
+
+export type ModifyIssue = {
+  index: number;
+  requested: string;
+  status: "not_found" | "ambiguous" | "unchanged" | "unsupported";
+  reason: string;
+  matches?: string[];
+};
+
+export type ResolvedModification = {
+  index: number;
+  requested: string;
+  objectId: string;
+  type: string;
+  before: NodeSnapshot;
+  changedFields: string[];
+};
+
+/** Capture only the fields an agent needs to understand a mutation. */
+export function snapshotNode(node: SaraswatiNode): NodeSnapshot {
+  const anyNode = node as LooseRecord;
+  const snapshot: NodeSnapshot = {
+    id: node.id,
+    type: node.type,
+    name: anyNode.name,
+    x: anyNode.x,
+    y: anyNode.y,
+    width: anyNode.width,
+    height: anyNode.height,
+    rotation: anyNode.rotation,
+    opacity: anyNode.opacity,
+    text: anyNode.text,
+    src: anyNode.src,
+    fill: anyNode.fill,
+    stroke: anyNode.stroke,
+    strokeWidth: anyNode.strokeWidth,
+  };
+  return Object.fromEntries(
+    Object.entries(snapshot).filter(([, value]) => value !== undefined),
+  ) as NodeSnapshot;
+}
+
+function targetLabel(mod: LooseRecord): string {
+  for (const value of [
+    mod.objectId,
+    mod.id,
+    mod.targetName,
+    mod.objectName,
+    mod.name,
+  ]) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "?";
+}
+
+/**
+ * Resolve a modification target.
+ *
+ * objectId/id are exact and always win. Without an id, targetName /
+ * objectName / name select a unique case-insensitive node name. Supplying an
+ * id also keeps the legacy meaning of name (the new node name); with a name
+ * target, use newName to rename and avoid turning the selector into the value
+ * being written.
+ */
+function resolveModifyTarget(
+  scene: SaraswatiScene,
+  mod: LooseRecord,
+):
+  | { ok: true; node: SaraswatiNode; targetByName: boolean }
+  | { ok: false; status: "not_found" | "ambiguous" | "unsupported"; reason: string; matches?: string[] } {
+  const explicitId = mod.objectId ?? mod.id;
+  if (typeof explicitId === "string" && explicitId.trim()) {
+    const id = explicitId.trim();
+    const node = scene.nodes[id];
+    if (node) return { ok: true, node, targetByName: false };
+    return { ok: false, status: "not_found", reason: "Object " + id + " not found" };
+  }
+
+  const rawName = mod.targetName ?? mod.objectName ?? mod.name;
+  if (typeof rawName !== "string" || !rawName.trim()) {
+    return {
+      ok: false,
+      status: "unsupported",
+      reason:
+        "Each modification needs objectId, id, targetName, objectName, or name (when no id is supplied).",
+    };
+  }
+  const wanted = rawName.trim().toLowerCase();
+  const matches = Object.values(scene.nodes).filter(
+    (node) =>
+      node.id !== scene.root &&
+      typeof (node as LooseRecord).name === "string" &&
+      String((node as LooseRecord).name).trim().toLowerCase() === wanted,
+  );
+  if (matches.length === 1) {
+    return { ok: true, node: matches[0]!, targetByName: true };
+  }
+  if (matches.length > 1) {
+    const ids = matches.map((node) => node.id);
+    return {
+      ok: false,
+      status: "ambiguous",
+      reason:
+        "Name " + JSON.stringify(rawName) + " matches " + matches.length +
+        " objects; use an objectId.",
+      matches: ids,
+    };
+  }
+  const names = Object.values(scene.nodes)
+    .filter((node) => node.id !== scene.root)
+    .map((node) => String((node as LooseRecord).name ?? "").trim())
+    .filter(Boolean)
+    .slice(0, 20);
+  return {
+    ok: false,
+    status: "not_found",
+    reason:
+      "No object named " + JSON.stringify(rawName) + ". Known names: " +
+      (names.join(", ") || "none"),
+  };
+}
+
 /**
  * Convert modify_elements modification specs into engine commands.
- * Returns the commands plus the count of specs whose objectId existed.
+ *
+ * Returns commands plus a per-spec audit: resolved target, before snapshot,
+ * changed fields, and unresolved/ambiguous/unchanged reasons. The orchestration
+ * layer applies the commands and reads the after snapshots, so this builder
+ * never needs a mutable scene or renderer.
  */
 export function buildModifyElementsCommands(
   scene: SaraswatiScene,
   modifications: unknown[],
-): { commands: SaraswatiCommand[]; modifiedCount: number } {
+  imageSizes?: Map<string, ImageSize | null>,
+): {
+  commands: SaraswatiCommand[];
+  modifiedCount: number;
+  resolved: ResolvedModification[];
+  issues: ModifyIssue[];
+} {
   const commands: SaraswatiCommand[] = [];
+  const resolved: ResolvedModification[] = [];
+  const issues: ModifyIssue[] = [];
   let modifiedCount = 0;
 
-  for (const raw of modifications) {
+  for (const [index, raw] of modifications.entries()) {
     const mod = (raw ?? {}) as LooseRecord;
-    const node = scene.nodes[mod.objectId];
-    if (!node) continue;
-    modifiedCount++;
+    const target = resolveModifyTarget(scene, mod);
+    if (!target.ok) {
+      issues.push({
+        index,
+        requested: targetLabel(mod),
+        status: target.status,
+        reason: target.reason,
+        ...(target.matches ? { matches: target.matches } : {}),
+      });
+      continue;
+    }
+
+    const node = target.node;
     const anyNode = node as LooseRecord;
+    const objectId = node.id;
+    const commandStart = commands.length;
+    const changedFields: string[] = [];
+
+    // Image source replacement. This is deliberately one REPLACE_NODE rather
+    // than an image-specific command so the node keeps its identity, z-order,
+    // parent and selection while its pixels change.
+    const newSrcValue = mod.url ?? mod.src;
+    const newSrc =
+      typeof newSrcValue === "string" && newSrcValue.trim()
+        ? newSrcValue.trim()
+        : "";
+    let imageSrcReplaced = false;
+    if (newSrc) {
+      if (node.type !== "image") {
+        issues.push({
+          index,
+          requested: targetLabel(mod),
+          status: "unsupported",
+          reason: "url/src replacement is only supported on image objects",
+        });
+      } else {
+        const targetWidth = Number(mod.width ?? node.width);
+        const targetHeight = Number(mod.height ?? node.height);
+        const crop = computeImageCrop({
+          natural: imageSizes?.get(newSrc) ?? null,
+          target: {
+            width: Number.isFinite(targetWidth) ? targetWidth : node.width,
+            height: Number.isFinite(targetHeight) ? targetHeight : node.height,
+          },
+          fit: mod.fit,
+          focalPoint: mod.focalPoint,
+          crop: mod.crop,
+        });
+        const replacement: SaraswatiImageNode = {
+          ...node,
+          src: newSrc,
+          cropX: crop.cropX,
+          cropY: crop.cropY,
+          cropWidth: crop.cropWidth,
+          cropHeight: crop.cropHeight,
+          clipPath: null,
+        };
+        commands.push({ type: "REPLACE_NODE", node: replacement });
+        changedFields.push("src");
+        imageSrcReplaced = true;
+      }
+    }
+
+    // Image art direction without a source replacement.
+    if (
+      node.type === "image" &&
+      !imageSrcReplaced &&
+      (mod.fit !== undefined || mod.focalPoint !== undefined || mod.crop !== undefined)
+    ) {
+      const natural = imageSizes?.get(node.src) ?? null;
+      const targetWidth = Number(mod.width ?? node.width);
+      const targetHeight = Number(mod.height ?? node.height);
+      const crop = computeImageCrop({
+        natural,
+        target: {
+          width: Number.isFinite(targetWidth) ? targetWidth : node.width,
+          height: Number.isFinite(targetHeight) ? targetHeight : node.height,
+        },
+        fit: mod.fit,
+        focalPoint: mod.focalPoint,
+        crop: mod.crop,
+      });
+      commands.push({ type: "SET_IMAGE_CROP", id: objectId, ...crop });
+      changedFields.push("crop");
+    }
 
     const newX = mod.x ?? mod.left;
     const newY = mod.y ?? mod.top;
     if (newX !== undefined || newY !== undefined || mod.width !== undefined || mod.height !== undefined) {
       commands.push({
         type: "RESIZE_NODE",
-        id: mod.objectId,
+        id: objectId,
         x: newX ?? ("x" in node ? anyNode.x : 0),
         y: newY ?? ("y" in node ? anyNode.y : 0),
         width: mod.width ?? ("width" in node ? anyNode.width : 100),
         height: mod.height ?? ("height" in node ? anyNode.height : 100),
       });
+      changedFields.push("layout");
     }
 
     const rot = mod.rotation ?? mod.angle;
     if (rot !== undefined) {
-      commands.push({ type: "ROTATE_NODE", id: mod.objectId, rotation: rot });
+      commands.push({ type: "ROTATE_NODE", id: objectId, rotation: rot });
+      changedFields.push("rotation");
     }
 
     if (mod.opacity !== undefined) {
-      commands.push({ type: "SET_NODE_OPACITY", id: mod.objectId, opacity: mod.opacity });
+      commands.push({ type: "SET_NODE_OPACITY", id: objectId, opacity: mod.opacity });
+      changedFields.push("opacity");
     }
 
     const hasPaintFields =
@@ -409,15 +675,17 @@ export function buildModifyElementsCommands(
         } else if (node.type === "line") {
           commands.push({
             type: "SET_NODE_STROKE",
-            id: mod.objectId,
+            id: objectId,
             stroke: pendingPaint,
             strokeWidth: mod.strokeWidth ?? anyNode.strokeWidth ?? 2,
           });
           pendingPaint = null;
           lineStrokeDone = true;
+          changedFields.push("stroke");
         } else if (node.type !== "image" && node.type !== "group") {
-          commands.push({ type: "SET_NODE_FILL", id: mod.objectId, fill: pendingPaint });
+          commands.push({ type: "SET_NODE_FILL", id: objectId, fill: pendingPaint });
           pendingPaint = null;
+          changedFields.push("fill");
         } else {
           pendingPaint = null;
         }
@@ -429,23 +697,25 @@ export function buildModifyElementsCommands(
       if (node.type === "rect") {
         commands.push({
           type: "SET_NODE_CORNER_RADIUS",
-          id: mod.objectId,
+          id: objectId,
           radiusX: rad,
           radiusY: rad,
         });
+        changedFields.push("cornerRadius");
       } else if (node.type === "image") {
         commands.push({
           type: "SET_IMAGE_BORDER_RADIUS",
-          id: mod.objectId,
+          id: objectId,
           radius: rad,
         });
+        changedFields.push("cornerRadius");
       }
     }
 
     if (mod.shadow) {
       commands.push({
         type: "SET_NODE_SHADOW",
-        id: mod.objectId,
+        id: objectId,
         shadow: {
           blur: mod.shadow.blur ?? 0,
           offsetX: mod.shadow.offsetX ?? 0,
@@ -454,14 +724,17 @@ export function buildModifyElementsCommands(
           opacityPct: mod.shadow.opacity ?? 100,
         },
       });
+      changedFields.push("shadow");
     }
 
     if (mod.blur !== undefined) {
-      commands.push({ type: "SET_NODE_BLUR", id: mod.objectId, blur: mod.blur });
+      commands.push({ type: "SET_NODE_BLUR", id: objectId, blur: mod.blur });
+      changedFields.push("blur");
     }
 
     if (mod.text !== undefined && node.type === "text") {
-      commands.push({ type: "SET_TEXT_CONTENT", id: mod.objectId, text: mod.text });
+      commands.push({ type: "SET_TEXT_CONTENT", id: objectId, text: mod.text });
+      changedFields.push("text");
     }
 
     if (node.type === "text") {
@@ -482,17 +755,19 @@ export function buildModifyElementsCommands(
       if (Object.keys(formatPatch).length > 0) {
         commands.push({
           type: "SET_TEXT_FORMAT",
-          id: mod.objectId,
+          id: objectId,
           ...formatPatch,
         } as SaraswatiCommand);
+        changedFields.push("textFormat");
       }
       if (mod.stroke !== undefined || mod.strokeWidth !== undefined) {
         commands.push({
           type: "SET_NODE_STROKE",
-          id: mod.objectId,
+          id: objectId,
           stroke: mod.stroke ? parseColor(mod.stroke) : anyNode.stroke ?? null,
           strokeWidth: mod.strokeWidth ?? anyNode.strokeWidth ?? 0,
         });
+        changedFields.push("stroke");
       }
     } else if (mod.stroke !== undefined || mod.strokeWidth !== undefined) {
       if (lineStrokeDone) {
@@ -500,19 +775,43 @@ export function buildModifyElementsCommands(
       } else if (node.type !== "group" && node.type !== "image") {
         commands.push({
           type: "SET_NODE_STROKE",
-          id: mod.objectId,
+          id: objectId,
           stroke: mod.stroke ? parseColor(mod.stroke) : anyNode.stroke ?? null,
           strokeWidth: mod.strokeWidth ?? anyNode.strokeWidth ?? 0,
         });
+        changedFields.push("stroke");
       }
     }
 
-    if (mod.name !== undefined) {
-      commands.push({ type: "SET_NODE_NAME", id: mod.objectId, name: mod.name });
+    // Rename: with an explicit id/targetName, name keeps its legacy meaning.
+    // With a name target, name selected the node; newName is the rename value.
+    const newNameValue = mod.newName ?? (target.targetByName ? undefined : mod.name);
+    if (typeof newNameValue === "string" && newNameValue.trim()) {
+      commands.push({ type: "SET_NODE_NAME", id: objectId, name: newNameValue.trim() });
+      changedFields.push("name");
+    }
+
+    if (commands.length > commandStart) {
+      modifiedCount++;
+      resolved.push({
+        index,
+        requested: targetLabel(mod),
+        objectId,
+        type: node.type,
+        before: snapshotNode(node),
+        changedFields: [...new Set(changedFields)],
+      });
+    } else {
+      issues.push({
+        index,
+        requested: targetLabel(mod),
+        status: "unchanged",
+        reason: "Target resolved, but no supported field would change it.",
+      });
     }
   }
 
-  return { commands, modifiedCount };
+  return { commands, modifiedCount, resolved, issues };
 }
 
 // ─── bounds helpers ───────────────────────────────────────────────────────────
@@ -553,6 +852,12 @@ export function buildAlignCommands(
   scene: SaraswatiScene,
   selectedIds: string[],
   kind: string,
+  options?: {
+    /** Text object whose cap-height band is the target (cap-middle only). */
+    anchorId?: string;
+    /** Absolute y of the anchor's cap-height centre, from real text metrics. */
+    capCenterY?: number;
+  },
 ): { commands: SaraswatiCommand[]; alignedCount: number } {
   const entries = selectedIds
     .map((id) => ({ id, bounds: visualBounds(scene, id) }))
@@ -562,6 +867,22 @@ export function buildAlignCommands(
   }
 
   const commands: SaraswatiCommand[] = [];
+
+  // Optical alignment: the target is the ink band of capital letters, not the
+  // text's rectangular box. Callers must pass measured metrics; without them
+  // there is nothing honest to align to.
+  if (kind === "cap-middle") {
+    if (options?.capCenterY == null) {
+      return { commands: [], alignedCount: 0 };
+    }
+    for (const e of entries) {
+      if (e.id === options.anchorId) continue;
+      const dy = options.capCenterY - (e.bounds.y + e.bounds.height / 2);
+      if (dy !== 0) commands.push({ type: "MOVE_NODE", id: e.id, dx: 0, dy });
+    }
+    return { commands, alignedCount: entries.length };
+  }
+
   if (entries.length === 1) {
     const b = entries[0]!.bounds;
     let dx = 0, dy = 0;
@@ -693,4 +1014,122 @@ export function buildClearCanvasCommands(scene: SaraswatiScene): SaraswatiComman
   return Object.values(scene.nodes)
     .filter((n) => n.id !== scene.root)
     .map((n) => ({ type: "DELETE_NODE" as const, id: n.id }));
+}
+
+// ─── vector drawing placement ────────────────────────────────────────────────
+
+/**
+ * Payload of a vector_draw action. The Go vector tool resolves an IR to SVG and
+ * sends the data URL here; this layer only decides where the element lands.
+ */
+export type VectorPlacePayload = {
+  boardId?: string;
+  objectId?: string;
+  name?: string;
+  src: string;
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+  scale?: number;
+};
+
+/** Longest display edge for a freshly placed vector drawing. */
+const VECTOR_PLACE_MAX_EDGE = 640;
+
+/**
+ * Build the ADD_NODE command for a vector drawing placed by the MCP vector tool.
+ *
+ * The element is an image node whose src is real SVG (the editor renders it
+ * resolution-independently and the exporter inlines its <path> elements), which
+ * is the same representation "save and place" uses. Keeping one representation
+ * means a drawing placed by an agent and one placed by hand behave identically.
+ */
+export function buildVectorPlaceCommands(
+  scene: SaraswatiScene,
+  payload: VectorPlacePayload,
+): { commands: SaraswatiCommand[]; created: CreatedElementInfo } | { error: string } {
+  if (!payload || typeof payload.src !== "string" || !payload.src.startsWith("data:image/svg+xml")) {
+    return { error: "vector_draw needs an SVG data URL in src" };
+  }
+  const boardW = Number(payload.width);
+  const boardH = Number(payload.height);
+  if (!Number.isFinite(boardW) || !Number.isFinite(boardH) || boardW <= 0 || boardH <= 0) {
+    return { error: "vector_draw needs positive width and height" };
+  }
+  const requestedScale = Number(payload.scale);
+  const scale =
+    Number.isFinite(requestedScale) && requestedScale > 0
+      ? requestedScale
+      : Math.min(1, VECTOR_PLACE_MAX_EDGE / Math.max(boardW, boardH));
+  const width = Math.max(1, Math.round(boardW * scale));
+  const height = Math.max(1, Math.round(boardH * scale));
+  const artboard = scene.artboard;
+  const rawX = Number.isFinite(Number(payload.x))
+    ? Number(payload.x)
+    : (artboard.width - width) / 2;
+  const rawY = Number.isFinite(Number(payload.y))
+    ? Number(payload.y)
+    : (artboard.height - height) / 2;
+  const x = Math.min(Math.max(0, rawX), Math.max(0, artboard.width - width));
+  const y = Math.min(Math.max(0, rawY), Math.max(0, artboard.height - height));
+
+  const id = payload.objectId || crypto.randomUUID();
+  const name = payload.name?.trim() || "Vector drawing";
+  const node: SaraswatiImageNode = {
+    id,
+    type: "image",
+    parentId: scene.root || SARASWATI_ROOT_ID,
+    name,
+    visible: true,
+    x,
+    y,
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    opacity: 1,
+    originX: "left",
+    originY: "top",
+    width,
+    height,
+    src: payload.src,
+    cropX: 0,
+    cropY: 0,
+    clipPath: null,
+  };
+  return {
+    commands: [{ type: "ADD_NODE", node }],
+    created: { id, name, type: "image", bounds: { left: x, top: y, width, height } },
+  };
+}
+
+/**
+ * Replace the SVG source of an existing vector element after an edit. Geometry
+ * is regenerated by the Go tool, so the node keeps its position and display
+ * size; only the src changes. Rendering the whole scene again would reset any
+ * manual placement the user made.
+ */
+export function buildVectorUpdateCommand(
+  scene: SaraswatiScene,
+  objectId: string,
+  payload: { src: string; name?: string },
+): { command: SaraswatiCommand } | { error: string } {
+  const node = scene.nodes[objectId];
+  if (!node) return { error: `Object ${objectId} not found` };
+  if (node.type !== "image") {
+    return { error: `Object ${objectId} is a ${node.type}, not a vector element` };
+  }
+  if (typeof payload?.src !== "string" || !payload.src.startsWith("data:image/svg+xml")) {
+    return { error: "vector_update needs an SVG data URL in src" };
+  }
+  return {
+    command: {
+      type: "REPLACE_NODE",
+      node: {
+        ...node,
+        src: payload.src,
+        ...(payload.name ? { name: payload.name } : {}),
+      },
+    },
+  };
 }

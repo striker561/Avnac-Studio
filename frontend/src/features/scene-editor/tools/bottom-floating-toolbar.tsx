@@ -16,6 +16,7 @@ import ShapesPopover, {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { computeFitZoomPercent } from "../scene-editor-viewport-utils";
 import { useSceneEditorStore } from "../store";
+import { onImagePickerRequest } from "../insert-image-bridge";
 import { useSceneEditorDropActions } from "../use-scene-editor-drop-actions";
 
 function toolbarIconBtn(disabled = false) {
@@ -108,6 +109,10 @@ export default function BottomFloatingToolbar() {
   const openImagePicker = useCallback(() => {
     imageInputRef.current?.click();
   }, []);
+
+  // The I shortcut is handled in the canvas; route it to this toolbar's hidden
+  // file input so the picker behaves exactly like the button.
+  useEffect(() => onImagePickerRequest(openImagePicker), [openImagePicker]);
 
   const onImageInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {

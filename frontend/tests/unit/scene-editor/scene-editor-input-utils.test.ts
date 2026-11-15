@@ -24,6 +24,19 @@ describe("shouldIgnoreEditorHotkeys", () => {
     expect(shouldIgnoreEditorHotkeys(chromeButton, false)).toBe(false);
   });
 
+  it("ignores targets inside a modal that owns the keyboard", () => {
+    const modal = document.createElement("div");
+    modal.setAttribute("data-avnac-modal-keyboard", "true");
+    const canvas = document.createElement("canvas");
+    modal.append(canvas);
+    document.body.append(modal);
+    try {
+      expect(shouldIgnoreEditorHotkeys(canvas, false)).toBe(true);
+    } finally {
+      modal.remove();
+    }
+  });
+
   it("ignores all shortcuts during inline text editing", () => {
     const chromeButton = document.createElement("button");
     chromeButton.setAttribute("data-avnac-chrome", "true");

@@ -292,7 +292,12 @@ function FilesPage() {
             );
             const currentDoc = imported.document.pages[index]!;
             await idbPutDocument(id, currentDoc, { name: baseName });
-            await saveStoredPages(id, imported.document.pages, index);
+            await saveStoredPages(
+              id,
+              imported.document.pages,
+              index,
+              imported.document.pageNames,
+            );
           }
 
           refreshList();

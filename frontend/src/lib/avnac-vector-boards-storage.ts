@@ -1,8 +1,8 @@
-import type { VectorBoardDocument } from "./avnac-vector-board-document";
+import type { VectorBoardDocument } from "./avnac-vector";
 import {
   emptyVectorBoardDocument,
   migrateVectorBoardDocument,
-} from "./avnac-vector-board-document";
+} from "./avnac-vector";
 import {
   ReadVectorBoardDocs,
   ReadVectorBoards,
@@ -62,7 +62,10 @@ export async function loadVectorBoardDocs(
     const out: Record<string, VectorBoardDocument> = {};
     for (const [k, v] of Object.entries(parsed)) {
       if (!v || typeof v !== "object") continue;
-      out[k] = migrateVectorBoardDocument(v);
+      const doc = migrateVectorBoardDocument(v);
+      out[k] = doc;
+      const key = liveKey(persistId, k);
+      if (!liveVectorBoardDocs.has(key)) liveVectorBoardDocs.set(key, doc);
     }
     return out;
   } catch {
@@ -97,3 +100,46 @@ export function clearAvnacVectorBoardStorage(
 ): Promise<void> {
   return Promise.resolve();
 }
+
+/**
+ * Live board documents, keyed by `persistId:boardId`.
+ *
+ * The editor saves through a debounce, but drag-to-canvas must always see the
+ * latest strokes. This cache sits in front of the persisted JSON so a board
+ * dropped moments after drawing still lands as current content.
+ */
+const liveVectorBoardDocs = new Map<string, VectorBoardDocument>();
+
+function liveKey(persistId: string, boardId: string): string {
+  return `${persistId}:${boardId}`;
+}
+
+export function rememberVectorBoardDoc(
+  persistId: string,
+  boardId: string,
+  doc: VectorBoardDocument,
+): void {
+  liveVectorBoardDocs.set(liveKey(persistId, boardId), doc);
+}
+
+export function forgetVectorBoardDoc(persistId: string, boardId: string): void {
+  liveVectorBoardDocs.delete(liveKey(persistId, boardId));
+}
+
+export function getCachedVectorBoardDoc(
+  persistId: string,
+  boardId: string,
+): VectorBoardDocument | null {
+  return liveVectorBoardDocs.get(liveKey(persistId, boardId)) ?? null;
+}
+
+export async function loadVectorBoardDoc(
+  persistId: string,
+  boardId: string,
+): Promise<VectorBoardDocument | null> {
+  const cached = getCachedVectorBoardDoc(persistId, boardId);
+  if (cached) return cached;
+  const docs = await loadVectorBoardDocs(persistId);
+  return docs[boardId] ?? null;
+}
+

@@ -2,6 +2,9 @@
 
 Avnac Studio includes a built-in Model Context Protocol (MCP) server that allows external AI agents (in Cursor, Claude Desktop, MCPJam Inspector, Windsurf, Antigravity, etc.) to automate, design, and manipulate graphics inside the desktop application in real-time.
 
+> Building or changing the server? Read [MCP_ARCHITECTURE.md](MCP_ARCHITECTURE.md) — the
+> developer map of the listener, the tool bridge, and the design-library resources.
+
 ---
 
 ## 1. Connection Details
@@ -72,16 +75,31 @@ claude mcp add --transport http avnac-studio http://127.0.0.1:12345/ --header "A
 
 ## 2. Built-in MCP Prompts
 
-Avnac Studio advertises ready-to-use design workflows through the MCP Prompts protocol:
+Avnac Studio advertises three user-triggered prompts through the MCP Prompts protocol. They exist
+because prompts are the only primitive a client turns into a slash command: the text lands in the
+conversation even when the model would not have gone looking for it.
+
+Each prompt is **generated from the design library at request time**, not hand-written. The
+server routes the brief with the same router the resources use, then embeds the matching workflow
+(`poster`, `logo`, `create`, `edit`, `critique`, ...) plus its rule links and this app's tool
+mapping. A poster brief therefore gets the poster workflow; a logo brief gets the logo workflow.
 
 1. **`design-graphic`**:
    - **Arguments**: `topic` (required), `dimensions` (optional), `style` (optional).
-   - **Description**: Guides the agent through a 6-step design workflow — writing a design brief (asking the user when critical info is missing), inspecting/creating the canvas, gathering assets, declarative element rendering, visual screenshot audit, and a final verification pass that compares the render against the original request.
+   - **Description**: Starts a design task. Routes on the brief, embeds the matched workflow and
+     the rules it links, and closes with the render-verification gate. When `dimensions` is
+     omitted the prompt asks the agent to derive the size from the brief and state it.
 2. **`edit-canvas`**:
    - **Arguments**: `instruction` (required, e.g. *"Change the color scheme to dark mode and center the title"*).
-   - **Description**: Writes a diff-oriented brief, inspects current canvas elements with `get_canvas_summary`, maps object IDs, and applies targeted updates with `modify_elements`, then verifies the result against the requested changes. If the target file is not open, the agent is directed to `list_files` + `open_canvas` instead of recreating the design.
+   - **Description**: Routes to the edit workflow, inspects the live canvas with `get_canvas_summary`,
+     maps object IDs, applies targeted `elements` op=modify updates, and forbids recreating the design.
 3. **`design-audit`**:
-   - **Description**: Reads the canvas summary and annotated visual screenshot to critique intent match, layout balance, contrast, margins, and typography hierarchy, then fixes the most impactful mismatches and reports pass/fail per requirement.
+   - **Description**: Routes to the critique workflow; reads the canvas summary and an annotated
+     screenshot, critiques intent match, balance, contrast, margins and hierarchy, makes one
+     corrective pass, and reports pass/fail per requirement with a verdict.
+
+Because the workflow text comes from the library, editing a `SKILL.md` or a rule changes the
+prompts too — there is no second copy to keep in sync.
 
 ---
 
@@ -90,41 +108,150 @@ Avnac Studio advertises ready-to-use design workflows through the MCP Prompts pr
 The repository includes a standardized skill specification for agents:
 - [`skills/avnac-designer/SKILL.md`](../skills/avnac-designer/SKILL.md)
 
+It also ships a **graphic design knowledge and production library**, embedded in the Go binary
+and routed programmatically:
+
+- [`internal/skill/SKILL.md`](../internal/skill/SKILL.md) — entry point, routing table and always-on gates.
+- `internal/skill/<task>/SKILL.md` — 22 task workflows (poster, logo, brand, color, typography, layout, print, export, ui, ...).
+- [`internal/skill/references/`](../internal/skill/references/) — 14 compact lookup notes: thresholds, tables, format specs.
+- [`internal/skill/rules/`](../internal/skill/rules/) — 125 authoritative, applied design principles, grouped by domain.
+
+[`internal/skill/skill.go`](../internal/skill/skill.go) embeds the markdown, parses it once, and
+routes work: `skill.Default()` then `lib.Plan(task, 0)` returns the matching task workflow plus
+the rules it links, ready to inject into a model context. `lib.Validate()` asserts the structural
+contract (names, section order, cross-links, the 120-rule ceiling) and is exercised by
+[`skill_test.go`](../internal/skill/skill_test.go).
+
+### Design knowledge resources
+
+The server also publishes the whole library as MCP **resources**, so a client that installs
+nothing still reads it on demand:
+
+| URI | Contents |
+|---|---|
+| `skill://avnac-design` | Entry point: routing table, always-on gates, how to read a rule |
+| `skill://<task>` | 22 task workflows — `skill://poster`, `skill://ui`, `skill://print`, ... |
+| `references://<subject>` | 15 lookup notes — `references://typography`, `references://color`, ... |
+| `rules://<id>` | 125 authoritative principles — `rules://24-typographic-hierarchy`, ... |
+| `rules://index` | Every rule by domain, with counts |
+
+All are `text/markdown`. Relative links in the served markdown are rewritten into these URIs, so
+an agent reading `skill://poster` can follow `rules://34-composition-techniques` directly. The
+connect instructions carry a compact index (one line per tier) instead of all 125 rules;
+`rules://index` names the rest without spending context up front.
+
+Registration lives in [`avnac-system/mcp/resources.go`](../avnac-system/mcp/resources.go) and is
+covered end to end (list + read over an in-memory transport) by
+[`resources_test.go`](../avnac-system/mcp/resources_test.go).
+
 When connected, the MCP server also automatically transmits `Instructions` to the LLM upon initialization, ensuring any connected agent understands the coordinate system, element schemas, and recommended design practices without manual prompt engineering.
 
 ---
 
-## 4. Key Tools Summary (27 Tools)
+## 4. Key Tools (14 Tools)
 
-### File Management
-- `list_files`: List all saved canvas files — `{id, name, width, height, updatedAt}`. Works even when no canvas is open.
-- `open_canvas`: Open a saved file by workspace id (from `list_files`) and make it the active scene. Unknown ids return an error listing where to look.
-- `rename_file`: Rename a saved file by workspace id; also updates the live editor title if the file is open.
+The published surface is noun-shaped. Six **read** tools keep one name per operation; seven
+**mutation** tools map to a domain and take an `op`; `guide` routes a brief to the knowledge library. Every op returns the same payload the old
+one-tool-per-action surface returned, and the legacy action name is accepted as an `op` value
+(e.g. `op: "render_elements"`), so older habits still work.
 
-### Setup & Canvas
-- `get_canvas_summary`: Get token-efficient summary of the artboard and all objects. Returns `{error: "No active canvas scene..."}` when no canvas is open — call `create_canvas` first, or `list_files` + `open_canvas` to load an existing file.
-- `create_canvas`: Initialize canvas with `width`, `height`, optional `backgroundColor` (`color` alias accepted) and `name`.
-- `apply_artboard_preset`: Resize via `presetId` (`ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`; `preset` alias accepted). Unknown ids return an error listing valid ids.
-- `set_background`: Set canvas background via `color` (`backgroundColor` alias accepted). Returns the new background or a no-scene error. Not needed right after `create_canvas` when a background was passed there.
-- `clear_canvas`: Remove all objects. Returns `clearedCount`.
+### Routing
 
-### Assets & Photography
-- `search_unsplash`: Search royalty-free photos and retrieve image URLs. Returns compact records (`id`, `alt_description`, `width`, `height`, `photographer`, `credit`, `urls.small`/`urls.regular`) and the remaining hourly quota in `rateLimit`. Identical queries are served from a two-minute cache. Unsplash's download call fires from `render_elements` when a searched photo's URL is actually placed — searching or previewing costs no download, and the photo's credit is stored on the placed image (listed under `credits` in `get_canvas_summary`).
-- `list_stickers`: Get built-in sticker names (`donut`, `leaf`, `lollipop`, `pineapple`, `shooting-star-badge`, `sunflower-badge`).
-- `get_font_list`: List supported Google Fonts. Prefer `Poppins`, `Inter`, and `DM Serif Display` for reliable canvas rendering.
+`guide` (`task`, `limit`, `inline`) — pass the brief; returns the matching workflow (`skill://...`),
+4–8 rules (`rules://...`), the matched tokens and a confidence level. Call it before specialized
+work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI,
+vector drawing, critique — even when the user did not ask for guidance. `inline=true` returns the
+full workflow and rule text for clients that cannot read resources.
 
-### Creation & Editing
-- `render_elements`: Create elements in one call (`rect`, `ellipse`, `polygon`, `star`, `line`, `text`, `image`, `sticker`). Text supports `textAlign`, `fontWeight`, `fontStyle`, `lineHeight`, `underline`. Lines use `stroke`/`strokeWidth` (not `width`).
-- `modify_elements`: Update properties by `objectId`, including text controls (`fontWeight`, `textAlign`, `lineHeight`, etc.).
-- **Flexible inputs**: top-level keys and nested `elements[]` / `modifications[]` fields accept flexible forms — numeric font weights (`fontWeight: 700`), numeric strings for pixel values (`fontSize: "230"`), and object strokes (`stroke: {color: "#ff00ff"}`) alongside the string forms above.
-- `delete_object`: Delete object by ID (omit to delete current selection).
-- `align_objects`: Align selection via `type` (`left`, `center`, `right`, `top`, `middle`, `bottom`). Single selection aligns to artboard; multiple aligns to each other.
-- `distribute_objects`: Distribute 3+ selected elements via `direction` (`horizontal`, `vertical`; `type` alias accepted).
-- `group_objects` / `ungroup_objects`: Manage grouping (`objectIds` min 2 / `groupId`).
-- `fit_to_artboard`: Scale selection to fill canvas with optional `padding`.
+The server also attaches a compact `guide` field to composition results (`canvas` op=create/add-page,
+`elements` op=render/measure/modify, `vector` op=draw) whenever the payload is a clear match. That
+way the library is used *during* the task even when the agent never calls `guide` explicitly.
 
-### Verification & Export
-- `get_canvas_image`: Render a visual PNG screenshot of the artboard.
-- `get_object_properties`: Inspect bounding box and styles of an element.
-- `export_png`: Export the canvas to a downloadable PNG file.
-- `export_object`: Export an individual object/group as PNG or SVG.
+### Reads (6)
+
+- `get_canvas_summary`: Token-efficient artboard + object summary, plus `document`, the active `page` (`index`, 1-based `number`, `name`) and every `pages` entry (name, node count, size). Returns a no-scene error when nothing is open — call `canvas` op=create, or `files` op=list + `files` op=open.
+- `get_canvas_state`: Raw scene state.
+- `get_canvas_image`: PNG screenshot of the artboard, or `objectId` to crop to one object; `annotated=true` overlays boxes.
+- `list_objects`: Object ids and types on the canvas.
+- `get_object_properties`: Bounding box and styles of one object. Text nodes also return `metrics` — measured `ascent`, `descent`, `capHeight`, and absolute `baseline`, `capTop`, `capCenterY` — so an agent can align to the letters instead of the text box.
+- `get_selection`: Ids and properties of the current selection.
+
+### Mutations (7, `op`-based)
+
+**`canvas`** — project, pages and artboard lifecycle:
+- `create` (`width`, `height`, `name`, `backgroundColor`/`color`) — starts a **new project** and navigates to it. Use it only for a new deliverable; for a draft/test/variation in the open project use `add-page`. The background is applied here; do not also call `background`.
+- `add-page` (`name`, optional `width`, `height`, `backgroundColor`) — adds a named blank page to the **open project**, inherits the current artboard size unless explicit dimensions are given, switches the editor to it live, and returns `page` (`index`, `number`, `name`, `width`, `height`) plus `pageCount`. This is the draft/test/exploration path; it never creates another file.
+- `go-page` (`page` = 1-based number or page name, or `index` = 0-based) — switches the editor to that page. The app shows the switch immediately. Names match exactly (case-insensitive) or by a unique substring.
+- `rename-page` (`page` optional, defaults current; `name` required) — renames a page; page tabs in the app also rename on double-click.
+- `delete-page` (`page` optional, defaults current) — deletes a page and never the last one. Use it to clean up a test page.
+- `resize` (`width`, `height`, optional `backgroundColor`, optional page guard) — resizes the active sheet in place. Use this instead of creating a second project when only the dimensions are wrong.
+- `snapshot` / `restore` (`token`) — capture every page, then return to that checkpoint. Tokens are session-scoped.
+- `undo` / `redo` — object-level and page-level history.
+- `status` — connected `clientId`, `actionHandlerId`, `revision`, active document/page, undo state and implemented capabilities. Call this first when an action looks stale.
+- `validate` — structured audit for out-of-bounds objects, low contrast, tiny type, thin strokes, duplicate names, near tangencies and unloaded fonts.
+- `clear` — removes every object **on the current page**, returns `clearedCount`.
+- `background` (`backgroundColor`/`color`) — sets the current page background.
+- `preset` (`presetId`/`preset`) — `ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`.
+
+**`elements`** — create or change elements:
+- `render` (`elements[]` or a JSON-encoded string, `includePreview`) — one declarative batch, bottom to top. Images take `fit` (`fill` default, or `cover`), `focalPoint` (`{x,y}`, normalized 0–1) and `crop` (`{x,y,width,height}`, normalized source rect that wins over fit); without them the photo keeps the old stretch behaviour. Types: `rect`, `ellipse`, `circle`, `polygon`, `star`, `line`, `text`, `image`, `sticker`. Text supports `textAlign`, `fontWeight`, `fontStyle`, `lineHeight`, `underline`; lines use `stroke`/`strokeWidth`. When `modify` changes a text `fontSize`, pass `width` too — the auto-measured width is kept and larger type re-wraps. Elements that cannot be built are reported in `skipped` by index and type; a batch that creates nothing fails (`isError: true`).
+- `modify` (`modifications[]` or a JSON-encoded string, `includePreview`) — updates by `objectId`/`id`, `targetName`/`objectName`, or a unique `name`; returns `modified` entries with `before`, `after` and `changedFields`. Use `newName` to rename a name-targeted object. Image nodes accept `url`/`src` to replace the source without changing node identity. Unresolved targets are returned as `issues`, and a batch that changes nothing fails.
+- `delete` (`objectId`/`id`; omit to delete the current selection).\n- `measure` (`elements[]`) — returns width, height, line count, line breaks, `capHeight`/`ascent` and (with `x`/`y`) absolute `baseline`/`capTop`/`capCenterY` for proposed elements **without drawing**. Use it to check wrapping or fit a headline before rendering; for images it returns natural dimensions.
+
+**`arrange`** — the current selection:
+- `align` (`type`: `left`, `center`, `right`, `top`, `middle`, `bottom`, `cap-middle`). Single selection aligns to the artboard, multiple to each other. `cap-middle` is optical: it centres the other selected objects on the cap-height band of the first selected text object — the letters, not the text box — and fails rather than falling back to box centring.
+- `distribute` (`direction`: `horizontal`/`vertical`) — needs 3+ selected objects.
+- `group` (`objectIds`, min 2) / `ungroup` (`groupId`).
+- `fit` (`padding`) — scales the selection to the artboard.
+- `select` (`objectIds`) — selects by id.
+
+**`files`** — saved canvases:
+- `list` — `{id, name, width, height, updatedAt}`; works with no canvas open.
+- `open` (`fileId`/`id`/`workspaceId`) — opens a file and makes it the active scene; unknown ids name where to look.
+- `rename` (`fileId`, `name`) — renames the saved file and the live editor title when open.
+
+**`assets`** — external assets:
+- `unsplash` (`query`, `page`, `perPage`) — compact photo records plus remaining hourly quota. Identical queries are served from a two-minute cache. Placement through `elements` op=render is what fires Unsplash download tracking and stores the credit, which `get_canvas_summary` then lists.
+- `fonts` (`families`/`check`) — supported Google Fonts plus a `loaded` map for the requested families. Prefer `Poppins`, `Inter`, `DM Serif Display` for reliable rendering.
+- `stickers` — built-in sticker names.
+
+**`export`** — output:
+- `png` (`multiplier`, `transparent`) — base64 PNG of the artboard.
+- `object` (`objectId`, `multiplier`, `format`) — PNG or SVG of one object or group.
+- `svg` (`objectId`/`objectIds`/`scope`, optional `filePath`) — editable SVG of the full page (authored artboard size, not cropped to content) or a selection; optionally writes the file and returns its path.
+
+**`vector`** — original vector artwork:
+- `draw` (`canvas`, `objects[]`, `layers[]`, `name`, `x`, `y`, `scale`) — resolves a scene-graph
+  IR into cubic paths, places it as an SVG element on the active page, and returns `boardId` +
+  `objectId`. The board id is the deterministic default node id, so a lost response is recoverable.
+  Object types: `rect`, `ellipse`, `circle`, `capsule`, `polygon`, `star`, `line`, `path`.
+  Relations: `constraints` and `mirrorOf` + `axis`.
+- `update` (`boardId`, `operations[]`) — `resize`, `move`, `rotate`, `mirror`, `restyle`,
+  `reorder`, `delete`, `add`, applied in order and re-resolved once. This is the conversational
+  edit path: target objects by id instead of redrawing.
+- `read` (`boardId`) — the IR plus the resolved v3 vector-board document and per-object bounds.
+- `export` (`boardId`, optional `filePath`) — the self-contained SVG source in the text content, optionally written to disk.
+- `status` / `recover` — check whether the deterministic node is placed; adopt an already-painted drawing or retry the exact placement after a lost response. Never redraw blindly.
+- `delete` / `list` — remove the placed element, or enumerate boards from this session.
+
+Read `skill://vector` before a complex drawing; the eight `rules://12x` files carry the geometry.
+The returned SVG is a real vector document: the scene exports its `<path>` elements, not a bitmap.
+
+### Working in pages instead of new projects
+
+A canvas is a project; a project contains pages. `canvas` op=create is only for a genuinely new
+deliverable — never for a draft, test, visual check or alternative direction. In the open project,
+`canvas` op=add-page (for example `name: "Test — poster hierarchy"`) adds a blank page, switches
+the editor to it, and returns its page number. Pass width/height/backgroundColor when the new page
+needs a different sheet. Compose and verify there, then `canvas` op=delete-page to remove a page
+you only used for testing, or keep and rename it if it is worth showing. If only the size is wrong,
+use `canvas` op=resize instead of creating a new canvas. `get_canvas_summary` always names the
+active page, and `canvas` op=go-page switches back before you report the real deliverable.
+`canvas` op=create returns a `notice` when another canvas was already open, pointing at `add-page`.
+
+### Errors
+
+A missing `op` fails schema validation; an unknown `op` names the allowed values; an op from the
+wrong group fails the same way. Per-op required fields are validated by the existing decoders,
+which name the missing field. Flexible input still applies: numeric strings for pixel values,
+numeric font weights, and JSON-encoded arrays for `elements`/`modifications`/`objectIds`.

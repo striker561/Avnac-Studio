@@ -15,46 +15,128 @@ The MCP server allows external AI agents and clients to interact with the Avnac 
 
 ## Available Tools
 
-The MCP server provides 27 tools for canvas automation. Tool names equal their emitted `mcp:action` action strings 1:1, except `open_canvas`/`rename_file`, which emit `open_workspace`/`rename_workspace` (the frontend handler also keys on those).
+The server publishes **14 tools**: six reads, six noun-shaped mutation tools, `vector` and the `guide` router whose verbs are
+`op` values. The hidden registrations behind those ops keep their action names 1:1 with the
+frontend `mcp:action` strings, except `open_canvas`/`rename_file`, which emit
+`open_workspace`/`rename_workspace`. Every scene response carries `clientId`,
+`actionHandlerId` and a monotonic `revision`, so a stale tab or mismatched handler is visible
+instead of looking like a random ID failure.
 
-### 1. File Management (no canvas required)
-- `list_files`: Lists all saved canvas files (`id`, `name`, width, height, `updatedAt`) from workspace storage.
-- `open_canvas`: Opens a saved file by workspace id and makes it the active scene (emits `open_workspace`; pre-validates the id in Go).
-- `rename_file`: Renames a saved file (emits `rename_workspace`), also updating the live editor title when open.
+### Reads
+- `get_canvas_summary`: Semantic summary of the artboard and objects, plus `document`, the active
+  `page` (`index`, 1-based `number`, `name`, `width`, `height`) and every `pages` entry. Also
+  reports `clientId`, `actionHandlerId` and `revision`.
+- `get_canvas_state`: Full raw scene state.
+- `get_canvas_image`: PNG screenshot of the canvas or one object; `annotated` overlays bounds.
+- `list_objects` / `get_object_properties` / `get_selection`: Object-level inspection.
+  `get_object_properties` now resolves by `objectId`/`id` or a unique `name`/`targetName`.
 
-### 2. Context & Inspection
-- `get_canvas_summary`: Token-efficient semantic summary of artboard + objects.
-- `list_objects`: Lists all objects with raw IDs.
-- `get_selection`: Returns the current selection.
-- `get_canvas_state`: Returns the full scene state.
-- `get_canvas_image`: Returns a visual PNG screenshot of the canvas (or one object).
-- `get_object_properties`: Returns detailed properties of a specific object.
-- `get_font_list`: Returns supported Google Fonts.
+### `canvas` — project, pages and artboard
+- `create`: Starts a **new project** (width, height, optional name/background). Not for drafts or
+  tests; it returns a `notice` when another canvas was already open.
+- `add-page`: Adds a named blank page to the **open project**, switches the editor to it live,
+  and returns `page` + `pageCount`. Optional `width`, `height` and `backgroundColor` let a
+  3:4 page live inside a project whose other pages have a different size. This is the
+  draft/test/variation path.
+- `go-page`: Switches pages by 1-based `page` (number or name) or 0-based `index`.
+- `rename-page`: Renames a page (defaults to the current one).
+- `delete-page`: Deletes a page (defaults to the current one; never the last page).
+- `resize`: Resizes the active artboard in place (width, height, optional background) instead of
+  creating a second project.
+- `snapshot` / `restore`: Capture all pages and return a session token, then restore them.
+- `undo` / `redo`: Move through object-level **and** page-level history.
+- `status`: Report the connected client, action handler, revision, active document/page, undo
+  state and implemented capabilities.
+- `validate`: Audit out-of-bounds objects, text contrast, tiny type, thin strokes, duplicate
+  names, near tangencies and unloaded fonts.
+- `clear` / `background` / `preset`: Current-page background, clear, and standard sizes.
 
-### 3. Creation
-- `create_canvas`: Navigates to the editor and initializes a new artboard (width, height, optional name/background).
-- `render_elements`: Declaratively creates a batch of elements (`rect`, `ellipse`, `polygon`, `star`, `line`, `text`, `image`, `sticker`) in one call, bottom-to-top layering.
+### `elements`
+- `render` (batched, bottom-to-top), `modify`, `delete`, and `measure` (text layout without
+  drawing). Images support `fit`, `focalPoint` and `crop`; text is measured against its real font.
+- `modify` resolves targets by `objectId`/`id`, `targetName`/`objectName`, or a unique `name`
+  and returns per-object `before`/`after` snapshots plus `changedFields`. Use `newName` to
+  rename a name-targeted object.
+- Image nodes accept `url`/`src` in `modify` to replace the source without changing node identity,
+  z-order or selection.
+- Render/modify/delete accept `documentId`, `page` and `index` guards. A moved editor or wrong
+  page fails instead of silently editing the wrong context.
+- A batch that resolves nothing now fails with the per-spec `issues` (not `modifiedCount: 0`).
 
-### 4. Manipulation & Styling
-- `modify_elements`: Batch-updates element properties by objectId (fill, text controls, shadow, gradients, z-order `action`).
-- `delete_object`: Removes an object (or the current selection).
-- `set_background`: Changes the artboard background color.
-- `apply_artboard_preset`: Quickly resizes to standard sizes (IG, X, HD, A4).
+### `arrange`
+- `align` (including optical `cap-middle`), `distribute`, `group`, `ungroup`, `fit`, `select`.
 
-### 5. Layout & Organization
-- `select_objects`: Programmatically selects objects by ID.
-- `group_objects` / `ungroup_objects`: Manages object hierarchy.
-- `align_objects`: Aligns objects to the artboard or each other.
-- `distribute_objects`: Evenly spaces objects horizontally or vertically.
-- `fit_to_artboard`: Scales objects to fill the canvas area.
+### `files`
+- `list` (works with no canvas open), `open`, `rename`.
 
-### 6. Utilities & Assets
-- `clear_canvas`: Removes all objects.
-- `search_unsplash`: Searches Unsplash; returns compact records (id, alt, size, photographer, credit line, small/regular URLs) plus the remaining hourly quota in `rateLimit`. Responses are cached for two minutes so a repeated query does not spend quota twice. Placing a returned URL in `render_elements` files the required download report and stores the photo's credit on the node.
-- `export_png` / `export_object`: Export the canvas or a single object as an image.
+### `assets`
+- `unsplash` (compact records + quota; placement in `render` files the download report and stores
+  the credit), `fonts`, `stickers`.
+- `fonts` accepts `families`/`check` and returns a `loaded` map, so an agent can distinguish
+  "listed by Google Fonts" from "rendered by this client".
+
+### `export`
+- `png` (artboard), `object` (cropped PNG or SVG), and `svg` (full page or selection).
+- `svg` returns editable SVG markup and can write `filePath` directly; a missing `.svg` extension
+  is added. The page exporter uses the authored artboard dimensions rather than cropping to content.
+
+### `vector` — path drawing
+- `draw`: resolves a small scene-graph IR (`canvas`, `objects[]`, `layers[]`) with constraints
+  (`centered_on`, `left_of`, `right_of`, `above`, `below`, `inside`, `aligned_with`,
+  `equal_size`) and `mirrorOf`, then places the result as a vector SVG element and returns
+  `boardId` + `objectId`.
+- `update`: applies object-level operations (`resize`, `move`, `rotate`, `mirror`, `restyle`,
+  `reorder`, `delete`, `add`) to the stored IR and re-renders once.
+- `read` / `export` / `delete` / `list`: inspect the IR and v3 document, get the SVG source
+  (optionally writing `filePath`), remove the placed element, or enumerate session boards.
+- `status` / `recover`: check whether the deterministic node id is actually placed, adopt a
+  drawing that painted despite a lost response, or retry the exact placement without duplication.
+- `draw` registers the board before the frontend call and uses the board id as the default node id,
+  so a failed response is recoverable rather than orphaned.
+- Implementation: [`tools_vector.go`](tools_vector.go), with geometry in
+  [`internal/vector/`](../../internal/vector/). The placed node's `src` is an SVG data URL carrying
+  `data-avnac-vector-board="1"`, so the scene exporter inlines real `<path>` elements instead of a
+  bitmap. Drawing knowledge lives in `skill://vector` and `rules://120..127`.
+
+### `guide` — in-task routing
+- `task` (the brief) → the workflow (`skill://...`) and 4–8 rules (`rules://...`) that apply, with the matched tokens and a confidence level. `inline=true` returns the reading material itself.
+- Composition results (`canvas` create/add-page, `elements` render/measure/modify, `vector` draw) carry the same guide automatically when the payload is a clear match, so the route appears even when the agent skips the call.
+
+### Page lifecycle
+
+`add_page` / `goto_page` / `rename_page` / `delete_page` are hidden action handlers behind the
+`canvas` ops. The first two go through the scene store's `applyPageTransition`, so the app shows
+the new active page in real time. `delete_page` calls `deletePageAt` (no native confirmation) so
+an MCP call never blocks on a dialog. Page names are stored in the multi-page envelope as
+`pageNames`, index-aligned with `pages`; empty entries display as `Page N`.
+
+Custom pages carry their own artboard dimensions. `canvas op=resize` edits the active page in
+place, while `snapshot`/`restore` replace the whole page set and reset the page-history entry to
+the restored state. Snapshots are session-scoped.
+
 
 ## Development
 
 The MCP server is constructed in `app.go` and registered in `App.startup`. The HTTP listener itself starts when the `mcp_enabled` config value is set (Settings toggle or `config.json`) and stops when it is cleared.
 
+### Settings → MCP tool surface
+
+The settings page reads the published surface with `AvnacMCP.ToolSurface()` (a real client session over
+an in-memory transport, so the list cannot drift from what an agent sees) and asks the open editor
+window what it can dispatch with `AvnacMCP.CheckClient()`. Every `mcp:action` is answered by whichever
+page is listening, and a page running an older bundle answers `Unknown action '<action>'` for anything
+added since it loaded — including a browser tab that reconnects to the asset server after a restart. The
+panel compares the two lists, names the missing actions, and reports the `clientId` that answered so a
+second responder is visible. `MCP_IMPLEMENTED_ACTIONS` in `use-mcp-actions.ts` is the frontend half of
+that contract, and `tools_surface_test.go` fails when it drifts from the Go expectation.
+
 If you add new tools in `tools.go`, make sure to update the corresponding handler in `frontend/src/features/scene-editor/use-mcp-actions.ts` (add a dispatcher case plus a named action function), and keep payload → command conversion in `frontend/src/lib/mcp/commands.ts` so it stays unit-testable.
+
+Reliability tests:
+- Go: `go test ./avnac-system/mcp` covers decoders, recoverable vector placement, status/recover,
+  SVG file export, and the protocol-level `TestCanvasLifecycleProtocol` exercises the real MCP tool
+  surface with `emitFn` substituted for Wails.
+- Frontend: `npm run test:unit` covers modify targeting/before-after, page sizing, revision,
+  snapshots, page SVG export and validation.
+- E2E: `npm run test:e2e` drives the real Wails browser server for custom pages, resize,
+  snapshot/restore, name-targeted modify, vector draw/update/delete, and page undo/redo.

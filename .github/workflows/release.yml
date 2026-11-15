@@ -290,48 +290,110 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate commit log
+      - name: Generate release notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           CURR_TAG="${GITHUB_REF#refs/tags/}"
-          PREV_TAG=$(git tag --sort=-version:refname | grep -E '^v' | sed -n '2p')
+          # The nearest lower tag, by version, that this one descends from. Taking
+          # a fixed line of the tag list assumed every release is cut from the
+          # newest tag, so a hotfix compared against a tag newer than itself.
+          PREV_TAG=""
+          while IFS= read -r TAG; do
+            if [ "$TAG" = "$CURR_TAG" ]; then continue; fi
+            if git merge-base --is-ancestor "$TAG" "$CURR_TAG" 2>/dev/null; then
+              PREV_TAG="$TAG"
+              break
+            fi
+          done < <(git tag --sort=-version:refname | grep -E '^v[0-9]')
 
           if [ -n "$PREV_TAG" ]; then
             RANGE="${PREV_TAG}..${CURR_TAG}"
           else
             RANGE="${CURR_TAG}"
           fi
+          echo "Collecting changes in ${RANGE}"
+
+          # A PR number appears either in a merge commit subject
+          # ("Merge pull request #27 from ...") or as a squash-merge suffix
+          # ("fix(editor): keep the typing (#30)").
+          git log "$RANGE" --pretty=format:"%s" \
+            | grep -oE 'Merge pull request #[0-9]+|\(#[0-9]+\)$' \
+            | grep -oE '[0-9]+' \
+            | sort -unr > pr_numbers.txt
+
+          echo "## What's changed" > release_notes.md
+          echo "" >> release_notes.md
+
+          COUNT=0
+          while IFS= read -r NUM; do
+            if [ -z "$NUM" ]; then continue; fi
+
+            PR=$(curl -sf \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${NUM}") || continue
+
+            # A PR referenced in the range that never merged is not part of it.
+            if [ "$(printf '%s' "$PR" | jq -r '.merged_at // "null"')" = "null" ]; then
+              continue
+            fi
+
+            TITLE=$(printf '%s' "$PR" | jq -r '.title')
+            LOGIN=$(printf '%s' "$PR" | jq -r '.user.login // "unknown"')
+            URL=$(printf '%s' "$PR" | jq -r '.html_url')
+            BODY=$(printf '%s' "$PR" | jq -r '.body // ""')
+
+            {
+              echo "### [#${NUM}](${URL}) - ${TITLE}"
+              echo ""
+              echo "by @${LOGIN}"
+              echo ""
+            } >> release_notes.md
+
+            # The description, verbatim, under the PR it belongs to. Written with
+            # printf rather than echo so backslashes in the body stay as they are.
+            if [ -n "$(printf '%s' "$BODY" | tr -d '[:space:]')" ]; then
+              printf '%s\n\n' "$BODY" >> release_notes.md
+            fi
+
+            COUNT=$((COUNT + 1))
+          done < pr_numbers.txt
+
+          # A release cut straight from commits has no PRs to describe.
+          if [ "$COUNT" -eq 0 ]; then
+            git log "$RANGE" --no-merges --pretty=format:"- %s" >> release_notes.md
+            echo "" >> release_notes.md
+          fi
 
           USERS_FILE=$(mktemp)
 
           while IFS= read -r HASH; do
-            [ -z "$HASH" ] && continue
+            if [ -z "$HASH" ]; then continue; fi
             GH_LOGIN=$(curl -sf \
               -H "Authorization: Bearer ${GH_TOKEN}" \
               -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${{ github.repository }}/commits/${HASH}" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${HASH}" \
               | jq -r '.author.login // empty' 2>/dev/null || echo "")
             if [ -n "$GH_LOGIN" ]; then
               echo "$GH_LOGIN" >> "$USERS_FILE"
             fi
           done < <(git log "$RANGE" --pretty=format:"%H" --no-merges)
 
-          > commit_log.md
-
           if [ -s "$USERS_FILE" ]; then
-            echo "### Contributors" >> commit_log.md
-            echo "" >> commit_log.md
-            echo "<table><tr>" >> commit_log.md
+            echo "### Contributors" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "<table><tr>" >> release_notes.md
             for USER in $(sort -u "$USERS_FILE"); do
               printf '  <td align="center"><a href="https://github.com/%s"><img src="https://github.com/%s.png?size=72" width="72" height="72" style="border-radius:50%%" /><br /><b>@%s</b></a></td>\n' \
-                "$USER" "$USER" "$USER" >> commit_log.md
+                "$USER" "$USER" "$USER" >> release_notes.md
             done
-            echo "</tr></table>" >> commit_log.md
-            echo "" >> commit_log.md
+            echo "</tr></table>" >> release_notes.md
+            echo "" >> release_notes.md
           fi
 
           rm -f "$USERS_FILE"
+          echo "Wrote release notes for ${COUNT} PR(s)"
 
       - uses: actions/download-artifact@v4
         with:
@@ -352,6 +414,8 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
-          body_path: commit_log.md
+          # The body is built above from each PR and its description. Letting
+          # GitHub generate notes as well would list every PR a second time.
+          generate_release_notes: false
+          body_path: release_notes.md
           files: binaries/*

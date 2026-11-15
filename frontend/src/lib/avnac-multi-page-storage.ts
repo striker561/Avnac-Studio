@@ -44,7 +44,7 @@ export function mergeStoredPages(
 ): AvnacMultiPageDocumentV1 {
   if (!stored) {
     // No multi-page state saved yet — bootstrap from the IDB document.
-    return buildMultiPageDocument([currentDoc], 0);
+    return buildMultiPageDocument([currentDoc], 0, [""]);
   }
   // Trust saveStoredPages as the authoritative multi-page state.
   // Do NOT overwrite stored.pages[currentPage] with the IDB document:
@@ -63,16 +63,27 @@ export async function loadStoredPages(
   return mergeStoredPages(stored, currentDoc);
 }
 
+/**
+ * Serialize page-envelope writes. Autosave and page renames can overlap; two
+ * concurrent WritePages calls have no guaranteed completion order, so an
+ * older snapshot could land after a newer one and silently undo a rename.
+ * Chaining keeps last-call-wins for the persisted envelope.
+ */
+let pageWriteQueue: Promise<void> = Promise.resolve();
+
 export async function saveStoredPages(
   persistId: string,
   pages: readonly AvnacDocumentV1[],
   currentPage: number,
+  pageNames: readonly string[] = [],
 ): Promise<void> {
+  const payload = JSON.stringify(
+    buildMultiPageDocument(pages, currentPage, pageNames),
+  );
+  const write = pageWriteQueue.then(() => WritePages(persistId, payload));
+  pageWriteQueue = write.catch(() => {});
   try {
-    await WritePages(
-      persistId,
-      JSON.stringify(buildMultiPageDocument(pages, currentPage)),
-    );
+    await write;
   } catch (err) {
     console.error("[avnac] saveStoredPages failed", err);
   }

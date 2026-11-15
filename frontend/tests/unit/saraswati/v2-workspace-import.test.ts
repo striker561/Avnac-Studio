@@ -11,6 +11,7 @@ describe("parseAvnacImport web v2 workspace", () => {
       pages: [
         {
           id: "page-1",
+          name: "Cover",
           objects: [
             {
               id: "rect-1",
@@ -30,6 +31,7 @@ describe("parseAvnacImport web v2 workspace", () => {
         },
         {
           id: "page-2",
+          name: "Test — layout",
           objects: [
             {
               id: "text-1",
@@ -58,6 +60,7 @@ describe("parseAvnacImport web v2 workspace", () => {
 
     expect(imported.document.pages).toHaveLength(2);
     expect(imported.document.currentPage).toBe(1);
+    expect(imported.document.pageNames).toEqual(["Cover", "Test — layout"]);
 
     const active = imported.document.pages[imported.document.currentPage];
     expect(active?.v).toBe(1);

@@ -26,14 +26,19 @@ import EditorLayersPanel from "@/components/editor/sidebar/editor-layers-panel";
 import EditorUploadsPanel from "@/components/editor/sidebar/editor-uploads-panel";
 import EditorVectorBoardPanel from "@/components/editor/vector-boards/editor-vector-board-panel";
 import VectorBoardWorkspace from "@/components/editor/vector-boards/vector-board-workspace";
+import { buildSelectionSvg } from "@/lib/avnac-selection-export";
+import { getLastMCPResponse, handleMCPAction } from "./use-mcp-actions";
 import {
   emptyVectorBoardDocument,
+  vectorBoardDocumentToSvgDataUrl,
   type VectorBoardDocument,
-} from "@/lib/avnac-vector-board-document";
+} from "@/lib/avnac-vector";
 import {
+  forgetVectorBoardDoc,
   loadVectorBoardDocs,
   loadVectorBoards,
   mergeVectorBoardDocsForMeta,
+  rememberVectorBoardDoc,
   saveVectorBoardDocs,
   saveVectorBoards,
   type AvnacVectorBoardMeta,
@@ -52,6 +57,7 @@ import BottomFloatingToolbar from "./tools/bottom-floating-toolbar";
 import SceneSelectionBar from "./tools/scene-selection-bar";
 import { useLayerPanelTools } from "./tools/use-layer-panel-tools";
 import { useSceneEditorAiController } from "./use-scene-editor-ai-controller";
+import { pageDisplayName } from "@/lib/avnac-multi-page-document";
 import { useSceneEditorStore } from "./store";
 
 // ─── Toolbar presentation ───────────────────────────────────────────────────────────────────
@@ -115,10 +121,11 @@ function _actionChevronClass(open: boolean): string {
 function _buildPageTabs(
   pageCount: number,
   currentPage: number,
+  pageNames: readonly string[],
 ): { index: number; label: string; active: boolean }[] {
   return Array.from({ length: pageCount }, (_, i) => ({
     index: i,
-    label: `Page ${i + 1}`,
+    label: pageDisplayName(pageNames, i),
     active: i === currentPage,
   }));
 }
@@ -126,6 +133,37 @@ function _buildPageTabs(
 type Props = {
   documentId: string | null;
 };
+
+type SceneEditorDebugApi = {
+  getScene: () => ReturnType<typeof useSceneEditorStore.getState>["scene"];
+  getSelectedIds: () => string[];
+  buildSelectionSvg: () => Promise<string | null>;
+  getState: () => {
+    documentId: string | null;
+    revision: number;
+    pageNames: string[];
+    currentPage: number;
+    pageCount: number;
+    artboard: { width: number; height: number } | null;
+    background: unknown;
+    canUndo: boolean;
+    canRedo: boolean;
+    nodeCount: number;
+    pages: Array<{ width: number; height: number; nodeCount: number }>;
+  };
+  dispatchMCPAction: (
+    action: string,
+    payload?: Record<string, unknown>,
+  ) => Promise<void>;
+  getLastMCPResponse: () => Record<string, unknown> | null;
+  documentId: string | null;
+};
+
+declare global {
+  interface Window {
+    __avnacSceneEditor?: SceneEditorDebugApi;
+  }
+}
 
 export default function SceneEditorPage({ documentId }: Props) {
   const documentName = useSceneEditorStore((s) => s.documentName);
@@ -150,9 +188,11 @@ export default function SceneEditorPage({ documentId }: Props) {
   const setSidebarPanel = useSceneEditorStore((s) => s.setSidebarPanel);
   const insertVectorBoard = useSceneEditorStore((s) => s.insertVectorBoard);
   const pages = useSceneEditorStore((s) => s.pages);
+  const pageNames = useSceneEditorStore((s) => s.pageNames);
   const currentPage = useSceneEditorStore((s) => s.currentPage);
   const goToPage = useSceneEditorStore((s) => s.goToPage);
   const addPage = useSceneEditorStore((s) => s.addPage);
+  const renamePage = useSceneEditorStore((s) => s.renamePage);
   const deletePage = useSceneEditorStore((s) => s.deletePage);
   const importPage = useSceneEditorStore((s) => s.importPage);
   const importWorkspace = useSceneEditorStore((s) => s.importWorkspace);
@@ -172,7 +212,11 @@ export default function SceneEditorPage({ documentId }: Props) {
   const [pngExpanded, setPngExpanded] = useState(false);
   const [pngMult, setPngMult] = useState(2);
   const [pngTransparent, setPngTransparent] = useState(false);
+  const [renamingPage, setRenamingPage] = useState<number | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const skipRenameCommitRef = useRef(false);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const pageTabRailRef = useRef<HTMLDivElement>(null);
   const workspaceInputRef = useRef<HTMLInputElement>(null);
   const pageInputRef = useRef<HTMLInputElement>(null);
 
@@ -181,8 +225,29 @@ export default function SceneEditorPage({ documentId }: Props) {
   const canGoNext = currentPage < pageCount - 1;
   const canDelete = pageCount > 1;
   const pageTabs = useMemo(
-    () => _buildPageTabs(pageCount, currentPage),
-    [pageCount, currentPage],
+    () => _buildPageTabs(pageCount, currentPage, pageNames),
+    [pageCount, currentPage, pageNames],
+  );
+
+  // Keep the active page tab visible when MCP or the keyboard moves pages —
+  // a page the agent is working on must be discoverable in the app chrome.
+  useEffect(() => {
+    const active = pageTabRailRef.current?.querySelector<HTMLElement>(
+      '[data-page-active="true"]',
+    );
+    active?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [currentPage, pageCount]);
+
+  const commitPageRename = useCallback(
+    (index: number, value: string) => {
+      setRenamingPage(null);
+      if (skipRenameCommitRef.current) {
+        skipRenameCommitRef.current = false;
+        return;
+      }
+      void renamePage(index, value);
+    },
+    [renamePage],
   );
 
   // Close actions menu on outside click
@@ -346,22 +411,79 @@ export default function SceneEditorPage({ documentId }: Props) {
     setVectorWorkspaceId(null);
   }, []);
 
+  // Development-only inspection hook for Playwright and manual debugging.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const api: SceneEditorDebugApi = {
+      getScene: () => useSceneEditorStore.getState().scene,
+      getSelectedIds: () => useSceneEditorStore.getState().selectedIds,
+      buildSelectionSvg: async () => {
+        const state = useSceneEditorStore.getState();
+        if (!state.scene || state.selectedIds.length === 0) return null;
+        return buildSelectionSvg(state.scene, state.selectedIds);
+      },
+      getState: () => {
+        const state = useSceneEditorStore.getState();
+        return {
+          documentId: state.documentId,
+          revision: state.revision,
+          pageNames: [...state.pageNames],
+          currentPage: state.currentPage,
+          pageCount: state.pages.length,
+          artboard: state.scene
+            ? {
+                width: state.scene.artboard.width,
+                height: state.scene.artboard.height,
+              }
+            : null,
+          background: state.scene?.artboard.bg ?? null,
+          canUndo: state.canUndo,
+          canRedo: state.canRedo,
+          nodeCount: state.scene
+            ? Object.keys(state.scene.nodes).length - 1
+            : 0,
+          pages: state.pages.map((page) => ({
+            width: page.artboard?.width ?? 0,
+            height: page.artboard?.height ?? 0,
+            nodeCount: Array.isArray(page.fabric?.objects)
+              ? page.fabric.objects.length
+              : 0,
+          })),
+        };
+      },
+      dispatchMCPAction: async (action, payload) => {
+        await handleMCPAction({}, { action, payload });
+      },
+      getLastMCPResponse: () => getLastMCPResponse(),
+      documentId: documentId ?? null,
+    };
+    window.__avnacSceneEditor = api;
+    return () => {
+      if (window.__avnacSceneEditor === api) delete window.__avnacSceneEditor;
+    };
+  }, [documentId]);
+
   const onVectorBoardDocumentChange = useCallback(
     (boardId: string, doc: VectorBoardDocument) => {
+      if (documentId) rememberVectorBoardDoc(documentId, boardId, doc);
       setVectorBoardDocs((prev) => ({ ...prev, [boardId]: doc }));
     },
-    [],
+    [documentId],
   );
 
-  const deleteVectorBoard = useCallback((boardId: string) => {
-    setVectorWorkspaceId((cur) => (cur === boardId ? null : cur));
-    setVectorBoards((prev) => prev.filter((b) => b.id !== boardId));
-    setVectorBoardDocs((prev) => {
-      const next = { ...prev };
-      delete next[boardId];
-      return next;
-    });
-  }, []);
+  const deleteVectorBoard = useCallback(
+    (boardId: string) => {
+      if (documentId) forgetVectorBoardDoc(documentId, boardId);
+      setVectorWorkspaceId((cur) => (cur === boardId ? null : cur));
+      setVectorBoards((prev) => prev.filter((b) => b.id !== boardId));
+      setVectorBoardDocs((prev) => {
+        const next = { ...prev };
+        delete next[boardId];
+        return next;
+      });
+    },
+    [documentId],
+  );
 
   const vectorWorkspaceName = useMemo(() => {
     if (!vectorWorkspaceId) return "";
@@ -524,22 +646,63 @@ export default function SceneEditorPage({ documentId }: Props) {
                 className={`${_tabRailFadeClass} right-0 rotate-180 rounded-r-full`}
               />
               <div className="overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className={_tabRailClass}>
-                  {pageTabs.map((tab) => (
-                    <button
-                      key={tab.index}
-                      type="button"
-                      className={[
-                        _pageTabButtonClass,
-                        _tabButtonStateClass(tab.active),
-                      ].join(" ")}
-                      onClick={() => void goToPage(tab.index)}
-                      aria-current={tab.active ? "page" : undefined}
-                      title={tab.label}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                <div ref={pageTabRailRef} className={_tabRailClass}>
+                  {pageTabs.map((tab) =>
+                    renamingPage === tab.index ? (
+                      <input
+                        key={`rename-${tab.index}`}
+                        autoFocus
+                        value={renameDraft}
+                        onChange={(event) => setRenameDraft(event.target.value)}
+                        onFocus={(event) => event.currentTarget.select()}
+                        onBlur={(event) =>
+                          commitPageRename(tab.index, event.currentTarget.value)
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                          } else if (event.key === "Escape") {
+                            event.preventDefault();
+                            skipRenameCommitRef.current = true;
+                            setRenamingPage(null);
+                          }
+                        }}
+                        className={[
+                          _pageTabButtonClass,
+                          "w-36 bg-white text-neutral-900 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.14)] outline-none",
+                        ].join(" ")}
+                        aria-label={`Rename page ${tab.index + 1}`}
+                        placeholder={`Page ${tab.index + 1}`}
+                        maxLength={120}
+                        spellCheck={false}
+                      />
+                    ) : (
+                      <button
+                        key={tab.index}
+                        type="button"
+                        className={[
+                          _pageTabButtonClass,
+                          _tabButtonStateClass(tab.active),
+                        ].join(" ")}
+                        onClick={() => void goToPage(tab.index)}
+                        onDoubleClick={() => {
+                          setRenameDraft(
+                            pageNames[tab.index]?.trim() ?? "",
+                          );
+                          skipRenameCommitRef.current = false;
+                          setRenamingPage(tab.index);
+                        }}
+                        aria-current={tab.active ? "page" : undefined}
+                        data-page-active={tab.active ? "true" : undefined}
+                        title={`${tab.label} — double-click to rename`}
+                      >
+                        <span className="max-w-[180px] truncate">
+                          {tab.label}
+                        </span>
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             </div>
@@ -870,6 +1033,7 @@ export default function SceneEditorPage({ documentId }: Props) {
             />
             <VectorBoardWorkspace
               open={vectorWorkspaceId != null}
+              boardId={vectorWorkspaceId ?? ""}
               boardName={vectorWorkspaceName}
               document={
                 vectorWorkspaceId
@@ -881,9 +1045,36 @@ export default function SceneEditorPage({ documentId }: Props) {
                 if (!vectorWorkspaceId) return;
                 onVectorBoardDocumentChange(vectorWorkspaceId, doc);
               }}
-              onSave={closeVectorWorkspace}
-              onSaveAndPlace={() => {
-                insertVectorBoard();
+              onSave={(doc) => {
+                if (documentId && vectorWorkspaceId) {
+                  const nextDocs = {
+                    ...vectorBoardDocs,
+                    [vectorWorkspaceId]: doc,
+                  };
+                  setVectorBoardDocs(nextDocs);
+                  void saveVectorBoardDocs(documentId, nextDocs).catch((err) => {
+                    console.error("SceneEditor: vector board save failed", err);
+                  });
+                }
+                closeVectorWorkspace();
+              }}
+              onSaveAndPlace={(doc) => {
+                if (documentId && vectorWorkspaceId) {
+                  const nextDocs = {
+                    ...vectorBoardDocs,
+                    [vectorWorkspaceId]: doc,
+                  };
+                  setVectorBoardDocs(nextDocs);
+                  void saveVectorBoardDocs(documentId, nextDocs).catch((err) => {
+                    console.error("SceneEditor: vector board save failed", err);
+                  });
+                }
+                insertVectorBoard({
+                  src: vectorBoardDocumentToSvgDataUrl(doc),
+                  width: doc.size.width,
+                  height: doc.size.height,
+                  name: vectorWorkspaceName,
+                });
                 closeVectorWorkspace();
               }}
               onClose={closeVectorWorkspace}

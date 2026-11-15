@@ -102,3 +102,61 @@ describe("SVG selection export: image crop", () => {
     expect(svg).not.toContain("scale(2,2)");
   });
 });
+
+function vectorBoardScene(): SaraswatiScene {
+  const boardSvg =
+    "<?xml version=\"1.0\"?><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1200\" height=\"900\" viewBox=\"0 0 1200 900\" data-avnac-vector-board=\"1\"><g data-layer-id=\"l1\"><path d=\"M100 100 C 200 100 300 200 400 200 Z\" fill=\"#ff0000\" stroke=\"none\"/></g></svg>";
+  const src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(boardSvg);
+  return {
+    version: 1,
+    root: "root",
+    artboard: { width: 1000, height: 800, bg: { type: "solid", color: "#fff" } },
+    nodes: {
+      root: {
+        id: "root",
+        type: "group",
+        parentId: null,
+        visible: true,
+        opacity: 1,
+        rotation: 0,
+        children: ["img-1"],
+      },
+      "img-1": {
+        id: "img-1",
+        type: "image",
+        parentId: "root",
+        name: "Vector board",
+        visible: true,
+        opacity: 1,
+        rotation: 0,
+        x: 100,
+        y: 100,
+        width: 600,
+        height: 450,
+        scaleX: 1,
+        scaleY: 1,
+        originX: "left",
+        originY: "top",
+        src,
+        cropX: 0,
+        cropY: 0,
+        borderRadius: 0,
+        blur: 0,
+        shadow: null,
+        clipPath: null,
+      },
+    },
+  };
+}
+
+describe("SVG selection export: vector board", () => {
+  it("inlines board paths instead of nesting an image", async () => {
+    const svg = await captureSvg(vectorBoardScene());
+    expect(svg).toContain("<path");
+    expect(svg).toContain('fill="#ff0000"');
+    expect(svg).not.toContain("<image");
+    expect(svg).toContain("scale(0.5)");
+    expect(svg).toContain("data-layer-id");
+  });
+});
+

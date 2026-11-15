@@ -10,6 +10,9 @@ function Harness(props: {
   onDelete?: () => void;
   onNudge?: (dx: number, dy: number) => void;
   selectedIds?: string[];
+  onInsertText?: () => void;
+  onOpenImagePicker?: () => void;
+  shortcutsOpen?: boolean;
 }) {
   useSceneEditorShortcuts({
     scene: createEmptySaraswatiScene({ width: 400, height: 300 }),
@@ -38,6 +41,9 @@ function Harness(props: {
     onDuplicate: vi.fn(),
     onImageFilesPaste: vi.fn(),
     onShowShortcuts: vi.fn(),
+    shortcutsOpen: props.shortcutsOpen ?? false,
+    onInsertText: props.onInsertText ?? vi.fn(),
+    onOpenImagePicker: props.onOpenImagePicker ?? vi.fn(),
   });
 
   return (
@@ -113,6 +119,53 @@ describe("useSceneEditorShortcuts", () => {
     );
 
     expect(onNudge).toHaveBeenCalledWith(1, 0);
+    unmount();
+  });
+
+  it("inserts text with T and opens the image picker with I", () => {
+    const insertText = vi.fn();
+    const openImagePicker = vi.fn();
+    const { getByRole, unmount } = render(
+      <Harness
+        undo={vi.fn()}
+        redo={vi.fn()}
+        onInsertText={insertText}
+        onOpenImagePicker={openImagePicker}
+      />,
+    );
+    const button = getByRole("button", { name: "chrome" });
+    button.focus();
+
+    for (const key of ["t", "T"]) {
+      button.dispatchEvent(
+        new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+      );
+    }
+    expect(insertText).toHaveBeenCalledTimes(2);
+
+    button.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "i", bubbles: true, cancelable: true }),
+    );
+    expect(openImagePicker).toHaveBeenCalledTimes(1);
+    unmount();
+  });
+
+  it("does not insert while the shortcuts panel is open", () => {
+    const insertText = vi.fn();
+    const { getByRole, unmount } = render(
+      <Harness
+        undo={vi.fn()}
+        redo={vi.fn()}
+        onInsertText={insertText}
+        shortcutsOpen
+      />,
+    );
+    const button = getByRole("button", { name: "chrome" });
+    button.focus();
+    button.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "t", bubbles: true, cancelable: true }),
+    );
+    expect(insertText).not.toHaveBeenCalled();
     unmount();
   });
 });

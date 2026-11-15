@@ -58,6 +58,15 @@ type MCPStateLike = {
   error?: string;
 };
 
+// One card, two panes. Configuration is the default because it is the only
+// one a new user can act on; the surface is a diagnostic.
+const MCP_TAB_OPTIONS = [
+  ["config", "Configuration"],
+  ["surface", "Tool surface"],
+] as const;
+
+type MCPTab = (typeof MCP_TAB_OPTIONS)[number][0];
+
 type MCPToolSurfaceOp = {
   op: string;
   action?: string;
@@ -340,6 +349,8 @@ export const Route = createFileRoute("/settings")({
     const [mcpBusy, setMcpBusy] = useState(false);
     const [mcpNotice, setMcpNotice] = useState<string | null>(null);
     const [mcpError, setMcpError] = useState<string | null>(null);
+    // One card, two panes: configuration first, the published surface second.
+    const [mcpTab, setMcpTab] = useState<MCPTab>("config");
 
     // --- MCP tool surface ---
     const [surface, setSurface] = useState<MCPToolSurface | null>(null);
@@ -645,7 +656,7 @@ export const Route = createFileRoute("/settings")({
                   notice={unsplashNotice}
                 />
 
-                {/* MCP design server */}
+                {/* MCP */}
                 <div className="overflow-hidden rounded-[28px] border border-black/[0.08] bg-white/75 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur-md">
                   <div className="flex flex-col gap-4 px-5 py-5 sm:px-6">
                     <div className="min-w-0">
@@ -668,325 +679,346 @@ export const Route = createFileRoute("/settings")({
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
-                      <div className="pr-4">
-                        <p className="text-sm font-medium text-[var(--text)]">
-                          Enable MCP server
-                        </p>
-                        <p className="text-xs text-[var(--text-muted)]">
-                          Binds to 127.0.0.1 on a fixed port; falls back to a
-                          free one.
-                        </p>
-                      </div>
-                      <SettingSwitch
-                        ariaLabel="Enable MCP server"
-                        checked={mcpInfo?.enabled ?? false}
-                        disabled={mcpLoading || mcpBusy || !getMCPBridge()}
-                        onChange={toggleMCPServer}
-                      />
+                    <div
+                      role="tablist"
+                      aria-label="MCP settings"
+                      className="inline-flex w-fit items-center gap-1 rounded-full border border-black/[0.08] bg-black/[0.03] p-1"
+                    >
+                      {MCP_TAB_OPTIONS.map(([id, label]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          role="tab"
+                          id={`mcp-tab-${id}`}
+                          aria-selected={mcpTab === id}
+                          aria-controls={`mcp-panel-${id}`}
+                          onClick={() => setMcpTab(id)}
+                          className={`inline-flex h-8 cursor-pointer items-center rounded-full px-3.5 text-[13px] font-medium transition ${
+                            mcpTab === id
+                              ? "bg-white text-[var(--text)] shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
+                              : "text-[var(--text-muted)] hover:text-[var(--text)]"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
                     </div>
 
-                    {mcpInfo?.enabled && mcpInfo.running ? (
-                      <div className="flex flex-col gap-3 rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
-                        <div>
-                          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
-                            Connect URL
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <code className="min-w-0 flex-1 break-all rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
-                              {mcpInfo.url}
-                            </code>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                copyToClipboard(mcpInfo.url, "Connect URL")
-                              }
-                              className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-black/[0.12] bg-white text-[var(--text)] transition hover:border-black/[0.2]"
-                              aria-label="Copy connect URL"
-                            >
-                              <HugeiconsIcon
-                                icon={Copy01Icon}
-                                size={15}
-                                strokeWidth={1.9}
-                              />
-                            </button>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
-                            Bearer token
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <code className="min-w-0 flex-1 break-all rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
-                              {mcpToken || "…"}
-                            </code>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                copyToClipboard(mcpToken, "Bearer token")
-                              }
-                              className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-black/[0.12] bg-white text-[var(--text)] transition hover:border-black/[0.2]"
-                              aria-label="Copy bearer token"
-                            >
-                              <HugeiconsIcon
-                                icon={Copy01Icon}
-                                size={15}
-                                strokeWidth={1.9}
-                              />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={regenerateMCPToken}
-                              disabled={mcpBusy}
-                              className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-black/[0.12] bg-white px-3 text-xs font-medium text-[var(--text)] transition hover:border-black/[0.2] disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              Regenerate
-                            </button>
-                          </div>
-                          <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
-                            In your client config, send header{" "}
-                            <code className="rounded bg-black/[0.05] px-1 py-0.5 text-[11px]">
-                              Authorization: Bearer &lt;token&gt;
-                            </code>
-                            .
-                          </p>
-                        </div>
-                      </div>
-                    ) : mcpInfo?.enabled && mcpInfo.error ? (
-                      <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3">
-                        <HugeiconsIcon
-                          icon={AlertDiamondIcon}
-                          size={16}
-                          strokeWidth={1.9}
-                          className="mt-0.5 shrink-0 text-amber-500"
-                        />
-                        <p className="text-sm text-amber-800">
-                          {mcpInfo.error}
-                        </p>
-                      </div>
-                    ) : null}
-
-                    {mcpNotice ? (
-                      <p className="text-sm text-emerald-700">{mcpNotice}</p>
-                    ) : null}
-                    {mcpError ? (
-                      <p className="text-sm text-red-600">{mcpError}</p>
-                    ) : null}
-                  </div>
-                </div>
-
-                {/* MCP tool surface */}
-                <div className="overflow-hidden rounded-[28px] border border-black/[0.08] bg-white/75 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur-md">
-                  <div className="flex flex-col gap-4 px-5 py-5 sm:px-6">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/80 px-3 py-1 text-xs font-medium text-[var(--text-muted)]">
-                          <HugeiconsIcon
-                            icon={BotIcon}
-                            size={14}
-                            strokeWidth={1.9}
-                            className="shrink-0"
-                          />
-                          AI Agents
-                        </div>
-                        <h2 className="m-0 text-base font-semibold text-[var(--text)] sm:text-lg">
-                          MCP tool surface
-                        </h2>
-                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                          What this build publishes and what the open window can
-                          dispatch. Refresh after a rebuild; an older bundle
-                          shows up here instead of as “Unknown action”.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => void refreshSurface()}
-                        disabled={surfaceLoading}
-                        className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border border-black/[0.12] bg-white px-3 text-xs font-medium text-[var(--text)] transition hover:border-black/[0.2] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <HugeiconsIcon
-                          icon={ArrowReloadHorizontalIcon}
-                          size={15}
-                          strokeWidth={1.9}
-                          className={surfaceLoading ? "animate-spin" : ""}
-                        />
-                        Refresh
-                      </button>
-                    </div>
-
-                    {clientCheck ? (
+                    {mcpTab === "config" ? (
                       <div
-                        className={`rounded-2xl border px-4 py-3 ${
-                          clientCheck.stale
-                            ? "border-amber-200 bg-amber-50/80"
-                            : "border-emerald-200 bg-emerald-50/70"
-                        }`}
+                        role="tabpanel"
+                        id="mcp-panel-config"
+                        aria-labelledby="mcp-tab-config"
+                        className="flex flex-col gap-4"
                       >
-                        <div className="flex items-start gap-2">
-                          <HugeiconsIcon
-                            icon={
-                              clientCheck.stale
-                                ? AlertDiamondIcon
-                                : CheckmarkCircle01Icon
-                            }
-                            size={16}
-                            strokeWidth={1.9}
-                            className={`mt-0.5 shrink-0 ${
-                              clientCheck.stale
-                                ? "text-amber-500"
-                                : "text-emerald-600"
-                            }`}
-                          />
-                          <div className="min-w-0">
-                            <p
-                              className={`text-sm font-medium ${
-                                clientCheck.stale
-                                  ? "text-amber-800"
-                                  : "text-emerald-800"
-                              }`}
-                            >
-                              {clientCheck.stale
-                                ? "Window needs a reload"
-                                : "Window is current"}
+                        <div className="flex items-center justify-between rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
+                          <div className="pr-4">
+                            <p className="text-sm font-medium text-[var(--text)]">
+                              Enable MCP server
                             </p>
-                            <p
-                              className={`mt-1 text-xs leading-5 ${
-                                clientCheck.stale
-                                  ? "text-amber-700"
-                                  : "text-emerald-700"
-                              }`}
-                            >
-                              {clientCheck.message}
+                            <p className="text-xs text-[var(--text-muted)]">
+                              Binds to 127.0.0.1 on a fixed port; falls back to a
+                              free one.
                             </p>
-                            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-                              {clientCheck.answered
-                                ? `client ${clientCheck.clientId?.slice(0, 8) ?? "?"} · handler ${clientCheck.actionHandlerId?.slice(0, 8) ?? "?"} · revision ${clientCheck.revision}`
-                                : "no client answered"}{" "}
-                              · {clientCheck.latencyMs} ms · this window{" "}
-                              {ownClientId.slice(0, 8)}
-                            </p>
-                            {clientCheck.answered &&
-                            clientCheck.clientId &&
-                            clientCheck.clientId !== ownClientId ? (
-                              <p className="mt-2 text-[11px] leading-5 text-amber-700">
-                                Another window answered. A second copy of the app
-                                (browser tab or window) can win the tool-call
-                                race. Close it, then refresh.
-                              </p>
-                            ) : null}
-                            {missingActions.length > 0 ? (
-                              <p className="mt-2 break-all text-[11px] leading-5 text-red-700">
-                                missing: {missingActions.slice(0, 12).join(", ")}
-                                {missingActions.length > 12
-                                  ? ` +${missingActions.length - 12} more`
-                                  : ""}
-                              </p>
-                            ) : null}
                           </div>
+                          <SettingSwitch
+                            ariaLabel="Enable MCP server"
+                            checked={mcpInfo?.enabled ?? false}
+                            disabled={mcpLoading || mcpBusy || !getMCPBridge()}
+                            onChange={toggleMCPServer}
+                          />
                         </div>
-                      </div>
-                    ) : null}
 
-                    {surface ? (
-                      <div className="rounded-2xl border border-black/[0.08] bg-white/85">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-black/[0.06] px-4 py-2 text-xs text-[var(--text-muted)]">
-                          <span>
-                            <strong className="font-semibold text-[var(--text)]">
-                              {surface.toolCount}
-                            </strong>{" "}
-                            tools
-                          </span>
-                          <span>
-                            <strong className="font-semibold text-[var(--text)]">
-                              {surface.opCount}
-                            </strong>{" "}
-                            ops
-                          </span>
-                          <span>
-                            fingerprint{" "}
-                            <code className="rounded bg-black/[0.05] px-1 py-0.5 text-[11px]">
-                              {surface.fingerprint}
-                            </code>
-                          </span>
-                          <span className="ml-auto">
-                            read{" "}
-                            {new Date(surface.generatedAt).toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <div className="max-h-80 overflow-auto px-4 py-1">
-                          {surface.tools.map((tool) => (
-                            <div
-                              key={tool.name}
-                              className="border-b border-black/[0.05] py-2 last:border-b-0"
-                            >
-                              <div className="flex items-baseline justify-between gap-3">
-                                <code className="text-[13px] font-medium text-[var(--text)]">
-                                  {tool.name}
+                        {mcpInfo?.enabled && mcpInfo.running ? (
+                          <div className="flex flex-col gap-3 rounded-2xl border border-black/[0.08] bg-white/85 px-4 py-3">
+                            <div>
+                              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                                Connect URL
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <code className="min-w-0 flex-1 break-all rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
+                                  {mcpInfo.url}
                                 </code>
-                                {tool.action ? (
-                                  <span className="shrink-0 text-[11px] text-[var(--text-muted)]">
-                                    {tool.action}
-                                  </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    copyToClipboard(mcpInfo.url, "Connect URL")
+                                  }
+                                  className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-black/[0.12] bg-white text-[var(--text)] transition hover:border-black/[0.2]"
+                                  aria-label="Copy connect URL"
+                                >
+                                  <HugeiconsIcon
+                                    icon={Copy01Icon}
+                                    size={15}
+                                    strokeWidth={1.9}
+                                  />
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                                Bearer token
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <code className="min-w-0 flex-1 break-all rounded-xl bg-black/[0.04] px-3 py-2 text-[13px] text-[var(--text)]">
+                                  {mcpToken || "…"}
+                                </code>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    copyToClipboard(mcpToken, "Bearer token")
+                                  }
+                                  className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-black/[0.12] bg-white text-[var(--text)] transition hover:border-black/[0.2]"
+                                  aria-label="Copy bearer token"
+                                >
+                                  <HugeiconsIcon
+                                    icon={Copy01Icon}
+                                    size={15}
+                                    strokeWidth={1.9}
+                                  />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={regenerateMCPToken}
+                                  disabled={mcpBusy}
+                                  className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-black/[0.12] bg-white px-3 text-xs font-medium text-[var(--text)] transition hover:border-black/[0.2] disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  Regenerate
+                                </button>
+                              </div>
+                              <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
+                                In your client config, send header{" "}
+                                <code className="rounded bg-black/[0.05] px-1 py-0.5 text-[11px]">
+                                  Authorization: Bearer &lt;token&gt;
+                                </code>
+                                .
+                              </p>
+                            </div>
+                          </div>
+                        ) : mcpInfo?.enabled && mcpInfo.error ? (
+                          <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3">
+                            <HugeiconsIcon
+                              icon={AlertDiamondIcon}
+                              size={16}
+                              strokeWidth={1.9}
+                              className="mt-0.5 shrink-0 text-amber-500"
+                            />
+                            <p className="text-sm text-amber-800">
+                              {mcpInfo.error}
+                            </p>
+                          </div>
+                        ) : null}
+
+                        {mcpNotice ? (
+                          <p className="text-sm text-emerald-700">{mcpNotice}</p>
+                        ) : null}
+                        {mcpError ? (
+                          <p className="text-sm text-red-600">{mcpError}</p>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div
+                        role="tabpanel"
+                        id="mcp-panel-surface"
+                        aria-labelledby="mcp-tab-surface"
+                        className="flex flex-col gap-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm leading-6 text-[var(--text-muted)]">
+                            What this build publishes and what the open window can
+                            dispatch. Refresh after a rebuild; an older bundle
+                            shows up here instead of as “Unknown action”.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => void refreshSurface()}
+                            disabled={surfaceLoading}
+                            className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border border-black/[0.12] bg-white px-3 text-xs font-medium text-[var(--text)] transition hover:border-black/[0.2] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <HugeiconsIcon
+                              icon={ArrowReloadHorizontalIcon}
+                              size={15}
+                              strokeWidth={1.9}
+                              className={surfaceLoading ? "animate-spin" : ""}
+                            />
+                            Refresh
+                          </button>
+                        </div>
+                        {clientCheck ? (
+                          <div
+                            className={`rounded-2xl border px-4 py-3 ${
+                              clientCheck.stale
+                                ? "border-amber-200 bg-amber-50/80"
+                                : "border-emerald-200 bg-emerald-50/70"
+                            }`}
+                          >
+                            <div className="flex items-start gap-2">
+                              <HugeiconsIcon
+                                icon={
+                                  clientCheck.stale
+                                    ? AlertDiamondIcon
+                                    : CheckmarkCircle01Icon
+                                }
+                                size={16}
+                                strokeWidth={1.9}
+                                className={`mt-0.5 shrink-0 ${
+                                  clientCheck.stale
+                                    ? "text-amber-500"
+                                    : "text-emerald-600"
+                                }`}
+                              />
+                              <div className="min-w-0">
+                                <p
+                                  className={`text-sm font-medium ${
+                                    clientCheck.stale
+                                      ? "text-amber-800"
+                                      : "text-emerald-800"
+                                  }`}
+                                >
+                                  {clientCheck.stale
+                                    ? "Window needs a reload"
+                                    : "Window is current"}
+                                </p>
+                                <p
+                                  className={`mt-1 text-xs leading-5 ${
+                                    clientCheck.stale
+                                      ? "text-amber-700"
+                                      : "text-emerald-700"
+                                  }`}
+                                >
+                                  {clientCheck.message}
+                                </p>
+                                <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                                  {clientCheck.answered
+                                    ? `client ${clientCheck.clientId?.slice(0, 8) ?? "?"} · handler ${clientCheck.actionHandlerId?.slice(0, 8) ?? "?"} · revision ${clientCheck.revision}`
+                                    : "no client answered"}{" "}
+                                  · {clientCheck.latencyMs} ms · this window{" "}
+                                  {ownClientId.slice(0, 8)}
+                                </p>
+                                {clientCheck.answered &&
+                                clientCheck.clientId &&
+                                clientCheck.clientId !== ownClientId ? (
+                                  <p className="mt-2 text-[11px] leading-5 text-amber-700">
+                                    Another window answered. A second copy of the app
+                                    (browser tab or window) can win the tool-call
+                                    race. Close it, then refresh.
+                                  </p>
+                                ) : null}
+                                {missingActions.length > 0 ? (
+                                  <p className="mt-2 break-all text-[11px] leading-5 text-red-700">
+                                    missing: {missingActions.slice(0, 12).join(", ")}
+                                    {missingActions.length > 12
+                                      ? ` +${missingActions.length - 12} more`
+                                      : ""}
+                                  </p>
                                 ) : null}
                               </div>
-                              {tool.description ? (
-                                <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-muted)]">
-                                  {tool.description}
-                                </p>
-                              ) : null}
-                              {tool.ops && tool.ops.length > 0 ? (
-                                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                  {tool.ops.map((op) => {
-                                    const missing =
-                                      op.client &&
-                                      Boolean(
-                                        op.action &&
-                                          missingActions.includes(op.action),
-                                      );
-                                    return (
-                                      <span
-                                        key={op.op}
-                                        title={
-                                          op.action
-                                            ? `emits ${op.action}`
-                                            : "answered in Go"
-                                        }
-                                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
-                                          missing
-                                            ? "border-red-200 bg-red-50 text-red-700"
-                                            : op.client
-                                              ? "border-black/[0.08] bg-white text-[var(--text)]"
-                                              : "border-black/[0.06] bg-black/[0.03] text-[var(--text-muted)]"
-                                        }`}
-                                      >
-                                        <span
-                                          className={`size-1.5 rounded-full ${
-                                            missing
-                                              ? "bg-red-500"
-                                              : op.client
-                                                ? "bg-emerald-500"
-                                                : "bg-black/20"
-                                          }`}
-                                        />
-                                        {op.op}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              ) : null}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : surfaceLoading ? (
-                      <p className="text-sm text-[var(--text-muted)]">
-                        Reading…
-                      </p>
-                    ) : null}
+                          </div>
+                        ) : null}
 
-                    {surfaceError ? (
-                      <p className="text-sm text-red-600">{surfaceError}</p>
-                    ) : null}
+                        {surface ? (
+                          <div className="rounded-2xl border border-black/[0.08] bg-white/85">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-black/[0.06] px-4 py-2 text-xs text-[var(--text-muted)]">
+                              <span>
+                                <strong className="font-semibold text-[var(--text)]">
+                                  {surface.toolCount}
+                                </strong>{" "}
+                                tools
+                              </span>
+                              <span>
+                                <strong className="font-semibold text-[var(--text)]">
+                                  {surface.opCount}
+                                </strong>{" "}
+                                ops
+                              </span>
+                              <span>
+                                fingerprint{" "}
+                                <code className="rounded bg-black/[0.05] px-1 py-0.5 text-[11px]">
+                                  {surface.fingerprint}
+                                </code>
+                              </span>
+                              <span className="ml-auto">
+                                read{" "}
+                                {new Date(surface.generatedAt).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <div className="max-h-80 overflow-auto px-4 py-1">
+                              {surface.tools.map((tool) => (
+                                <div
+                                  key={tool.name}
+                                  className="border-b border-black/[0.05] py-2 last:border-b-0"
+                                >
+                                  <div className="flex items-baseline justify-between gap-3">
+                                    <code className="text-[13px] font-medium text-[var(--text)]">
+                                      {tool.name}
+                                    </code>
+                                    {tool.action ? (
+                                      <span className="shrink-0 text-[11px] text-[var(--text-muted)]">
+                                        {tool.action}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  {tool.description ? (
+                                    <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-muted)]">
+                                      {tool.description}
+                                    </p>
+                                  ) : null}
+                                  {tool.ops && tool.ops.length > 0 ? (
+                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                      {tool.ops.map((op) => {
+                                        const missing =
+                                          op.client &&
+                                          Boolean(
+                                            op.action &&
+                                              missingActions.includes(op.action),
+                                          );
+                                        return (
+                                          <span
+                                            key={op.op}
+                                            title={
+                                              op.action
+                                                ? `emits ${op.action}`
+                                                : "answered in Go"
+                                            }
+                                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
+                                              missing
+                                                ? "border-red-200 bg-red-50 text-red-700"
+                                                : op.client
+                                                  ? "border-black/[0.08] bg-white text-[var(--text)]"
+                                                  : "border-black/[0.06] bg-black/[0.03] text-[var(--text-muted)]"
+                                            }`}
+                                          >
+                                            <span
+                                              className={`size-1.5 rounded-full ${
+                                                missing
+                                                  ? "bg-red-500"
+                                                  : op.client
+                                                    ? "bg-emerald-500"
+                                                    : "bg-black/20"
+                                              }`}
+                                            />
+                                            {op.op}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : surfaceLoading ? (
+                          <p className="text-sm text-[var(--text-muted)]">
+                            Reading…
+                          </p>
+                        ) : null}
+
+                        {surfaceError ? (
+                          <p className="text-sm text-red-600">{surfaceError}</p>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                 </div>
 

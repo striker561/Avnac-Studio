@@ -27,6 +27,9 @@ they can proceed.
   the part of the project where changes are tracked, it does not end the project.
 
 ## Techniques
+
+**Avnac ops:** `get_canvas_summary` and `list_objects` establish what is being handed off; `export` op=svg carries the editable source; `get_object_properties` supplies the measured boxes and styles; `get_canvas_image` is the visual reference.
+
 1. **Build the spec table** — one row per element: name, property, value, source of truth.
    `hero/headline · size · clamp(28px, 4vw, 56px) · token: type.display`. Ten to forty rows of this
    beat a paragraph of description.
@@ -78,16 +81,17 @@ crop marks at 3 mm offset. The printer signs the acceptance sheet with the proof
 signs the checklist at build review, and the changelog starts from those two signatures.
 
 ## Verification
-1. **Spec coverage.** Every element in the comp has a spec row: name, property, value, source of
+1. **Ops receipt.** `export` op=svg and `get_canvas_summary` agree on every object, and the handoff notes name the type, colour and spacing values from `get_object_properties`. A handoff that makes the developer measure the picture has failed.
+2. **Spec coverage.** Every element in the comp has a spec row: name, property, value, source of
    truth. Ten to forty rows is the working range; a value with no row is the one the developer
    guesses.
-2. **Fixed or free.** Each row is marked fixed or free. An unmarked row is what the receiver
+3. **Fixed or free.** Each row is marked fixed or free. An unmarked row is what the receiver
    changes, and the logo clear space at 0.5× cap height is the one that must not move.
-3. **States drawn.** Eight states — default, hover, focus, active, disabled, loading, error, empty —
+4. **States drawn.** Eight states — default, hover, focus, active, disabled, loading, error, empty —
    plus long and translated copy. Count them in the file; a missing state is one the build invents.
-4. **One unit system.** Screen specs in px and rem, print in mm and pt, never mixed in one table. A
+5. **One unit system.** Screen specs in px and rem, print in mm and pt, never mixed in one table. A
    mm figure on a web handoff is converted twice and rounded twice.
-5. **Signed acceptance.** 8–12 testable criteria, each with a number, and a named approver with a
+6. **Signed acceptance.** 8–12 testable criteria, each with a number, and a named approver with a
    date. The receiver rebuilt one section unaided, and their questions became rows.
 
 ## Related Rules

@@ -22,6 +22,9 @@ Split toning does the same thing loosely, with one hue in the shadows and anothe
   will not survive conversion.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render applies a duotone through two-colour `gradientStops` and a tint layer at a set `opacity`; `elements` op=modify re-grades one image; `get_canvas_image` judges the result; `export` op=png delivers it.
+
 1. **Build order** — desaturate, set black and white points, apply contrast, then the gradient map: `#101820`
    at 0%, `#7A2E2A` at 50%, `#F2C14E` at 100%.
 2. **Split tone** — shadows +8 to +14 toward the shadow ink's hue, highlights +4 to +8 toward warm, then check
@@ -59,18 +62,19 @@ ground. The same recipe on the support act's portrait keeps a two-sheet series c
 shoot.
 
 ## Verification
-1. **Lightness spread.** Measure the greyscale before the map: at least 40% between the darkest
+1. **Ops receipt.** `get_canvas_image` shows detail surviving in both ends of the duotone, and the two inks are stated by hex; `export` op=png at the delivery multiplier still holds the shadows. A grade that clips either end loses the image.
+2. **Lightness spread.** Measure the greyscale before the map: at least 40% between the darkest
    meaningful tone and the lightest. Less and the duotone is two flat colours with no form; the same
    40% is what keeps the two inks apart in a colour-vision simulation.
-2. **Stop count.** The gradient map carries three stops minimum at 0, 50 and 100 — `#0B1A24` →
+3. **Stop count.** The gradient map carries three stops minimum at 0, 50 and 100 — `#0B1A24` →
    `#2E5A6B` → `#F2A65A` in the example. Two stops produce a single-hue sepia midtone.
-3. **Ink containment.** Highlight ink stays at 0–15% in the shadows and shadow ink at 0–10% in the
+4. **Ink containment.** Highlight ink stays at 0–15% in the shadows and shadow ink at 0–10% in the
    highlights; about 75% of the image sits in the shadow range and 25% in the highlight. A sample
    outside those bands is a tint, not a duotone.
-4. **Press build.** Each ink is a spot channel with a CMYK build; total coverage is at or under 240%
+5. **Press build.** Each ink is a spot channel with a CMYK build; total coverage is at or under 240%
    uncoated and 300% coated, and small type sits in one ink only. Arbitrary RGB values will not
    survive conversion.
-5. **Two-scale check.** At 100% no banding in sky or skin; at 25% the head still reads against the
+6. **Two-scale check.** At 100% no banding in sky or skin; at 25% the head still reads against the
    `#111111` ground and skin near `#A9705C` stays credible.
 
 ## Related Rules

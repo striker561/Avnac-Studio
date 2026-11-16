@@ -17,6 +17,9 @@ Anatomy is the set of named parts and metrics of a letter: baseline, x-height, c
 - Terminals are texture, not information. Ball terminals sparkle at 72 px and smudge at 12 px.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure returns the metrics the anatomy depends on (cap height, x-height, ascent, descent); `elements` op=render places the text; `get_object_properties` returns the rendered metrics and baselines; `get_canvas_image` is the optical check.
+
 1. **Measure the ratio.** Render "x" and "H" at 100 px, measure pixel heights, divide. Do it before committing.
 2. **Correct apparent size.** To match a 71% face, set the 63% face at 1.13× the size (71/63); to go the other way, set the large-x-height face at 0.89×.
 3. **Pick the regime by counters.** Body below 14 px needs large counters and moderate contrast; display above 48 px can carry high contrast and small counters.
@@ -45,18 +48,19 @@ Anatomy is the set of named parts and metrics of a letter: baseline, x-height, c
 A 900×1200 poster sets "HARVEST" at 140 px in a Didone; the hairlines hold. The same face at 18 px in the caption loses its thin strokes, so the caption switches to a low-contrast grotesque, set at 0.94× nominal because its x-height measures 72% against the Didone's 68%.
 
 ## Verification
-1. **Ratio measured.** Render "x" and "H" at 100 px, measure both pixel heights, divide. 63% and
+1. **Ops receipt.** `get_object_properties` metrics (ascent, descent, capHeight, baseline) match what `elements` op=measure predicted, and `get_canvas_image` shows the intended counter and terminal shapes at delivery size. A metric used as a guess fails the comparison.
+2. **Ratio measured.** Render "x" and "H" at 100 px, measure both pixel heights, divide. 63% and
    71% are two faces at one nominal size; a spec that does not record the measured ratio cannot
    correct apparent size later.
-2. **Apparent-size correction.** Where two faces share a line, the 63% face is set at 1.13× the
+3. **Apparent-size correction.** Where two faces share a line, the 63% face is set at 1.13× the
    71% face, or the 71% face at 0.89×. Equal nominal sizes leave one block 6–10% smaller.
-3. **Extender clearance.** At display sizes the leading is 1.1× or more: ascender plus descender
+4. **Extender clearance.** At display sizes the leading is 1.1× or more: ascender plus descender
    commonly measures 1.09 em, so a 1.0 line ratio closes the gap to nothing. Measure the tightest
    line pair in the file rather than reading the panel.
-4. **Size floor by contrast.** A high-contrast face is never set below 24 px in print or 28 px on
+5. **Size floor by contrast.** A high-contrast face is never set below 24 px in print or 28 px on
    screen; a low-contrast face with open counters holds at 11–12 px. Find the smallest text
    element and read its thinnest stroke.
-5. **Terminal test.** Ball terminals and fine spurs are legible at 72 px and above; at 12 px they
+6. **Terminal test.** Ball terminals and fine spurs are legible at 72 px and above; at 12 px they
    have merged into the stem in the render. Terminals at the smallest size are texture, not
    information.
 

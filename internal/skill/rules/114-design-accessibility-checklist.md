@@ -28,6 +28,9 @@ substrate — but the thresholds are not renegotiated per project.
   plain-text schedule alongside a poster.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=validate reports `contrast_floor` and the layout checks; `elements` op=measure checks target and type size; `elements` op=modify fixes a failing pair; `get_canvas_image` is the non-colour cue check.
+
 1. **Contrast pass with named pairs** — list every text/background pair and its ratio. `#767676` on white
    is 4.54:1; `#949494` is 2.9:1 and fails; brand orange on white rarely passes. Fix the pair, not the
    whole palette.
@@ -78,16 +81,17 @@ Verdict on the delivery note: 11 of 12 checks pass; the poster body sits at 14 p
 to that size — accepted by the client, with the venue address moved to the web listing at 16 px.
 
 ## Verification
-1. **Pair table.** Every text and background pair with its ratio: 4.5:1 body, 3:1 large text and UI
+1. **Ops receipt.** `canvas` op=validate `contrast_floor` passes every text pair, `elements` op=measure confirms the minimum type and target sizes, and every hue-carried meaning has a second cue in `get_canvas_image`. Contrast alone is the accessibility test that passes while the screen fails.
+2. **Pair table.** Every text and background pair with its ratio: 4.5:1 body, 3:1 large text and UI
    boundaries, 3:1 focus ring against the component and its surround. Print aims for ΔL* ≥ 40.
-2. **Size at distance.** Cap height ≈ distance ÷ 120 — 25 mm at 3 m, 80 mm at 10 m — and body 16 px
+3. **Size at distance.** Cap height ≈ distance ÷ 120 — 25 mm at 3 m, 80 mm at 10 m — and body 16 px
    on screen or 12 pt on paper. Measure the rendered type, not the spec: 10 pt at 3 m is 3.5 mm.
-3. **Two channels.** Desaturate: every state, error and required field keeps a word, shape or
+4. **Two channels.** Desaturate: every state, error and required field keeps a word, shape or
    position. A cue that exists only as hue fails this and SC 1.4.1 together.
-4. **Text alternatives.** One row per information-bearing image. Title, date, venue, price and
+5. **Text alternatives.** One row per information-bearing image. Title, date, venue, price and
    access information exist as real text, and alt text names the information, not "image of a
    chart".
-5. **Reflow and focus.** At 320 px and at 200% zoom nothing clips, tab order follows the reading
+6. **Reflow and focus.** At 320 px and at 200% zoom nothing clips, tab order follows the reading
    order, and the focus indicator is visible on every interactive element.
 
 ## Related Rules

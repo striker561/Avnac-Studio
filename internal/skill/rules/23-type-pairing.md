@@ -18,6 +18,9 @@ Pairing is the deliberate combination of families across roles — display, text
 - An economy of type is a system, not a limitation. Four well-chosen families can cover years of work; the variety comes from scale, weight, and arrangement, not from adding faces (p. 54).
 
 ## Techniques
+
+**Avnac ops:** `assets` op=fonts verifies both families are available; `elements` op=measure tests the pairing at real sizes; `elements` op=render sets it; `get_canvas_image` shows whether the two voices separate.
+
 1. **Assign by text run.** Give the primary family the longest run; the secondary gets headlines, captions, and numbers.
 2. **Match x-heights.** If the ratios are 63% and 71%, set the second family at 0.89× the first's size so lowercase bodies align.
 3. **Match weight at 100%.** Compare the stem of "l" at equal cap height; if the secondary is more than about 15% heavier, drop a weight.
@@ -47,16 +50,17 @@ Pairing is the deliberate combination of families across roles — display, text
 A poster pairs a high-contrast display serif at 120 px for "SALT" with a neutral grotesque at 20 px/1.5 for the details, plus a monospace at 13 px for the date and price. Measured x-heights are 66% and 72%, so the grotesque sits at 0.92× the serif's size wherever the two share a line. Three voices, three roles, one skeleton.
 
 ## Verification
-1. **Voice count.** One family per role — display, text, data. Two families is the working
+1. **Ops receipt.** `assets` op=fonts reports both families `loaded`, `canvas` op=validate `level_census` stays at four or fewer, and `get_canvas_image` shows the pair differing by structure rather than by size alone.
+2. **Voice count.** One family per role — display, text, data. Two families is the working
    maximum, three only with a monospace for figures and code; a fourth subtracts from all of them.
-2. **x-height correction.** Measure both faces' x-height against cap height: at 63% and 71%, the
+3. **x-height correction.** Measure both faces' x-height against cap height: at 63% and 71%, the
    second is set at 0.89× the first's size. A pair needing a correction outside 0.89–1.13 is not
    sharing a skeleton, whatever the description says.
-3. **Stem weight.** Compare the "l" stems at equal cap height: within about 15%. A secondary more
+4. **Stem weight.** Compare the "l" stems at equal cap height: within about 15%. A secondary more
    than 15% heavier reads as the more important voice and needs a weight dropped.
-4. **Forty-word grey.** Set the same 40-word paragraph in both at matched size and view at 25%.
+5. **Forty-word grey.** Set the same 40-word paragraph in both at matched size and view at 25%.
    One block darker is a weight mismatch, not a personality difference.
-5. **Role collision.** No family serves two roles. A face used for display and body has spacing
+6. **Role collision.** No family serves two roles. A face used for display and body has spacing
    built for neither; the single-family system is the exception, and it needs three weights.
 
 ## Related Rules

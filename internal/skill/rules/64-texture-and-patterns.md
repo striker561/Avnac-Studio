@@ -24,6 +24,9 @@ that texture organized by a rule — grid, brick, half-drop, mirror, or seeded r
 - In print, fine dot patterns moiré against the halftone screen; coarsen to 45° or use a solid tint.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw repeats one unit as explicit objects, or `elements` op=render places a repeated pattern; `elements` op=modify changes the unit everywhere; `get_canvas_image` shows whether the texture reads at delivery size.
+
 1. **Squint test** — view the artboard at 5% zoom. If the texture reads as dirt, it is too coarse or too
    high-contrast for its role.
 2. **Seamless tile construction** — build a square tile, offset the contents 50% on both axes, repair the four
@@ -59,16 +62,17 @@ cut off hard at the headline block by a `rect` edge rather than a fade. Coverage
 vanishes at 25%, which is the intent: a tooth, not a picture. Tiled 3×3 in a test file, the joins are invisible.
 
 ## Verification
-1. **Coverage measurement.** Measure the textured zone: 8–20% for a tooth on flat colour, 30–50%
+1. **Ops receipt.** The repeat interval is a number, `get_canvas_image` at delivery size shows the pattern as a surface rather than noise, and the unit is one object that `elements` op=modify can change. A texture that only reads at 400% is noise.
+2. **Coverage measurement.** Measure the textured zone: 8–20% for a tooth on flat colour, 30–50%
    when texture becomes the figure, above 60% it is a pattern. The example reads 14% at 100%.
-2. **Tile arithmetic.** The tile divides both artboard dimensions: 135 px into 1080 is 8, 120 is 9,
+3. **Tile arithmetic.** The tile divides both artboard dimensions: 135 px into 1080 is 8, 120 is 9,
    100 leaves 80 and a seam. Tile 3 × 3 and inspect the joins at 400%; a join is a remainder.
-3. **2 px floor.** At final size the smallest texture element is above 2 px. Below that it averages
+4. **2 px floor.** At final size the smallest texture element is above 2 px. Below that it averages
    into flat tone, costs file size and invites moiré; measure at 100%, not at fit.
-4. **Type contrast.** Where texture sits behind copy, contrast holds 4.5:1 at the worst pixel and
+5. **Type contrast.** Where texture sits behind copy, contrast holds 4.5:1 at the worst pixel and
    coverage stays under 10%. A pattern at full strength behind type is a 10–15% opacity or a moved
    type block, not a heavier weight.
-5. **Texture count.** One texture, one role in a piece. Three surfaces mean nothing reads as
+6. **Texture count.** One texture, one role in a piece. Three surfaces mean nothing reads as
    material any more, and the third is usually decoration.
 
 ## Related Rules

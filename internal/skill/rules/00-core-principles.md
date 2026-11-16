@@ -17,6 +17,9 @@ The core principles are the claims that survive when you strip every rule down t
 - **Verify by reduction.** Judge at 25%, in grayscale, and in silhouette. A decision that works only at 100% zoom has not been tested.
 
 ## Techniques
+
+**Avnac ops:** `guide` routes the brief to the workflow and rules before the first pixel; `canvas` op=add-page holds a draft so the real page is untouched; `canvas` op=validate turns the mechanical claims into measured checks; `get_canvas_image` is the reduction pass no tool can measure. The 25% and grayscale views are a person looking, not an op.
+
 1. **Write the one-thing sentence** — before placing anything: "This canvas makes [audience] do [one thing]." If it takes more than 12 words, the brief is unfinished.
 2. **Load two rules per pass** — the rule for the discipline currently failing, plus `03-contrast-and-emphasis`. Ten rules loaded mid-composition produce drift.
 3. **Run the reduction pass** — 25% view, grayscale copy, `#000000` silhouette, three seconds each. Compare the first three things you see with the intended order.
@@ -49,16 +52,17 @@ Grouping: headline at y=120 and date at y=200 sit 24 px apart as one block; the 
 Reduction: at 270×270 the headline still dominates and the date survives, but `#8A8A8A` on `#111111` is the first casualty — raise it to `#C9C9C9` (7.4:1).
 
 ## Verification
-1. **One-job sentence.** The delivery note opens with one sentence of 12 words or fewer naming the
+1. **Ops receipt.** `canvas` op=validate returns `issues` and `checks`, and every failing check is either fixed or named in the delivery note; `get_canvas_image` is opened at least once before reporting. A report with no validate run and no image has not run this rule.
+2. **One-job sentence.** The delivery note opens with one sentence of 12 words or fewer naming the
    audience and the single action. Two sentences, or two actions, means the canvas has two jobs.
-2. **Step audit.** List every deliberate difference against its neighbour. A 10% size step, a
+3. **Step audit.** List every deliberate difference against its neighbour. A 10% size step, a
    two-step grey or a 4° hue shift fails as imperceptible; a full step or identity passes.
-3. **Three-view reduction.** `get_canvas_image` at 25%, in greyscale, and as a `#000000` silhouette.
+4. **Three-view reduction.** `get_canvas_image` at 25%, in greyscale, and as a `#000000` silhouette.
    Three seconds per view: the first three things seen must match the written reading order, and a
    fourth competitor fails.
-4. **Structure test.** View the layout with colour and texture removed. Proximity, alignment and
+5. **Structure test.** View the layout with colour and texture removed. Proximity, alignment and
    scale must still group the page; if the grouping collapses, decoration was holding it up.
-5. **Conflict ledger.** Every trade between principles is recorded with the loser named — hierarchy
+6. **Conflict ledger.** Every trade between principles is recorded with the loser named — hierarchy
    over balance, legibility over novelty, production limits over preference. An unrecorded trade is
    a preference, not a principle.
 

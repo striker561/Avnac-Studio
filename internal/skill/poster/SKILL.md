@@ -12,6 +12,20 @@ to carry six paragraphs of information, it is a leaflet — use `layout` instead
 as a wall of many, it is an exhibition system — use `create` for the system and come back here for
 each sheet.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the sheet | `guide` | poster workflow and its rules |
+| Set the format | `canvas` op=preset | a standard sheet, or `resize` for a custom one |
+| Size the type | `elements` op=measure | headline and body at viewing distance |
+| Compose | `elements` op=render | one dominant element, then support |
+| Align | `arrange` op=align | display type on the axis, details on the grid |
+| Audit | `canvas` op=validate | `level_census`, `margin_ladder`, `contrast_floor` |
+| Look at 25% | `get_canvas_image` | the squint the wall will give it |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **State the one message.** Write the sentence a stranger should be able to repeat after two
    seconds, e.g. "Warehouse 9, Friday, late-night print fair." Everything on the sheet either

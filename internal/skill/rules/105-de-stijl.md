@@ -21,6 +21,9 @@ from a larger order so it seems to continue past the frame.
 - White is active space with the same material status as color.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets the orthogonal bars and rectangles in the primary palette; `arrange` op=align holds the right angles; `canvas` op=validate `contrast_floor`; `get_canvas_image` is the proportion check.
+
 1. **Orthogonal lock** — keep every `rect` at rotation 0 and on a 10 px module so bars land on exact
    coordinates; a 3 px drift is visible in a composition this empty.
 2. **Area budget** — white 55–65%, black 20–25%, red 8–12%, yellow 4–6%, blue 3–5%. The primaries are
@@ -64,15 +67,16 @@ An 800×1000 poster:
   anywhere on the page.
 
 ## Verification
-1. **Orthogonality.** `get_object_properties` on every shape: rotation 0, no diagonal and no curve.
+1. **Ops receipt.** Every bar in `get_canvas_image` is orthogonal, the palette is limited to the stated primaries plus neutrals, and `arrange` op=align holds the intersections. A diagonal or a fifth colour leaves the style.
+2. **Orthogonality.** `get_object_properties` on every shape: rotation 0, no diagonal and no curve.
    One 45° shape fails the whole language.
-2. **Area ranking.** Measure red, yellow and blue: three unequal areas, ranked, with the largest at
+3. **Area ranking.** Measure red, yellow and blue: three unequal areas, ranked, with the largest at
    roughly a tenth of the canvas. Equal areas read as a flag.
-3. **Bar widths.** At most three — 12 px frame, 8 px division, 4 px accent. A 1 px line has lost its
+4. **Bar widths.** At most three — 12 px frame, 8 px division, 4 px accent. A 1 px line has lost its
    structural job.
-4. **Open frame.** Count frame bars on the four edges: two or three, never four. Four close a
+5. **Open frame.** Count frame bars on the four edges: two or three, never four. Four close a
    composition that is meant to be cropped and continuing.
-5. **Palette purity.** Full-strength primaries only: no tint, tone or gradient, on white with black
+6. **Palette purity.** Full-strength primaries only: no tint, tone or gradient, on white with black
    line. A pastel primary reads as an error inside this doctrine.
 
 ## Related Rules

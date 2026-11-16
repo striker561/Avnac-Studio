@@ -4,6 +4,8 @@ Use when the work is identity rather than a single artifact. Rules:
 [`50-brand-strategy`](../rules/50-brand-strategy.md) through
 [`58-rebranding-and-evolution`](../rules/58-rebranding-and-evolution.md).
 
+
+**Avnac ops:** `guide` routes identity work; `elements` op=render makes the chain visible on pages held by `canvas` op=add-page; `vector` op=draw builds the mark; `export` op=svg hands over the tokens. Strategy itself has no op.
 ## The chain (each link constrains the next)
 
 ```

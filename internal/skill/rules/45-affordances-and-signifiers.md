@@ -17,6 +17,9 @@ An affordance is an action an object permits; a signifier is the visible evidenc
 - Touch needs 44×44 px (Apple HIG) or 48×48 dp (Material) of target regardless of icon size; WCAG 2.2 sets 24×24 px as the pointer-target floor.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets the signifier (`cornerRadius`, `stroke`, `fill`, `opacity`, text label); `elements` op=modify changes state; `get_canvas_image` tests whether the control reads as clickable; `canvas` op=validate `contrast_floor`.
+
 1. **Button anatomy** — 12×24 px padding, 6–8 px radius, one accent fill, sentence-case label. The shape carries the signifier; do not stack a border, a shadow and an icon on top of it.
 2. **Hover delta** — one visible step in 150 ms or less: fill lightness −8%, or shadow from 0 to 2 px blur at 8% black. Two simultaneous changes read as jitter.
 3. **Focus ring** — 2 px outline, 2 px offset, at least 3:1 against the adjacent color (WCAG 2.2 SC 2.4.7 and 1.4.11). Never remove the browser ring without replacing it.
@@ -44,18 +47,19 @@ An affordance is an action an object permits; a signifier is the visible evidenc
 A 375×812 checkout: primary "Pay $48.00" button 343×52 at x=16, radius 8, fill `#1F6FEB`, label 17 px Semibold `#FFFFFF`; hover `#1A5FD0`; focus a 2 px `#1F6FEB` ring at 2 px offset; disabled at 40% fill with `#6B7280` helper text "Enter the card's last four digits". Secondary "Edit cart" is a 17 px `#1F6FEB` text button with no fill. The back arrow is a 44×44 target holding a 24 px `path` icon, cursor `pointer`.
 
 ## Verification
-1. **State census.** Render every state of every component: nine for a button, six for an input,
+1. **Ops receipt.** `get_canvas_image` shows the control recognisable before its label is read, and `canvas` op=validate `contrast_floor` passes on its label. An affordance that lives only in the label is a word, not a control.
+2. **State census.** Render every state of every component: nine for a button, six for an input,
    four for a card. Pass: none missing. A missing state is a broken affordance; a focus state that
    differs from hover only by colour fails keyboard users.
-2. **Focus ring measurement.** Tab through the page. Pass: a 2 px ring at 2 px offset on every
+3. **Focus ring measurement.** Tab through the page. Pass: a 2 px ring at 2 px offset on every
    interactive element, at least 3:1 against both the control and its ground. Give the ratio; a ring
    removed without a replacement fails outright.
-3. **Target size.** Measure every interactive box, not its icon. Pass: 44 × 44 px minimum on touch
+4. **Target size.** Measure every interactive box, not its icon. Pass: 44 × 44 px minimum on touch
    and never below the 24 × 24 px floor. A 24 px icon with no padding is a 24 px target.
-4. **Disabled reason.** Trigger every disabled state. Pass: 40% opacity, `not-allowed`, no hover
+5. **Disabled reason.** Trigger every disabled state. Pass: 40% opacity, `not-allowed`, no hover
    change, and one 13 px line naming the condition. A disabled control with no explanation removes
    the affordance and its reason at once.
-5. **State delta.** Compare default with hover. Pass: one visible step in 150 ms or less — fill
+6. **State delta.** Compare default with hover. Pass: one visible step in 150 ms or less — fill
    lightness −8%, or a shadow to 2 px blur at 8% black. Two simultaneous changes read as jitter.
 
 ## Related Rules

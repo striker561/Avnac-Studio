@@ -21,6 +21,9 @@ asymmetric layouts against generous margins, and treats photography as fact.
 - Asymmetric margins create tension: unequal all round, heavier at the gutter than the outer edge.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets the flush-left sans type on the grid; `arrange` op=align holds the columns; `canvas` op=validate reports `level_census`, `type_steps` and `margin_ladder`; `get_canvas_image` is the order check.
+
 1. **Grid from the text** — body 16 px, measure 60–75 characters, 12 columns, gutter equal to one
    line of leading. Müller-Brockmann pairs 10 pt type with 3 pt leading for the same reason.
 2. **Three sizes, two weights** — 16/24/64 px at Regular/Bold; change weight rather than adding a
@@ -63,15 +66,16 @@ A 1240×1754 px poster (A4 at 150 dpi):
 - Footer 10 px/600 uppercase, +8% tracking, at y=1680 — everything above it is air.
 
 ## Verification
-1. **Column arithmetic.** Every x resolves to margin + n(column + gutter): 74 + n·139 on the 1240 px
+1. **Ops receipt.** `canvas` op=validate `type_steps` shows a deliberate scale, `margin_ladder` passes with the bottom largest, and `get_canvas_image` reads the information order without decoration. A Swiss page with centred type is not Swiss.
+2. **Column arithmetic.** Every x resolves to margin + n(column + gutter): 74 + n·139 on the 1240 px
    poster. `list_objects` reports each x; a 3 px drift off the column fails as an error.
-2. **Baseline.** All text sits on the 4 px baseline; images, rules and captions align to the same
+3. **Baseline.** All text sits on the 4 px baseline; images, rules and captions align to the same
    lines. Captions hang below the image, in the gutter.
-3. **Type census.** One family, three or four sizes. A fifth size is a hierarchy failure being
+4. **Type census.** One family, three or four sizes. A fifth size is a hierarchy failure being
    patched; a fourth weight is a second system.
-4. **Measure.** Count characters per line at final size: 60–75. A justified block below 60
+5. **Measure.** Count characters per line at final size: 60–75. A justified block below 60
    characters fails on rivers, whatever the hyphenation.
-5. **Photography.** Every image is a grid-locked rectangle: no feather, no shadow, no rounded mask,
+6. **Photography.** Every image is a grid-locked rectangle: no feather, no shadow, no rounded mask,
    one neutral grade across the set. One image off the grade breaks the objective tone.
 
 ## Related Rules

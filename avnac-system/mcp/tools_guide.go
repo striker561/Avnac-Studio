@@ -479,6 +479,38 @@ func structuredChecks(value any) []map[string]any {
 	return nil
 }
 
+// textKeyRank orders the keys taskTextFromPayload reads, most identifying
+// first. A page or object name routes better than body copy, and the fixed
+// order keeps the joined task text stable across runs.
+func textKeyRank(key string) int {
+	switch key {
+	case "name":
+		return 0
+	case "title":
+		return 1
+	case "headline":
+		return 2
+	case "subhead":
+		return 3
+	case "brief":
+		return 4
+	case "prompt":
+		return 5
+	case "label":
+		return 6
+	case "description":
+		return 7
+	case "text":
+		return 8
+	case "body":
+		return 9
+	case "caption":
+		return 10
+	default:
+		return 11
+	}
+}
+
 // taskTextFromPayload collects the human-meaningful strings a client sent:
 // page names, element text, object names. It walks containers but only takes
 // strings under keys that carry meaning — type names, ids, colours and data
@@ -512,8 +544,24 @@ func taskTextFromPayload(payload map[string]any) string {
 				walk(item, depth+1, takesText)
 			}
 		case map[string]any:
-			for key, child := range typed {
-				walk(child, depth+1, meaningful[key])
+			// Walk keys in a fixed, meaning-first order. Go randomises map
+			// iteration, and the router reads the joined text left to right:
+			// an object's name landing after its element text could push the
+			// deliverable past the head position that marks it "named", which
+			// made guide attachment depend on the run.
+			keys := make([]string, 0, len(typed))
+			for key := range typed {
+				keys = append(keys, key)
+			}
+			sort.Slice(keys, func(i, j int) bool {
+				ri, rj := textKeyRank(keys[i]), textKeyRank(keys[j])
+				if ri != rj {
+					return ri < rj
+				}
+				return keys[i] < keys[j]
+			})
+			for _, key := range keys {
+				walk(typed[key], depth+1, meaningful[key])
 			}
 		}
 	}

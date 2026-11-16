@@ -31,6 +31,9 @@ they are what the client is paying for.
   Assume prompts and uploads are retained: no unreleased client material in a tool you have not cleared.
 
 ## Techniques
+
+**Avnac ops:** `guide` is the route the library requires; `get_canvas_summary` reads the real state instead of trusting the prompt; `canvas` op=validate and `get_canvas_image` are the checks that keep generated work honest; `canvas` op=snapshot preserves what the model is about to change.
+
 1. **Write a six-line constraint block before generating** — subject, medium or style, composition and
    crop, palette in hex, what must not appear, aspect ratio. Change one line per iteration so you learn
    which line is doing the work.
@@ -80,15 +83,16 @@ behind a 40% `#121212` scrim so the type clears 4.5:1. Delivery note: "Backgroun
 [tool], Nov 2026; all typography and layout original."
 
 ## Verification
-1. **Cull record.** 8–12 candidates judged at 160 px by silhouette and value, one kept. The first
+1. **Ops receipt.** `guide` was called, `canvas` op=validate runs after the generation, and every invented element is named in the report rather than defended. A generated artifact reported as authored without disclosure is a misrepresentation.
+2. **Cull record.** 8–12 candidates judged at 160 px by silhouette and value, one kept. The first
    output accepted is not a cull, it is an anchor.
-2. **100% sweep.** Four corners and the centre at 100%: no tile seams, no near-words, no invented
+3. **100% sweep.** Four corners and the centre at 100%: no tile seams, no near-words, no invented
    anatomy, no warped straight lines. Any hit returns the artifact to draft.
-3. **Type is set.** Every word on the page exists as a text object in `get_canvas_summary`, typed
+4. **Type is set.** Every word on the page exists as a text object in `get_canvas_summary`, typed
    over the image. Letterforms inside the image are a defect, however good they look.
-4. **Resolution at placement.** Divide pixels by final size: 1024 px across 420 mm is 62 PPI and
+5. **Resolution at placement.** Divide pixels by final size: 1024 px across 420 mm is 62 PPI and
    fails. Regenerate at 2048×2560, place smaller, or accept 150 PPI for a soft background only.
-5. **Disclosure line.** The delivery note names the tool and the date for each generated artifact,
+6. **Disclosure line.** The delivery note names the tool and the date for each generated artifact,
    and the provenance row matches. Silence about the tool is the failure the client finds later.
 
 ## Related Rules

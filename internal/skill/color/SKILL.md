@@ -10,6 +10,19 @@ The task is choosing, judging or fixing color. If the job is to produce a full s
 tokens, use `palette`; if it is identity-level color ownership, use `brand`. This skill is the
 judgment layer: what should the color do, and is it doing it.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the decision | `guide` | color workflow and the rules behind it |
+| Set the structure | `elements` op=render | ground, text and accent as hex roles |
+| Measure text pairs | `canvas` op=validate | `contrast_floor` with the real ratio |
+| Judge in context | `get_canvas_image` | the colours in the composition, not a swatch |
+| Retune one role | `elements` op=modify | a failing pair without redrawing the page |
+| Emit the tokens | `export` op=svg | every hex on the page, as the handoff |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Name the job of color here.** Attention, grouping, mood, meaning, or brand recognition.
    A palette cannot do all five at once; pick the primary job.

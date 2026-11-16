@@ -17,6 +17,9 @@ Five canonical types: wordmark (name set as type), lettermark (initials), pictor
 - Every type needs four or five variations with assigned minimum sizes. A single-size logo is one that will be stretched by someone in a hurry.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw builds each lockup as its own board; `canvas` op=add-page holds the variation set; `export` op=object exports each; `get_canvas_image` tests each at its size.
+
 1. **Pick by test, not taste** — set the name at 24 px cap height. If it is unreadable, the wordmark fails. If the initials mean nothing to a stranger, the lettermark fails.
 2. **Responsive ladder** — five steps: full lockup ≥200 px, stacked 120–200 px, icon plus wordmark 48–120 px, icon only below 48 px, and a simplified 16 px favicon.
 3. **Hold the mark ratio constant** — mark height fixed while wordmark size changes; drifting proportions read as two brands.
@@ -44,17 +47,18 @@ Five canonical types: wordmark (name set as type), lettermark (initials), pictor
 "Rill Coffee" — five files: wordmark 190×44 with 24 px cap height and +3% tracking; stacked lockup 160×120; combination 260×48 with a 40 px tall three-arc mark; icon-only 40×40 with a 24 px minimum; favicon 16 px using two arcs and no wordmark. The mark's 40 px height is identical in the combination and stacked versions, so the set reads as one logo in five lengths.
 
 ## Verification
-1. **Type test.** Set the name at 24 px cap height. Pass: the chosen type survives its own test —
+1. **Ops receipt.** Every lockup is a named page from `get_canvas_summary`, each exports with `export` op=object, and every variation is tested at the size it will be used. A variation that was only drawn at 100% has not been tested.
+2. **Type test.** Set the name at 24 px cap height. Pass: the chosen type survives its own test —
    wordmark readable at 24 px and under about 12 characters, lettermark known cold, emblem kept
    above 32 px. A wordmark that blurs fails before colour is discussed.
-2. **Ladder coverage.** Render at 200, 120, 48 and 16 px. Pass: the correct variant appears at each
+3. **Ladder coverage.** Render at 200, 120, 48 and 16 px. Pass: the correct variant appears at each
    boundary — full lockup at 200 and above, stacked 120–200, icon plus wordmark 48–120, icon only
    below 48 — and the 16 px favicon is drawn rather than shrunk.
-3. **Proportion lock.** Measure the mark's height in every lockup. Pass: identical to 0.5 px while
+4. **Proportion lock.** Measure the mark's height in every lockup. Pass: identical to 0.5 px while
    the wordmark changes size. Drifting proportions read as several brands.
-4. **Gap equality.** Measure mark to wordmark in every lockup. Pass: equal to the clear-space unit.
+5. **Gap equality.** Measure mark to wordmark in every lockup. Pass: equal to the clear-space unit.
    One tight lockup in the set is the one that gets used in a hurry.
-5. **One colour first.** Render all five variations in a single colour, then inverted. Pass: each
+6. **One colour first.** Render all five variations in a single colour, then inverted. Pass: each
    holds with no second colour, which is the condition for approving colour at all.
 
 ## Related Rules

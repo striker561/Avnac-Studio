@@ -28,6 +28,9 @@ purpose, and given one treatment rather than argued with letter by letter.
   correct sidebearings and baseline by eye at final size, not by the value in the panel.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure checks the display line at its real size and wrapping; `elements` op=render sets it with `fontSize`, `fontWeight` and `textAlign`; `get_canvas_image` judges the expression; `canvas` op=validate `contrast_floor` keeps it readable.
+
 1. **Bleed-crop the word** — set the word at 700–900 px on a 1080×1350 canvas with the text
    element at x = −180 to −320 so 25–40% runs past the edge. Keep the first letter's counter
    fully inside; a cut through a counter turns the letter into a blob.
@@ -80,15 +83,16 @@ The reader gets a shape in 0.3 s, the date in 2 s, the bill in 6 s. Nothing smal
 display treatment, which is why the single cropped word still works.
 
 ## Verification
-1. **Regime line.** Every text element is display — cap height above 40 px, about 60 px and up in
+1. **Ops receipt.** `elements` op=measure shows the display line breaking where intended, `canvas` op=validate `contrast_floor` passes, and `get_canvas_image` at the delivered size keeps the expression without the word count collapsing. Expression that only works at 100% is a poster for one screen.
+2. **Regime line.** Every text element is display — cap height above 40 px, about 60 px and up in
    size — or text. A display treatment on anything under that is a level error, not an effect.
-2. **Tracking at size.** Measure the set: −2…−4% at 100–200 px, −5…−7% above 200 px. Default
+3. **Tracking at size.** Measure the set: −2…−4% at 100–200 px, −5…−7% above 200 px. Default
    tracking at 300 px shows as gaps that read like missing letters.
-3. **Violation budget.** Count the treatments on each word: one. Crop, distortion, and layering
+4. **Violation budget.** Count the treatments on each word: one. Crop, distortion, and layering
    together read as a mistake, and a shadow on top of a shear reads as a broken file.
-4. **Legibility insurance.** The word appears once whole and uncropped, and every crop leaves its
+5. **Legibility insurance.** The word appears once whole and uncropped, and every crop leaves its
    first counter closed. A name that only exists half-bleeding is a shape, not a name.
-5. **Bleed arithmetic.** On 1080 px the cropped element runs x −180 to −320, so 25–40% sits
+6. **Bleed arithmetic.** On 1080 px the cropped element runs x −180 to −320, so 25–40% sits
    outside the edge. Under 25% the type looks misplaced; over 40% the counter is gone.
 
 ## Related Rules

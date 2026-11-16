@@ -9,6 +9,19 @@ description: Design packaging and structural print — dielines, panels, folds, 
 The design goes onto a three-dimensional object. If the output is a flat sheet, use `print`; if
 the packaging is the product's identity system, also use `brand`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the structure | `guide` | packaging workflow and dieline rules |
+| Set the sheet | `canvas` op=resize | the dieline panel at production size |
+| Draw the die | `elements` op=render | `line` geometry, separate from the art |
+| Art the panels | `elements` op=render | each panel inside its safe margin |
+| Show the build | `canvas` op=add-page | the assembled view beside the flat |
+| Export | `export` op=svg | the dieline stays editable |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Get the real dieline** from the converter or structural designer. Do not invent one. Ask for
    the die line in vector with fold, cut, glue and bleed layers named.

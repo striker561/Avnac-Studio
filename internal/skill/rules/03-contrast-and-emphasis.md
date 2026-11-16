@@ -17,6 +17,9 @@ Contrast is a perceptible difference across an edge: size, weight, value, hue, c
 - Contrast budget: total loudness is fixed by the format. Spend it once, twice at most, per canvas.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render carries the contrast levers: `fill`, `opacity`, `strokeWidth` and `fontSize`; `elements` op=measure proves the size step before it is drawn; `canvas` op=validate reports `contrast_floor` and `level_census`; `get_canvas_image` is the squint test.
+
 1. **Choose the axis from the content** — size for posters, value for UI, isolation for photo-led layouts, texture for line work, orientation for grids of similar items.
 2. **Make the jump measurable** — at least 1.5× size, two weight steps, 30% value, or 8× area. Write the values down so the next pass cannot drift.
 3. **Isolation emphasis** — clear 3× the element's usual gap around it: 120 px of empty canvas around a 40 px seal.
@@ -47,15 +50,16 @@ A 1080×1080 clearance tile. Ground `#F2EEE7`, one product at 640 px wide, price
 At 270×270 the price is still 55 px, so the tile survives as a feed thumbnail, which is where it will actually be seen. On a 135 px-wide browser tab it finally collapses to "−40%" alone, which is still the message.
 
 ## Verification
-1. **Jump measurement.** Measure rank 1 against its nearest competitor: at least 1.5× size, two
+1. **Ops receipt.** `canvas` op=validate returns `contrast_floor` pass for every text object, and the emphasis is carried by one lever (area, value or isolation) rather than colour alone; `get_canvas_image` confirms the focal element is first without hue.
+2. **Jump measurement.** Measure rank 1 against its nearest competitor: at least 1.5× size, two
    weight steps, 30% value, or 8× area. Below all four, the jump is a murmur, not a statement.
-2. **Ratio.** Text meets 4.5:1 against its actual ground and large shapes meet 3:1. Report the
+3. **Ratio.** Text meets 4.5:1 against its actual ground and large shapes meet 3:1. Report the
    measured figure; "high contrast" with no number is unverified.
-3. **Count the pops.** Blur the canvas and count what still stands out: one for a poster, two for an
+4. **Count the pops.** Blur the canvas and count what still stands out: one for a poster, two for an
    editorial page, three for a dashboard. A fourth is contrast spent everywhere.
-4. **One axis.** Rank 1 carries one axis — size, weight, colour or isolation — not four. Each added
+5. **One axis.** Rank 1 carries one axis — size, weight, colour or isolation — not four. Each added
    axis halves the effect of the others.
-5. **Greyscale.** `get_canvas_image` in greyscale, then at 25%: the emphasis survives both. Emphasis
+6. **Greyscale.** `get_canvas_image` in greyscale, then at 25%: the emphasis survives both. Emphasis
    that lives in hue alone disappears at the first step.
 
 ## Related Rules

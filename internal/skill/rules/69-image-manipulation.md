@@ -24,6 +24,9 @@ single lens, and a single surface?
   news, documentary, or evidence images — that is fabrication, not design.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places the image with `fit`, `focalPoint` and `crop`; `elements` op=modify re-crops or replaces `url` without changing id; `elements` op=delete removes it; `get_canvas_image` judges the result.
+
 1. **Object removal in four passes** — structure (patch or large clone at 60–80% hardness), seams (spot
    heal), texture (clone with grain), then a global grain match. Check three spots at 100%.
 2. **Black-point match** — sample a neutral shadow and highlight in both sources and bring them within
@@ -60,16 +63,17 @@ contact shadow with Multiply at 22% in `#1A1A1A`, angled 20° from vertical to m
 the wall shows one grain structure; at 25% the bottle sits on the surface.
 
 ## Verification
-1. **Black-point match.** Sample a neutral shadow and highlight in source and composite: within 2–3
+1. **Ops receipt.** `elements` op=modify returns the same id with the new crop or source, `get_canvas_image` shows no stretched subject, and the before/after is stated. A manipulation done by re-rendering the whole page loses the provenance.
+2. **Black-point match.** Sample a neutral shadow and highlight in source and composite: within 2–3
    RGB levels. A 5-level mismatch reads as a cut-out even under a perfect mask.
-2. **Light and lens agreement.** The inserted object's shadow falls within 15° of the scene key, on
+3. **Light and lens agreement.** The inserted object's shadow falls within 15° of the scene key, on
    one horizon and one vanishing point, with grain matching the source. Two of three is a composite
    the eye catches at 25%.
-3. **Two-zoom audit.** At 100% no repeated clone pattern and no seam in the wall; at 25% no tonal
+4. **Two-zoom audit.** At 100% no repeated clone pattern and no seam in the wall; at 25% no tonal
    step at the boundary. One pass in greyscale, where colour stops masking value.
-4. **Texture survival.** At 100% skin pores and fabric weave survive; heal opacity stays at 40% or
+5. **Texture survival.** At 100% skin pores and fabric weave survive; heal opacity stays at 40% or
    less. A smoothed jaw or waist is a reshoot, not a retouch.
-5. **Non-destructive record.** The untouched original sits in a hidden group, the change on its own
+6. **Non-destructive record.** The untouched original sits in a hidden group, the change on its own
    layer and mask, and a disclosure where the change alters what a person did or looked like. A
    flattened file proves none of this.
 

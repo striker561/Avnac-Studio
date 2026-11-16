@@ -3,6 +3,10 @@
 Numbers, formulas and checklists for constructing cubic vector artwork. Rules are authoritative;
 this file is the lookup table you reach for while drawing.
 
+**Avnac ops:** `vector` op=draw constructs the geometry; `vector` op=update refines by object id;
+`vector` op=export emits the SVG; `get_canvas_image` is the 25% and 400% check. Boolean path ops
+and direct node editing do not exist: author the result as one path or redraw the object.
+
 - [Frames and units](#frames-and-units)
 - [Node and handle values](#node-and-handle-values)
 - [Optical corrections](#optical-corrections)

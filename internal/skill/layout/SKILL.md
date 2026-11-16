@@ -10,6 +10,19 @@ There is content with parts that need organizing on a page or screen. For a sing
 use `poster`; for interface chrome, use `ui`; for fixing an existing weak arrangement, use
 `compose`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the structure | `guide` | layout workflow and its rules |
+| Measure the copy | `elements` op=measure | line counts at the real measure |
+| Build the grid | `elements` op=render | columns, bands and modules |
+| Hold the alignment | `arrange` op=align | every content edge on a grid line |
+| Even the spacing | `arrange` op=distribute | three or more objects |
+| Audit | `canvas` op=validate | `margin_ladder` and `density` |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Inventory the content.** Count the blocks and classify them: one hero, 2–4 secondary, N equal
    items, text runs, captions. The inventory selects the structure; structure should not be chosen

@@ -21,6 +21,9 @@ the reading order is a claim about what matters.
 - State the direction of goodness — for latency, churn, and errors, up is bad.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=preset sets the screen; `elements` op=render places KPI blocks and charts; `get_canvas_image` shows the scan order; `canvas` op=validate reports `density`, `level_census` and `contrast_floor`.
+
 1. **Row architecture** — 1440 px canvas, 12 columns, 24 px gutters, 24 px margin. Row 1: four KPI
    tiles at 3 columns × 136 px. Row 2: trend at 8 columns + breakdown at 4, 320 px tall. Row 3:
    table at 12 columns, scrolling.
@@ -62,19 +65,20 @@ A 1440×900 operations dashboard:
 - Row 3 at y=600: 10 slowest endpoints, 13 px text in 40 px rows, sorted descending.
 
 ## Verification
-1. **Tile count.** `get_canvas_image`: 5–7 tiles above the fold on the 1440×900 screen; past 9
+1. **Ops receipt.** `canvas` op=validate `density` leaves the quiet areas, `level_census` shows one size per role, and `get_canvas_image` gives the scan order in three seconds. A dashboard where every tile shouts has no order.
+2. **Tile count.** `get_canvas_image`: 5–7 tiles above the fold on the 1440×900 screen; past 9
    nothing is seen. Four 336×136 tiles with 24 px gaps is the row; twelve equal-weight tiles have no
    entry point.
-2. **KPI anatomy.** Each tile carries label, value, comparison and definition: 12 px/600 caps label,
+3. **KPI anatomy.** Each tile carries label, value, comparison and definition: 12 px/600 caps label,
    36 px/600 tabular value, 13 px delta with arrow and word, 11 px footnote. A number with no
    comparison and no definition is decoration.
-3. **Reading order.** The most consequential number sits top-left and the logo does not; one red
+4. **Reading order.** The most consequential number sits top-left and the logo does not; one red
    tile means red works, three means wallpaper. The first fixation lands on the number the screen
    exists for.
-4. **One time range.** One range per row, stated in the row header, and one timestamp — 'Updated
+5. **One time range.** One range per row, stated in the row header, and one timestamp — 'Updated
    14:32 · last 24 h' — in the header. A 7-day figure compared with a 30-day one in the same row is
    a false comparison.
-5. **Density below the fold.** Totals on top, breakdown in the middle, raw rows below: the 40-row
+6. **Density below the fold.** Totals on top, breakdown in the middle, raw rows below: the 40-row
    table starts at y=600 in 40 px rows and scrolls. A 40-row table above the fold is a report, not a
    dashboard.
 

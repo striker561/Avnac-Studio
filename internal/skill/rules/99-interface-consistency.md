@@ -24,6 +24,9 @@ Predictability is the goal; sameness is only the method.
 - One word per concept. If the button says "Publish", the toast says "Published", not "Saved".
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=add-page holds the screens; `elements` op=render applies the same tokens; `get_canvas_summary` lists the objects; `canvas` op=validate compares levels and contrast; `export` op=svg is the audit.
+
 1. **Inventory the twelve primitives** — button, input, select, checkbox, radio, toggle, tab, table,
    modal, toast, tooltip, nav. Fix appearance and behavior once each, then reuse without variation.
 2. **Placement map** — primary action bottom-right of a form; search top-right of a nav; account menu
@@ -64,19 +67,20 @@ A settings screen at 1440×900, matching the app's other 14 screens:
   (`#111111`, `#5C5C5C`, `#D8D8D8`).
 
 ## Verification
-1. **Primitive inventory.** `get_canvas_summary` lists the objects; the twelve primitives — button,
+1. **Ops receipt.** The same tokens appear in `export` op=svg for every screen, `canvas` op=validate reports the same `level_census` and `contrast_floor` across screens, and `get_canvas_image` of two screens shows one system. Consistency claimed on one screen is untested.
+2. **Primitive inventory.** `get_canvas_summary` lists the objects; the twelve primitives — button,
    input, select, checkbox, radio, toggle, tab, table, modal, toast, tooltip, nav — each appear once
    and are reused. A second button drawn inside a screen is drift.
-2. **Distinct values.** Sort by element type and count: button heights two (32/40 px), greys three
+3. **Distinct values.** Sort by element type and count: button heights two (32/40 px), greys three
    (`#111111`, `#5C5C5C`, `#D8D8D8`), radii `{0, 4, 8, 999}`. Four button heights or five greys is
    the audit output, and the merge list.
-3. **Placement map.** Primary action bottom-right of a form, search top-right of the nav, account
+4. **Placement map.** Primary action bottom-right of a form, search top-right of the nav, account
    menu top-right, logo top-left to go home, dismiss top-right. A deviation costs one relearn per
    screen and has to be deliberate.
-4. **One verb.** The button, the confirmation and the toast use the same word: 'Publish' →
+5. **One verb.** The button, the confirmation and the toast use the same word: 'Publish' →
    'Published', never 'Saved'. Count the verbs for a single action across the screens; three is two
    too many.
-5. **Token discipline.** No raw hex in a screen file; spacing from 4/8, radius from the four-value
+6. **Token discipline.** No raw hex in a screen file; spacing from 4/8, radius from the four-value
    set, elevation from three levels. Search the file for `#` outside the token layer — each hit is a
    value that drifts at the next edit.
 

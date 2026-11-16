@@ -36,6 +36,19 @@ scene graph, the coordinates, the curves, the booleans and the SVG.
 6. **Verify, then refine.** Check silhouette at 100% and 25%, count anchors, confirm the mirror is
    exact, confirm SVG validity. Fix with `vector` op=update by id, not by redrawing the whole scene.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the drawing | `guide` | vector workflow and the eight geometry rules |
+| Construct the IR | `vector` op=draw | objects with ids, boxes, paint and constraints |
+| Read it back | `vector` op=read | IR, resolved document and per-object bounds |
+| Refine | `vector` op=update | by object id, no redraw |
+| Test at scale | `get_canvas_image` | 25% and 400% |
+| Ship the source | `vector` op=export | self-contained SVG, optionally written |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Drawing with the `vector` tool
 
 `vector` is the noun tool for path geometry. Its verbs are `op` values:

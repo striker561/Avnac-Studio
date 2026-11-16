@@ -10,6 +10,19 @@ An artifact exists and must change. This is the most common real-world task and 
 badly: most revisions either ignore the request or rebuild everything. For judging whether the
 work is good, use `critique`; for fixing composition specifically, use `compose`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Read the real state | `get_canvas_summary` | the page you mean to edit, by name |
+| Protect the work | `canvas` op=snapshot | a token before a risky change |
+| Make the diff | `elements` op=modify | targeted fields by id, never a rebuild |
+| Check the neighbours | `canvas` op=validate | nothing else moved or broke |
+| Look | `get_canvas_image` | the edited page |
+| Return if wrong | `canvas` op=restore | the snapshot token |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Snapshot before touching anything.** Version the file (`name_v02`) and keep the previous
    export. Revisions are lossy in practice; being able to compare is the only defence. In the

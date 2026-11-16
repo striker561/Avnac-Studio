@@ -17,6 +17,9 @@ A limited palette constrains hue count — one or two inks, or two or three scre
 - Limited does not mean low contrast: a two-color job still owes body text 4.5:1.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places only the declared colours; `canvas` op=validate `contrast_floor` checks the functional pairs; `export` op=svg is the count audit because every fill is markup; `get_canvas_image` shows whether the limit reads as intent.
+
 1. **Build a tint ladder.** 100/75/50/25/10% screens from one ink, one per hierarchy level. At 25% zoom the levels must still separate.
 2. **Split two inks by role.** Dark ink for all type, second ink for one shape or word, under 15% of area. Cover a third of the sheet and it has become the ground.
 3. **Choose the overprint.** Set ink A over ink B at multiply and compare L*: if the result sits within 8 L* of either parent, use a lighter tint of A instead.
@@ -43,15 +46,16 @@ A limited palette constrains hue count — one or two inks, or two or three scre
 An A2 gig poster in black #111111 plus orange #E4572E on uncoated stock (#EDE8DC). Black on that stock measures 15.5:1, so the 96 px headline and 20 px details both hold. Orange on the stock is only 2.8:1 — a fill, not a text color — so it becomes a 120×340 px bar and a reversed numeral, with white type at 3.4:1 kept at 40 px and above.
 
 ## Verification
-1. **Tint ladder.** List the screens — 100/75/50/25/10 — with their L*. At 25% zoom each step still
+1. **Ops receipt.** `export` op=svg contains no hex outside the declared set, `canvas` op=validate `contrast_floor` passes, and every colour has a function named in the note. A limit that broke for one decoration is not a limit.
+2. **Tint ladder.** List the screens — 100/75/50/25/10 — with their L*. At 25% zoom each step still
    separates from its neighbour; a pair that does not is one level, not two.
-2. **Second-ink area.** Measure the second ink: under 15% of the sheet. At a third of the sheet it
+3. **Second-ink area.** Measure the second ink: under 15% of the sheet. At a third of the sheet it
    has become the ground and the piece has lost its focal point.
-3. **Overprint delta.** Read the multiply result against both parents. Within 8 L* of either, the
+4. **Overprint delta.** Read the multiply result against both parents. Within 8 L* of either, the
    overlap is not a third colour; use a lighter tint of the upper ink instead.
-4. **Function ration.** Each functional colour appears only on its meaning — red on error, not on a
+5. **Function ration.** Each functional colour appears only on its meaning — red on error, not on a
    headline. Count the decorative uses; the passing number is zero.
-5. **Text on stock.** Body text measures 4.5:1 against the stock. A tint that misses the floor is a
+6. **Text on stock.** Body text measures 4.5:1 against the stock. A tint that misses the floor is a
    fill only: in the worked example white on the orange is 3.4:1 and carries 40 px and above.
 
 ## Related Rules

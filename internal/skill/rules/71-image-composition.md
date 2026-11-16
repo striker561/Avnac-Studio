@@ -24,6 +24,9 @@ grid, the text block, and the page edges. The photograph is never composed by it
   at the planned size.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places each image with `fit` and `focalPoint`; `arrange` op=align and op=distribute build the image grid; `get_canvas_image` shows the composition; `canvas` op=validate reports `density`.
+
 1. **Full-bleed placement** — size the image to trim plus bleed (A4 becomes 216×303 mm) and anchor the subject
    on a third; overscan 3 mm so the crop never lands on an important edge.
 2. **Scale jump** — place the same subject twice, at 100% and 12% of canvas width, for depth and a second
@@ -60,16 +63,17 @@ line sits at y=380 and the horizon at y=505, a third of the image height. The he
 because the subject looks right. At 25% zoom the gaze leads from the left third into the headline.
 
 ## Verification
-1. **Look-space measure.** Empty space ahead of the gaze is 1.5–2× the face width, taken from the
+1. **Ops receipt.** `arrange` op=distribute holds equal gaps in the image grid, `canvas` op=validate `density` stays under 75%, and `get_canvas_image` shows each subject surviving its crop. A grid that only aligns at its bounding boxes has not been aligned to the photographs.
+2. **Look-space measure.** Empty space ahead of the gaze is 1.5–2× the face width, taken from the
    frame edge, not the subject. Space behind the head pulls the eye off the page as surely as none.
-2. **Weight ratio.** The hero is at least 60% of canvas height; supporting images are 30% or less.
+3. **Weight ratio.** The hero is at least 60% of canvas height; supporting images are 30% or less.
    Two images at 40% each cancel the entry point and the layout has no first read.
-3. **Crop audit.** List each crop edge and the body part it crosses: mid-forearm, mid-thigh and
+4. **Crop audit.** List each crop edge and the body part it crosses: mid-forearm, mid-thigh and
    above the elbow pass; wrist, neck and ankle read as injury. Check at 100%, not at thumbnail.
-4. **Alignment proof.** Headline baseline sits on the eye line or horizon (y=380 and y=505), the
+5. **Alignment proof.** Headline baseline sits on the eye line or horizon (y=380 and y=505), the
    image edge on a column edge, and the horizon on a thirds line rather than the centre. A centred
    horizon needs symmetry as the argument.
-5. **No stretch.** Placed aspect and source aspect agree; the box uses `cover`, never `fill`. A 4%
+6. **No stretch.** Placed aspect and source aspect agree; the box uses `cover`, never `fill`. A 4%
    non-uniform stretch is invisible on a wall and obvious on a face.
 
 ## Related Rules

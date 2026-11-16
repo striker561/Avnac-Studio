@@ -4,6 +4,8 @@ Use when the design needs original drawn imagery. Rules:
 [`60-illustration-fundamentals`](../rules/60-illustration-fundamentals.md) through
 [`69-image-manipulation`](../rules/69-image-manipulation.md).
 
+
+**Avnac ops:** `vector` op=draw builds parts with ids and constraints; `vector` op=update refines them; `elements` op=render places the drawing; `get_canvas_image` is the 25% silhouette. Raster painting has no op: Avnac composes images, it does not paint pixels.
 ## Choosing a style (from the message, not the mood board)
 
 | Style | Signal | Cost | Best for |

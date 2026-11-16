@@ -22,6 +22,9 @@ diagnosed mismatch between what the brand looks like and what it needs to be bel
   cycle, packaging 3–6 months of print runs, app icons days, domains and handles hours but irreversibly.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=snapshot preserves the current identity before the pass; `canvas` op=add-page holds the proposed system; `elements` op=render sets the comparison; `export` op=svg shows what changed.
+
 1. **Mismatch audit** — three columns (what we look like / what we need to be believed about / the gap), 8–12 rows,
    each scored 1–5 on severity. Rank before drawing anything.
 2. **Equity scorecard** — score every asset 1–5 for recognition and 1–5 for relevance. Keep high-recognition assets
@@ -60,19 +63,20 @@ social, and a 1200×630 web header. The sunset calendar put packaging at month 9
 set the launch date.
 
 ## Verification
-1. **Mismatch audit.** Open the three-column audit and count the rows. Pass: 8–12 rows, each scored
+1. **Ops receipt.** `canvas` op=snapshot holds the previous state, and the diff between old and new `export` op=svg is stated as a list of changes with a reason each. A rebrand with no preserved before-state cannot be argued.
+2. **Mismatch audit.** Open the three-column audit and count the rows. Pass: 8–12 rows, each scored
    1–5, and at least one relevance score of 2 or lower. Without that row the rebuild is a
    preference, not a diagnosis.
-2. **Equity carry-over.** Score every asset for recognition and relevance. Pass: two of the top
+3. **Equity carry-over.** Score every asset for recognition and relevance. Pass: two of the top
    three recognition assets survive in the new identity — count them in the new lockup. A rebuild
    that carries one is a new brand with an old invoice.
-3. **Transitional spec.** Measure the transitional lockup: old wordmark at 60% of the new mark's
+4. **Transitional spec.** Measure the transitional lockup: old wordmark at 60% of the new mark's
    height, 0.5× cap height gap, and permitted only on signage, packaging and vehicles. A
    transitional lockup on social fails on placement alone.
-4. **Surface count.** Open the sunset calendar. Pass: one row per surface with owner, cost, lead
+5. **Surface count.** Open the sunset calendar. Pass: one row per surface with owner, cost, lead
    time and end date, and signage and vehicles set the outer bound. A plan without either has no
    launch date that will hold.
-5. **End date.** Find the drop-dead date for the old mark. Pass: written, and inside 6–24 months. An
+6. **End date.** Find the drop-dead date for the old mark. Pass: written, and inside 6–24 months. An
    undefined transition reads as two companies for as long as the old artwork survives.
 
 ## Related Rules

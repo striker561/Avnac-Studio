@@ -25,6 +25,9 @@ receiver actually needs; compression is deciding how much quality the channel wi
   manifest.
 
 ## Techniques
+
+**Avnac ops:** `export` op=png, op=object and op=svg are the three exports; `canvas` op=resize sets the pixel size before the raster; `get_canvas_summary` names the page; `get_canvas_image` verifies the result.
+
 1. **Pick the format from the use, not from habit** — print: PDF/X-4 for the piece, TIFF with LZW for a
    placed CMYK image, PNG for line art. Screen: AVIF or WebP for photography, PNG for transparency and
    UI, SVG for icons. Editable handoff: the source canvas plus a reference PDF. Archive: PDF/A-2b.
@@ -79,18 +82,19 @@ The manifest is five lines in the same folder, so whoever opens it in six months
 screen without opening a single file.
 
 ## Verification
-1. **Receiver first.** For each file, answer four questions: who opens it, screen or substrate,
+1. **Ops receipt.** The export format matches the destination, `export` op=png carries the stated multiplier and transparency, and `export` op=svg opens with a matching viewBox. An export chosen by habit rather than by destination is a re-do.
+2. **Receiver first.** For each file, answer four questions: who opens it, screen or substrate,
    whether text or transparency must stay live, whether anyone edits it downstream. A PDF/X sent to
    a CMS fails the first question.
-2. **Open the export.** `export` returns the delivered file; inspect that rather than the working
+3. **Open the export.** `export` returns the delivered file; inspect that rather than the working
    canvas — dimensions, colour space, fonts resolving without substitution, transparency, crops. The
    source proves nothing.
-3. **PPI at placement.** Divide measured pixels by final size: 300 PPI for offset, 150 PPI for a
+4. **PPI at placement.** Divide measured pixels by final size: 300 PPI for offset, 150 PPI for a
    review file, 1×/2×/3× for screens. 1024 px across 420 mm is 62 PPI and fails.
-4. **Compression at 100%.** Type edges show no 8×8 blocking at q85. Blocking means the quality
+5. **Compression at 100%.** Type edges show no 8×8 blocking at q85. Blocking means the quality
    dropped or the format was wrong for flat colour; JPEG belongs to continuous-tone photography
    only.
-5. **Naming and manifest.** `client_project_medium_size_vNN.ext`, lowercase, hyphens, no "final".
+6. **Naming and manifest.** `client_project_medium_size_vNN.ext`, lowercase, hyphens, no "final".
    Two files claiming final is the failure; the manifest is five lines and names what shipped.
 
 ## Related Rules

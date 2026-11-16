@@ -23,6 +23,9 @@ correct output the path of least resistance, and a named owner for exceptions.
   that circulates. Put the reference sheet on page one.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=add-page holds the guideline pages; `elements` op=render sets the specimens; `canvas` op=preset picks the sheet; `export` op=png and op=svg deliver it. There is no guideline-publishing op.
+
 1. **Page-one quick sheet** — the six invariants, the file-naming convention, and "who to ask" on a single page,
    so most questions are answered before the reader turns it.
 2. **Do/don't spread** — six pairs maximum, each as two 400×300 px frames with a 2 px rule between them and one
@@ -58,18 +61,19 @@ do/don't pairs for the lockup at its 240 px minimum width. Page 12 links four Av
 1920×1080, 1200×630, and 2480×3508.
 
 ## Verification
-1. **Stranger test.** Hand the document to someone who did not make it and ask for one post. Pass:
+1. **Ops receipt.** Every rule in the document has a specimen rendered with `elements` op=render, and `export` op=png reproduces the specimen at the documented size. A guideline with no specimen is an opinion.
+2. **Stranger test.** Hand the document to someone who did not make it and ask for one post. Pass:
    under ten minutes and zero questions. Every question is a missing number, and it is added to the
    page that should have answered it.
-2. **Numbered rules.** Read every spread and count the rules without a value. Pass: zero. "Use clear
+3. **Numbered rules.** Read every spread and count the rules without a value. Pass: zero. "Use clear
    space" fails; "0.5× cap height, minimum 24 px digital or 10 mm print" passes, because it can be
    followed at 2 a.m.
-3. **Do/don't pairs.** Count pairs and inspect each. Pass: six or fewer, matched at 400 × 300 px
+4. **Do/don't pairs.** Count pairs and inspect each. Pass: six or fewer, matched at 400 × 300 px
    with one 2 px rule and one caption, and the "don't" is the failure state — a stretched logo, a
    2.9:1 caption. A straw-man "don't" teaches nothing.
-4. **Page-one sheet.** Open page one. Pass: the six invariants, the file-naming convention and the
+5. **Page-one sheet.** Open page one. Pass: the six invariants, the file-naming convention and the
    named owner all appear before the reader turns the page.
-5. **Length and tokens.** Count pages: 12 to 24 for a small brand. Pass: a token file with hex, RGB,
+6. **Length and tokens.** Count pages: 12 to 24 for a small brand. Pass: a token file with hex, RGB,
    CMYK and Pantone, pulled with `export` and checked as text rather than as an image. A hex locked
    inside a print-ready PDF is a hex nobody can use.
 

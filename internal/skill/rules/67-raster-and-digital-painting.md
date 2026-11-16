@@ -25,6 +25,9 @@ filter recovers it.
   distance.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places a raster image with `fit`, `focalPoint` and `crop`; `elements` op=modify replaces its `url` without changing id; `assets` op=unsplash sources one; `get_canvas_image` judges the result. Avnac composes raster, it does not paint pixels.
+
 1. **Resolution plan** — write the placement box in pixels, multiply by 2, paint at that size. A
    640×900 px portrait zone on a 1080×1350 px poster means a 1280×1800 px document; PPI math for
    print lives in [`83-resolution-and-raster-formats`](83-resolution-and-raster-formats.md).
@@ -61,16 +64,17 @@ grain layer at 3 px ties the portrait to the flat `#12100E` ground. At 25% zoom 
 reads — pass that before any color decision.
 
 ## Verification
-1. **Pixel footprint.** The document is 2× the placement box: 620 × 930 px needs 1240 × 1860 px,
+1. **Ops receipt.** The source image is placed at no more than its native pixels, `elements` op=modify can re-crop it without changing id, and `get_canvas_image` at the target size shows no upscale softness. A painting claim made on an upscaled image is a soft image.
+2. **Pixel footprint.** The document is 2× the placement box: 620 × 930 px needs 1240 × 1860 px,
    as in the example. A file at 1× loses the 2× export before any crop, and no filter restores it.
-2. **Value count at 25%.** In greyscale at 25% the block-in shows four values — `#1A1A1A`,
+3. **Value count at 25%.** In greyscale at 25% the block-in shows four values — `#1A1A1A`,
    `#4D4D4D`, `#999999`, `#E6E6E6` — and the silhouette reads. A fifth flat before colour means the
    value structure has drifted.
-3. **Layer census.** One layer per job: block-in, shadow, light, texture, line, eight maximum. Two
+4. **Layer census.** One layer per job: block-in, shadow, light, texture, line, eight maximum. Two
    layers labelled "fix" mean the change happened in the wrong layer; flatten only on export.
-4. **Brush scale.** At 1080 px width: mass 40–80 px, form turns 12–20 px, detail 3–6 px, and no mark
+5. **Brush scale.** At 1080 px width: mass 40–80 px, form turns 12–20 px, detail 3–6 px, and no mark
    wider than 1.5% of the short side (16 px), which reads as mud at poster distance.
-5. **Edge audit at 100%.** Hard edges on light turns and cast shadows; soften only occlusion at a
+6. **Edge audit at 100%.** Hard edges on light turns and cast shadows; soften only occlusion at a
    20–40 px edge. Every edge above 20 px makes every surface rubber.
 
 ## Related Rules

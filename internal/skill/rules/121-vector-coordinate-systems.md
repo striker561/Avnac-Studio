@@ -37,6 +37,9 @@ A transform composes frames: `world = parent × translate × rotate × scale × 
   viewBox. A symbol without a frame is only correct at one size.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw takes `canvas` width/height and object boxes in board units; `vector` op=read returns the resolved viewBox; `vector` op=export emits the SVG dimensions; `get_canvas_image` checks the placement on the page.
+
 1. **Frame check.** After placing, assert every painted bound sits inside the board, with a margin
    of at least 2% of the short edge; anything outside is debris (the vector-editor equivalent of
    a stray path wrecking sidebearings).
@@ -96,16 +99,17 @@ authored in its own frame keeps that frame when it is serialised as a `<symbol v
 and placed with `<use>`; the board frame above is what the editor, hit-test and exporter share.
 
 ## Verification
-1. **Frame assertion.** `vector` op `export`: root `viewBox` equals the board, origin `0 0`, and
+1. **Ops receipt.** `vector` op=read reports a viewBox whose origin is 0 0 and whose size equals the board, and every object box is inside it. A coordinate that required a transform outside the IR is a coordinate the next edit will break.
+2. **Frame assertion.** `vector` op `export`: root `viewBox` equals the board, origin `0 0`, and
    `width`/`height` match. This is the check that catches most "the SVG looks wrong" reports.
-2. **Unit scan.** Path data is unitless and `viewBox` carries four bare numbers; `width`/`height`
+3. **Unit scan.** Path data is unitless and `viewBox` carries four bare numbers; `width`/`height`
    carry none either unless the consumer needs a physical size. A unit suffix in path data or
    `viewBox` is a bug.
-3. **Bounds check.** Every painted bound sits inside the board with a 2% margin. Geometry
+4. **Bounds check.** Every painted bound sits inside the board with a 2% margin. Geometry
    outside the frame is debris even when it is invisible.
-4. **Two-size render.** Open the export at 24 px and at 4000 px. A stroke that changes apparent
+5. **Two-size render.** Open the export at 24 px and at 4000 px. A stroke that changes apparent
    weight, or a detail that disappears, is a frame or non-scaling-stroke decision left unmade.
-5. **Transform order.** For one rotated object, compare the resolved matrix with
+6. **Transform order.** For one rotated object, compare the resolved matrix with
    `translate(cx,cy) rotate(a) scale(sx,sy) translate(-cx,-cy)`. A different order is a different
    drawing.
 

@@ -17,6 +17,9 @@ Visual hierarchy is the ranked order of salience across all elements, produced b
 - Separate notice from read: an image may win attention, but the message must be the second fixation.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure measures each candidate at its proposed size before anything is placed; `elements` op=render sets the ranks; `arrange` op=align puts display type on the axis; `canvas` op=validate reports `level_census` and `type_steps`; `get_canvas_image` is the blur-and-squint pass, which no op performs.
+
 1. **Write the reading list** — number every element 1–5 by intended order, then squint at 10%. Where the two disagree, change one variable by a full step.
 2. **Blur audit** — at 25% view with an 8 px blur, only two or three blobs should remain. If a support element is one of them, cut its area or contrast.
 3. **Cover test** — hide each element in turn. If the order is unchanged, the element is decoration or should be demoted.
@@ -48,15 +51,16 @@ A 1920×1080 hero. Headline "ACCOUNTING THAT CLOSES ITSELF" at 76 px Bold `#0E11
 Reading list: headline 1, screenshot 2, CTA 3, logo 4. In the blurred 25% view the headline and CTA are the two blobs; the screenshot holds just under them because its value sits within 12% of the ground. At 480 px wide the headline and CTA survive and the subhead is lost — acceptable, since the subhead only restates the headline.
 
 ## Verification
-1. **Reading list.** Ranks 1–5 are written before composing and cover every element. Two elements
+1. **Ops receipt.** `canvas` op=validate reports `level_census` within four levels (five on a poster) and no `flat_type_steps`, and `get_canvas_image` at page scale keeps the written order. Two elements sharing rank 1 in the image fail even when the checks pass.
+2. **Reading list.** Ranks 1–5 are written before composing and cover every element. Two elements
    sharing rank 1 fail, and a fourth tier fails: three are enough.
-2. **Blur audit.** At 25% with an 8 px blur, two or three blobs remain. A support element among them
+3. **Blur audit.** At 25% with an 8 px blur, two or three blobs remain. A support element among them
    means its area or its contrast comes down.
-3. **Cover test.** Hide each element in turn. An order that does not change marks the element as
+4. **Cover test.** Hide each element in turn. An order that does not change marks the element as
    decoration, or as a demotion candidate.
-4. **Single lever.** Rank 1 differs from its neighbours by one lever only: 4× area, a 30% value
+5. **Single lever.** Rank 1 differs from its neighbours by one lever only: 4× area, a 30% value
    difference, or 3× their clear space. Two levers halve each other's effect.
-5. **Survival.** `get_canvas_image` in greyscale and at 25%: the written order holds. A ranking that
+6. **Survival.** `get_canvas_image` in greyscale and at 25%: the written order holds. A ranking that
    exists only in colour fails print and colour-blind readers.
 
 ## Related Rules

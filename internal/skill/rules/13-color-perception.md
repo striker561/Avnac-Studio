@@ -17,6 +17,9 @@ Color perception is the eye's and brain's construction of color from relative si
 - Boundary hardness tells you about the relationship, not the color. If one edge of a pair looks harder, the two are further apart in the color solid than you think.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places the interacting colours adjacently; `elements` op=modify moves one to test the interaction; `canvas` op=validate `contrast_floor` measures the text case; `get_canvas_image` is the only simultaneous-contrast test.
+
 1. **Judge on neutral gray** — place the swatch on `#808080`, then on the actual final surround. If it changes, trust the final surround.
 2. **Separate to stop bleed** — insert a 2–4 px neutral gap or a 1 px `#FFFFFF` at 40% between vibrating complements.
 3. **Match by disappearance** — when two colors must read the same across different grounds, adjust one until its boundary nearly vanishes. That is a perceptual match, not a numeric one.
@@ -49,15 +52,16 @@ Color perception is the eye's and brain's construction of color from relative si
 For a 1440×900 hero used on both grounds, use `#5C6B78` and add a 1 px `#FFFFFF` at 40% between the panel and the ground. The roughly 18-point value gap holds on both.
 
 ## Verification
-1. **Two grounds.** Render on `#FAFAFA` and on `#121212`. Any mid-tone carrying text holds its ratio
+1. **Ops receipt.** `get_canvas_image` is judged twice, once with the neighbour present and once with it removed, and `canvas` op=validate `contrast_floor` passes for the text case. A colour approved on its own has not been seen.
+2. **Two grounds.** Render on `#FAFAFA` and on `#121212`. Any mid-tone carrying text holds its ratio
    on both; a tone that passes on one ground and fails on the other was judged on the wrong
    surround.
-2. **Neutral judge.** Place the swatch on `#808080`. The hue reads as specified; a shift there
+3. **Neutral judge.** Place the swatch on `#808080`. The hue reads as specified; a shift there
    proves the surround was doing the work, and the final surround will do it differently.
-3. **Edge treatment.** Where two colours vibrate at a shared edge, a 2–4 px neutral gap or a 1 px
+4. **Edge treatment.** Where two colours vibrate at a shared edge, a 2–4 px neutral gap or a 1 px
    `#FFFFFF` at 40% sits between them, and it survives at 100%. Two saturated fields flush together
    with no separator is the failure.
-4. **Final-size area.** Judge the colour at the size it ships: a 10 mm swatch and a 500 mm field of
+5. **Final-size area.** Judge the colour at the size it ships: a 10 mm swatch and a 500 mm field of
    one hex do not match. A match at swatch size reads light and bright at banner size.
 
 ## Related Rules

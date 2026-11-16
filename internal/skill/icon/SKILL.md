@@ -10,6 +10,19 @@ The output is a pictogram, not an illustration or a logo. If the icon carries th
 `logo`. If the set illustrates a concept rather than representing an object or action, use
 `illustrate`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the set | `guide` | icon workflow and its rules |
+| Draw the glyph | `vector` op=draw | primitives on the icon grid, one board |
+| Refine by id | `vector` op=update | stroke and proportion without redrawing |
+| Hold the set | `canvas` op=add-page | one page per glyph or the full sheet |
+| Test at size | `get_canvas_image` | 16 px and 400 px |
+| Ship | `export` op=object | SVG per glyph, cropped |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Write the metaphor and the action.** An icon must name what it does ("delete"), not what it
    looks like. Prefer the most conventional metaphor unless convention is the problem.

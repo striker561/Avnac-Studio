@@ -27,6 +27,9 @@ and paperwork around it — specs, proofs, press check and delivery dates.
   press and finishing, plus transit. Under five business days, choose digital print.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=resize sets the final trim; `elements` op=render places the artwork and marks; `canvas` op=validate reports bounds and margins; `export` op=png and op=svg are the prepress files Avnac can produce; `get_canvas_image` checks the trim.
+
 1. **Run a five-minute preflight** — fonts embedded or outlined, images ≥300 PPI at 100%, colors in
    the printer's CMYK profile or as named spots, page = trim + bleed, no dieline layer.
 2. **Build the overprint pass deliberately** — 100 K body text overprints; reversed type and white
@@ -62,19 +65,20 @@ crop marks 3 mm offset, no registration color in the artwork. The job ticket rea
 and trim two days — so the signed file must reach the printer by Tuesday.
 
 ## Verification
-1. **Preflight.** Open the exported file and check five things: fonts embedded or outlined, every
+1. **Ops receipt.** The artboard equals the trim plus bleed, `canvas` op=validate reports no out-of-bounds object, and `export` op=png and op=svg are both inspected at 100%. A prepress file that was never re-opened is an assumption.
+2. **Preflight.** Open the exported file and check five things: fonts embedded or outlined, every
    image ≥300 PPI at 100%, colours in the printer's CMYK profile or named spots, page = trim
    + bleed, no dieline layer. One miss stops the press.
-2. **File format and intent.** The deliverable is PDF/X-4 (ISO 15930-7) with an output intent;
+3. **File format and intent.** The deliverable is PDF/X-4 (ISO 15930-7) with an output intent;
    PDF/X-1a is the fallback for an older RIP. A native file with links fails regardless of how the
    page looks on screen.
-3. **Overprint audit.** 100 K body text overprints, reversed type and white rules knock out, rich
+4. **Overprint audit.** 100 K body text overprints, reversed type and white rules knock out, rich
    black never overprints and stays off type under 6 pt. Read this in the separations, where an
    overprint is visible and a knockout is a hole.
-4. **Four numbers.** 300 PPI at final size, TAC 300–320% coated and 240–280% uncoated, smallest line
+5. **Four numbers.** 300 PPI at final size, TAC 300–320% coated and 240–280% uncoated, smallest line
    0.25 pt, smallest type 5–6 pt. A 400% black build offsets onto the next sheet before the job is
    half run.
-5. **Signed proofs.** Two proofs exist: an imposed soft proof for pagination and creep, and a
+6. **Signed proofs.** Two proofs exist: an imposed soft proof for pagination and creep, and a
    contract proof on the final stock at FOGRA51 or FOGRA52. The job ticket names trim, stock, inks,
    finishes, binding, quantity, delivery date and the person who signed.
 

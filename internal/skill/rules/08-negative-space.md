@@ -18,6 +18,9 @@ Negative space is every area not occupied by an element: outer margins, gutters,
 - Micro-space counts. Leading, tracking, and the counters inside letters are negative space too; a cramped line-height undoes a generous margin.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=resize or op=preset sets the sheet the space is budgeted against; `elements` op=render places content; `arrange` op=fit scales the selection with a `padding`; `canvas` op=validate reports `margin_ladder` and `density` with measured px and coverage.
+
 1. **Margin ladder** — 1080×1350: 96 px top, 88 px sides, 144 px bottom. The heavy bottom stops the content from falling.
 2. **Density budget** — decide coverage before placing (say 35% for an invitation), then count filled cells on a 4×4 grid rather than trusting the eye.
 3. **Group gap instead of divider** — delete the rule and raise the between-group gap to 3× the within-group gap.
@@ -49,14 +52,15 @@ A 1080×1350 gallery invitation. Three lines at the top — title 44 px, date 20
 Active area is about 21%, which is correct for a single-message piece: at 270 px, the invitation still reads as three lines and a gold rule, and the emptiness is what makes it read as a gallery rather than a flyer.
 
 ## Verification
-1. **Density count.** Overlay a 4×4 grid and count filled cells. The count must sit in the band the
+1. **Ops receipt.** `canvas` op=validate returns `margin_ladder` at or above the 8% floor with the bottom margin largest, and `density` under 75%; `get_canvas_image` confirms the quiet area is where the eye lands.
+2. **Density count.** Overlay a 4×4 grid and count filled cells. The count must sit in the band the
    piece claims: 55–75% for information-dense work, 25–45% for premium and editorial, and under 20%
    for a single-message poster.
-2. **Margin ladder.** The smallest margin is at least 8% of the short edge — 64 px on 800, 108 px on
+3. **Margin ladder.** The smallest margin is at least 8% of the short edge — 64 px on 800, 108 px on
    1350 — with the bottom largest, then the outer edge, then the top. Equal margins fail.
-3. **Padding.** Every container's padding measures 1–2× the body size: 16–32 px around 16 px text,
+4. **Padding.** Every container's padding measures 1–2× the body size: 16–32 px around 16 px text,
    one line-height of 22–26 px minimum on all sides. Text at the edge fails as clipping.
-4. **Group gap.** With the divider deleted, the between-group gap is 3× the within-group gap. A 1:1
+5. **Group gap.** With the divider deleted, the between-group gap is 3× the within-group gap. A 1:1
    ratio means the space is passive and the rule was carrying the structure.
 
 ## Related Rules

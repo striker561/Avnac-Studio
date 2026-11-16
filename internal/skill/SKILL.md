@@ -19,13 +19,20 @@ Four kinds of files, with one job each:
 | `SKILL.md` (this file) | Entry point, routing table, cross-cutting gates | Always, once |
 | `<task>/SKILL.md` | A workflow for one kind of design task (poster, logo, ui, ...) | As soon as the task type is clear |
 | `references/<subject>.md` | Compact lookup: thresholds, tables, format specs | When you need numbers or a quick comparison |
-| `rules/NN-topic.md` | The authoritative principle, with techniques and failure modes | When a decision needs a reason |
+| `rules/NN-topic.md` | The authoritative principle: techniques, the ops that perform them, and the receipt that proves them | When a decision needs a reason |
 
 The split is deliberate. A skill tells you *how to run the task*; a rule tells you *what is
 true*; a reference gives you *the numbers*. Reading all 125 rules is wasteful and flattens your
 attention. Read the routed skill, then the four to eight rules it links, then a reference only
 when you need a value table. The route is a sample, not the set: the always-on gates below apply
 whatever it says, and `rules/README.md` is where the rules it did not name are listed.
+
+Every rule, workflow and lookup reference is built around the tools. A rule opens its Techniques
+with **Avnac ops:** naming the exact calls, and opens its Verification with an **Ops receipt** that
+runs them; where no op performs a step the rule says so and names the visual check instead.
+Workflows carry an **Avnac ops** table for their own steps, and references open with the ops that
+apply their numbers. The full surface, and the operations that do not exist, is
+[`references/avnac-ops`](references/avnac-ops.md) — read it before inventing a call.
 
 ## Routing table
 
@@ -91,13 +98,15 @@ Every rule is shaped the same way, so you can jump to the part you need:
 
 - **Purpose / Definition** — what problem it solves and what it means precisely.
 - **Core Principles** — the claims to satisfy. Use them as acceptance criteria.
-- **Techniques** — the moves that satisfy them, with values.
+- **Techniques** — the moves that satisfy them, with values, opening with **Avnac ops:** the exact
+  calls that perform them.
 - **When to Use / When to Avoid** — the judgment call, not a suggestion.
 - **Common Mistakes** — the failure modes to check your own draft against.
 - **Practical Examples** — one worked case in Avnac terms (canvas px, zones, hex). Examples in a
   `json vector` or `svg` fence are executable: `go test ./internal/skill` draws or parses them.
 - **Verification** — the checks that prove the work: what to render, measure or count, and the pass
-  condition. Run these before delivery; they are the rule's acceptance test, not a summary.
+  condition. The first item is the **Ops receipt**: the command that proves the rule was applied.
+  Run these before delivery; they are the rule's acceptance test, not a summary.
 - **Related Rules / Sources** — where the claim comes from and what else constrains it.
 
 When a rule and a reference disagree about a number, the rule is authoritative and the
@@ -113,8 +122,12 @@ reference is out of date — fix the reference.
 - Drawing a *new* vector object (logo mark, icon, character) is not the same as placing a scene
   primitive: use the `vector` tool, which resolves a small scene-graph IR into editable cubic paths
   and places real SVG on the page. Scene `polygon` and `star` are layout primitives, not drawing.
-- The MCP server exposes canvas tools, a vector drawing tool, an Unsplash search, and export. The
-  design decision comes from this library; the tools only execute it.
+- The published surface is seven `op` tools (`canvas`, `elements`, `arrange`, `files`, `assets`,
+  `export`, `vector`), six read tools, and `guide`. Every op is catalogued in
+  [`references/avnac-ops`](references/avnac-ops.md), including the operations that do not exist:
+  when a rule asks for one, use the visual check it names and say so. The design decision comes from
+  this library; the tools execute it, and an op you cannot name is a step you have not finished
+  deciding.
 - A project (canvas) holds many pages. Drafts, tests and variations belong on a named page inside
   the open project — `canvas` op=add-page — never in a second project created for the experiment.
   Check `get_canvas_summary` for the active page name, and switch back with `canvas` op=go-page

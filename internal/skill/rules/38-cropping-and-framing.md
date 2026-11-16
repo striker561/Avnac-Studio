@@ -27,6 +27,9 @@ it pushes past the edge.
   print, and the subject still needs 8–10% clearance inside the trim or a trim shift will clip it.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places the image with `fit`, `focalPoint` and `crop`; `elements` op=modify re-crops the same node without changing its id; `get_canvas_image` shows the frame; `export` op=object exports the crop.
+
 1. **Shoot the crop ladder** — from one image produce three: 16:9 (wide, establishes place), 4:5
    (mid, subject and context), 1:1 (tight, subject only). One asset then serves three placements
    without re-cropping under deadline.
@@ -79,15 +82,16 @@ The bleed version for print: A5 at 300 ppi is 148×210 mm plus 3 mm bleed on all
 potter's hands are held at least 8 mm inside the trim so a 2 mm trim shift does not clip them.
 
 ## Verification
-1. **Ratio match.** The crop's ratio is one the asset carries: 1:1, 4:5, 16:9, 3:2, or 4:3. Any
+1. **Ops receipt.** `elements` op=modify with `focalPoint` or `crop` keeps the subject at the intended third, and `get_canvas_image` shows the frame without the rest of the source. A crop chosen by resizing the box has distorted the image unless `fit` says otherwise.
+2. **Ratio match.** The crop's ratio is one the asset carries: 1:1, 4:5, 16:9, 3:2, or 4:3. Any
    other ratio produces dead space or an amputated subject.
-2. **Joint audit.** Every cut line runs mid-thigh, mid-forearm, or mid-torso, 20–30% along the
+3. **Joint audit.** Every cut line runs mid-thigh, mid-forearm, or mid-torso, 20–30% along the
    limb. A cut through wrist, knee, or neck reads as injury rather than as framing.
-3. **Look-space ratio.** Space in front of a face or moving subject is 1.5–2× the space behind.
+4. **Look-space ratio.** Space in front of a face or moving subject is 1.5–2× the space behind.
    Reversed, the subject looks trapped against the edge.
-4. **Trim safety.** Print: 3 mm bleed with the subject 8–10% inside the trim. Screen: the face
+5. **Trim safety.** Print: 3 mm bleed with the subject 8–10% inside the trim. Screen: the face
    120 px inside a 1080 px edge. A trim shift that could clip the subject fails the crop.
-5. **Horizon placement.** The structural line sits at 1/3 or 2/3 of the frame height, measured.
+6. **Horizon placement.** The structural line sits at 1/3 or 2/3 of the frame height, measured.
    Exactly 50% halves the image and kills the depth it carries.
 
 ## Related Rules

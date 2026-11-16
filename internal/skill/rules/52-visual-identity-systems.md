@@ -17,6 +17,9 @@ A visual identity system is the fixed set of marks and rules — logo and lockup
 - One image treatment applied to 100% of photographs does more for recognition than any new logo, because photography occupies the most area.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=add-page holds each identity application; `elements` op=render applies the system; `vector` op=draw builds the mark; `export` op=svg delivers the source; `get_canvas_image` tests the system across pages.
+
 1. **Asset ladder** — five deliverables: mark, lockup, color field, type pair, image rule. Test each at 400×400 thumbnail and at 3 m poster scale before adding anything.
 2. **Tokens in Avnac** — name fills and strokes (`brand/primary`, `brand/ink-70`, `brand/rule`) and reuse the swatch; a `group` per lockup so scaling preserves ratios.
 3. **Responsive mark set** — full lockup, stacked, icon plus wordmark, icon only, each with a minimum width so nobody has to guess.
@@ -44,19 +47,20 @@ A visual identity system is the fixed set of marks and rules — logo and lockup
 A three-touchpoint system: primary `#0F3D3E` on `#F4EFE6`, secondary `#C86B3C`, neutrals `#111111`/`#4B4B4B`/`#E5E5E5`. Type: Inter 700 for headings, 400 for body, no third face. Device: an 8 px rule set at 45°, used as the divider under every heading. Image rule: desaturated with a warm highlight, 4:5 crops, subject at the left third. Motion: 240 ms ease-out. Across a 1080×1080 post, a 1200×628 card and an A5 flyer, the constants are the rule, the grade and the ink color — the logo appears in only two of the three.
 
 ## Verification
-1. **Six-part census.** Name the carrier for mark, type, colour, imagery, graphic device and motion.
+1. **Ops receipt.** The mark, type, colour and spacing are each one component reused across two or more `canvas` op=add-page applications, and `export` op=svg contains the same values. A system assembled per page is a set of one-offs.
+2. **Six-part census.** Name the carrier for mark, type, colour, imagery, graphic device and motion.
    Pass: six named, all six specified with a rule. Two anchored and four improvised is drift,
    however good each part looks alone.
-2. **Colour field.** Count brand fills across three applications: one primary, two secondary, four
+3. **Colour field.** Count brand fills across three applications: one primary, two secondary, four
    neutrals. Pass: seven fills or fewer in the system. An eighth is a mood the next application
    re-balances.
-3. **Three-application line-up.** Place a 1080 × 1080 post, a 1200 × 628 card and an A5 flyer side
+4. **Three-application line-up.** Place a 1080 × 1080 post, a 1200 × 628 card and an A5 flyer side
    by side at 400 px. Pass: mark geometry, primary colour, image grade and device identical; only
    crop, density and format change.
-4. **Image grade.** Check every photograph in the three applications against the same curve or
+5. **Image grade.** Check every photograph in the three applications against the same curve or
    duotone. Pass: 100% treated. One untreated image is the largest area in the layout breaking the
    system.
-5. **Device derivation.** Measure the graphic device against the mark — its angle, radius or
+6. **Device derivation.** Measure the graphic device against the mark — its angle, radius or
    proportion. Pass: the device is one of the mark's measured values, such as a 15° cut, a 4:3 crop
    or an 8 px rule. A device drawn independently will not survive the next designer.
 

@@ -22,6 +22,9 @@ few allowed shapes carry the reading. Legibility comes from silhouette and contr
   than their geometric center, and round and square shapes share one optical baseline.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw builds each glyph on the icon grid; `vector` op=update adjusts stroke and proportion; `export` op=object exports SVG per glyph; `canvas` op=add-page holds the set; `get_canvas_image` tests at 16 px.
+
 1. **Key-shape construction** — place the grid and the key shape, then cut: a "file" is a 16×20 rect with
    a 4 px corner fold, a "search" a 14 px circle plus a 6 px handle at 45°.
 2. **Stroke lock** — center odd-width strokes on half-pixels (x.5) so 1 px lands on a whole pixel at 1×
@@ -58,17 +61,18 @@ redrawn at 3 px stroke, not scaled, so it matches a `#F5F5F5` toolbar at 1.5× d
 carries its 0.5 px overshoot, so round, square, and portrait shapes read at one optical size.
 
 ## Verification
-1. **Grid audit.** On the 24 px grid: geometry inside the 20 px live area, stroke 2 px, terminals
+1. **Ops receipt.** Every glyph is a named board and exports with `export` op=object, `get_canvas_image` at 16 px still identifies each, and the stroke widths in `export` op=svg match across the set. An icon that only works at 100% is an illustration.
+2. **Grid audit.** On the 24 px grid: geometry inside the 20 px live area, stroke 2 px, terminals
    snapped to the keyline. An odd-width stroke sits on x.5 or it blurs at 1×.
-2. **Optical corrections.** A circle carries its 0.5 px overshoot; a triangle sits 1 px below its
+3. **Optical corrections.** A circle carries its 0.5 px overshoot; a triangle sits 1 px below its
    geometric centre; round and square share one baseline. Geometrically equal shapes read unequal
    at 24 px, which is the failure.
-3. **Small-size render.** Rasterise at 8, 16 and 24 px: silhouette legible at 8, stroke 1.5 px at
+4. **Small-size render.** Rasterise at 8, 16 and 24 px: silhouette legible at 8, stroke 1.5 px at
    16 px. A 24 → 16 scale gives 1.33 px and a grey set; the 16 px file is redrawn, not scaled.
-4. **Set audit.** Twelve icons in a 6 × 2 grid at 24 px: one stroke weight, one 2 px interior
+5. **Set audit.** Twelve icons in a 6 × 2 grid at 24 px: one stroke weight, one 2 px interior
    radius, one optical baseline, no icon that needs a caption. Contrast against the toolbar is at
    least 3:1.
-5. **Large-size density.** The 72 px file carries a 3 px stroke, redrawn rather than scaled from
+6. **Large-size density.** The 72 px file carries a 3 px stroke, redrawn rather than scaled from
    2 px, which would render 6 px and look heavier than the rest of the set.
 
 ## Related Rules

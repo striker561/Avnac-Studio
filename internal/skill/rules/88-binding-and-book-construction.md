@@ -29,6 +29,9 @@ angle, eats a different amount of the inner margin, and imposes a different page
 - Endpapers and headbands are design surfaces, and the cheapest place in the object to add color.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=add-page holds each spread; `elements` op=render places content inside the gutter and safe margins; `canvas` op=go-page steps the sequence; `export` op=png exports each spread.
+
 1. **Choose binding from use** — flat reference (cookbook, art book, manual) wants lay-flat, sewn,
    or wire-o; a thin programme wants saddle stitch; a report or novel wants perfect bound.
 2. **Compute the spine** — 128 pages at 0.12 mm caliper is 64 × 0.12 = 7.7 mm, plus 2 × 1 mm of
@@ -74,19 +77,20 @@ client insists on the spread image, the job is resewn to open flat, and the extr
 quoted against the extra page-count and production time rather than absorbed silently.
 
 ## Verification
-1. **Extent.** The page count is a multiple of 4 and inside the method: saddle stitch under about 64
+1. **Ops receipt.** `get_canvas_summary` shows a page for each spread of the stated size, content stays out of the gutter by the stated allowance, and the page count is even for the binding. A spread built without its gutter allowance loses the inner margin on press.
+2. **Extent.** The page count is a multiple of 4 and inside the method: saddle stitch under about 64
    pages of 120 g/m², perfect bound or PUR from 40, and under 8 pages the object is a folded sheet.
    A 96-page saddle-stitch is a different job with a different cost.
-2. **Spine arithmetic.** Pages ÷ 2 × caliper, plus the cover allowance: 128 pages at 0.12 mm is
+3. **Spine arithmetic.** Pages ÷ 2 × caliper, plus the cover allowance: 128 pages at 0.12 mm is
    64 × 0.12 = 7.7 mm, plus 2 × 1 mm, so 9.7 mm. The cover file's spine guide measures that number,
    not a guess from a shelf sample.
-3. **Gutter.** Inner margin 15–20 mm perfect bound, 10–12 mm saddle stitch, 8–10 mm lay-flat, with
+4. **Gutter.** Inner margin 15–20 mm perfect bound, 10–12 mm saddle stitch, 8–10 mm lay-flat, with
    the grid built inside what remains. A 12 mm inner margin on perfect binding loses the first
    characters into the gutter.
-4. **Creep.** Caliper × sheets: 0.1 mm stock over 16 sheets shifts the innermost page about 1.6 mm.
+5. **Creep.** Caliper × sheets: 0.1 mm stock over 16 sheets shifts the innermost page about 1.6 mm.
    Either the outer margin absorbs it or the imposition carries creep compensation; check it in the
    dummy.
-5. **Cross-spread.** On perfect binding, faces and key content sit 10 mm clear of the gutter, and a
+6. **Cross-spread.** On perfect binding, faces and key content sit 10 mm clear of the gutter, and a
    full-bleed image crosses the fold only on lay-flat, sewn or a saddle-stitched centre. Fold the
    dummy and look at the fold before approving the spread.
 

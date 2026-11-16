@@ -27,6 +27,9 @@ subpixel rendering that differ between operating systems and browsers.
   the other, and light-on-dark blooming adds roughly one weight step on top of that.
 
 ## Techniques
+
+**Avnac ops:** `assets` op=fonts reports what the build supports; `elements` op=render sets `fontWeight`, `fontStyle` and `fontFamily`; `elements` op=modify changes one axis-like value across objects; `get_object_properties` returns the rendered result. Avnac exposes weight and style, not arbitrary variation axes.
+
 1. **Write the instance into the spec** — for every text element, record family, `wght`, `wdth`,
    `opsz`, tracking, and color. In CSS: `font-variation-settings: "wght" 620, "opsz" 32`. In an
    Avnac text element, pin the numeric weight in the layer name so it survives handoff.
@@ -80,17 +83,18 @@ dark-on-light renders thinner; write both instances into the theme file rather t
 a hope.
 
 ## Verification
-1. **Instance record.** Every text element carries numeric `wght`, `wdth`, and `opsz` in the spec
+1. **Ops receipt.** `assets` op=fonts reports the family loaded, `get_object_properties` shows the weight and style that were requested rather than a fallback, and `get_canvas_image` shows the axis-like change is visible. A variation the renderer ignores is not a variation.
+2. **Instance record.** Every text element carries numeric `wght`, `wdth`, and `opsz` in the spec
    or the layer name. A name-only weight resolves to 400 and changes the design without a warning.
-2. **opsz against size.** `opsz` equals the rendered size at each setting: 12 px text at 12, a
+3. **opsz against size.** `opsz` equals the rendered size at each setting: 12 px text at 12, a
    96 px headline at 96. A display `opsz` on caption text thins stems that need the weight.
-3. **Wrap stability.** Render at 100% on three stacks: wrap points move by less than two
+4. **Wrap stability.** Render at 100% on three stacks: wrap points move by less than two
    characters on a 62-character line. Beyond that, move the measure by ±2 characters, not the
    copy.
-4. **Fallback width.** Measure the fallback against the live face: within 6% average character
+5. **Fallback width.** Measure the fallback against the live face: within 6% average character
    width, with `size-adjust` in the 96–104% range. Six per cent on a 62-character line moves four
    characters and orphans a word.
-5. **Dark-ground grade.** The theme records a different `wght` for dark and light grounds, 20–30
+6. **Dark-ground grade.** The theme records a different `wght` for dark and light grounds, 20–30
    apart, because light-on-dark blooms by about one step. One weight on both grounds renders
    heavier on the dark one, visibly.
 

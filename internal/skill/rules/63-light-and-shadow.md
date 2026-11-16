@@ -26,6 +26,9 @@ terminator), and the number of tone steps used on a surface.
 - Shadow is not black: use a darker, cooler, more saturated version of the base at 20–40% multiply.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw sets the lit faces from one light direction and the shade with `fillOpacity` overlays; `elements` op=render can add a `gradientStops` light falloff on a composed illustration; `get_canvas_image` is the form check. There is no lighting op.
+
 1. **Lighting brief in one line** — "key top-left, 45° elevation, hard terminator, 3 tones, cool shadow", written
    at the top of the file and repeated in the style sheet.
 2. **Three-tone pass** — draw only base, shadow, and highlight, with no line. If the form fails in three tones,
@@ -59,16 +62,17 @@ background plane `#3C4A3E` is 55% contrast against the foreground `#12100E`, whi
 a single gradient.
 
 ## Verification
-1. **Azimuth read.** Measure every cast-shadow offset against the stated key: top-left 45° means +x,
+1. **Ops receipt.** One light direction is stated in the note, every shadow in `get_canvas_image` falls the same way, and no highlight sits on the unlit side. A form that needs two lights to read is a form with no light direction.
+2. **Azimuth read.** Measure every cast-shadow offset against the stated key: top-left 45° means +x,
    +y. A shadow pointing toward the light is a flipped asset, and every offset in the set agrees on
    one direction.
-2. **Shadow census.** Count form and cast shadows per object. Both exist on anything standing on a
+3. **Shadow census.** Count form and cast shadows per object. Both exist on anything standing on a
    surface; form shadow alone leaves the object floating, cast shadow alone leaves it pasted on.
-3. **Tone count.** Count tones on one surface: 3 for flat and cel, 5 for soft shading, 7 or more for
+4. **Tone count.** Count tones on one surface: 3 for flat and cel, 5 for soft shading, 7 or more for
    realism. The file's count matches its stated style; five tones in a three-tone piece is mud.
-4. **Shadow recipe.** Sample each shadow: base at 70% value, shifted +8° toward blue, multiplied at
+5. **Shadow recipe.** Sample each shadow: base at 70% value, shifted +8° toward blue, multiplied at
    20–40%. A neutral black at 30% is a dead hole in the colour, not a shadow.
-5. **Two-plane contrast.** Background contrast is 60% of foreground, 55% in the example. Sample both
+6. **Two-plane contrast.** Background contrast is 60% of foreground, 55% in the example. Sample both
    planes in greyscale; equal contrast means the image has one plane, not two.
 
 ## Related Rules

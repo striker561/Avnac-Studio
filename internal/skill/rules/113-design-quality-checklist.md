@@ -23,6 +23,9 @@ a piece not checked at 25% zoom and at 100% has not been checked.
 - Sign off in writing: checks passed, the one known compromise, who accepted it, and the date.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=validate is the mechanical half of the gate; `get_canvas_image` is the visual half; `export` op=png, op=object and op=svg are the delivery that must still pass after export.
+
 1. **Hierarchy at 25% zoom** — name the first, second and third thing you see; they must match the
    intended order. Then squint: the piece should resolve into two or three masses, not six.
 2. **Type at 100%** — body 14–18 px screen or 9–11 pt print, leading 1.4–1.6, measure 45–75
@@ -62,15 +65,16 @@ Sign-off: "5 of 6 checks passed after fixes; the 14 px legal line stays under th
 the client requires the full disclaimer — accepted by A. Reyes, 12 Nov."
 
 ## Verification
-1. **Verdict, not impression.** The gate ends in a written pass list with a date, the one accepted
+1. **Ops receipt.** `canvas` op=validate passes every check it runs, `get_canvas_image` has been looked at at 25% and at full size, and the exported `export` op=png or op=svg is reopened and checked. A checklist run only on the live canvas has not shipped.
+2. **Verdict, not impression.** The gate ends in a written pass list with a date, the one accepted
    compromise and who accepted it. "Looks fine" is not a verdict and does not close the gate.
-2. **Hierarchy at 25%.** The first, second and third things seen match the intended order, and the
+3. **Hierarchy at 25%.** The first, second and third things seen match the intended order, and the
    piece resolves into two or three masses, not six.
-3. **Type at 100%.** Body 14–18 px or 9–11 pt, leading 1.4–1.6, measure 45–75 characters, two
+4. **Type at 100%.** Body 14–18 px or 9–11 pt, leading 1.4–1.6, measure 45–75 characters, two
    families at most. A widow, a one-word last line or a heading at a column foot fails the check.
-4. **Colour with ratios.** 4.5:1 body, 3:1 large text and boundaries, 3:1 focus; print at TAC ≤300%
+5. **Colour with ratios.** 4.5:1 body, 3:1 large text and boundaries, 3:1 focus; print at TAC ≤300%
    coated or 260% uncoated, rich black 60/40/40/100, no four-colour black in small type.
-5. **File, not intention.** `export` returns the delivered file, and the gate runs on it: trim
+6. **File, not intention.** `export` returns the delivered file, and the gate runs on it: trim
    correct, 3 mm bleed (5 mm large format), 300 PPI at 100%, fonts embedded, PDF/X-4 with an output
    intent. The working canvas is not evidence of the export.
 

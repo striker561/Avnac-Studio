@@ -17,6 +17,9 @@ Context is what changes a color's appearance without changing its value: adjacen
 - In a series, one constant makes the set. Fix the ground or the type color and vary one dimension in a fixed order.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places the colour in its real neighbourhood; `elements` op=modify changes one neighbour to test the shift; `canvas` op=validate `contrast_floor`; `get_canvas_image` is the context test. Swatch panels are not a check.
+
 1. **Test the pair, not the swatch.** Place the color on both grounds at final size and view at 100% and 25%.
 2. **Run an interval check.** Put the two colors edge to edge and squint: if the boundary disappears, the step is under 10 L* and the pairing is decorative.
 3. **Proof on the substrate.** Print a 100 mm swatch on the actual stock, or simulate uncoated by adding 8% black and dropping 10% chroma.
@@ -43,15 +46,16 @@ Context is what changes a color's appearance without changing its value: adjacen
 A six-sheet series for a venue lit at 2700 K: the cream ground #F4F1EA turns yellow indoors, so it becomes #FFFFFF, and #1B2A41 replaces black so the shadows do not crush. Ground and type stay fixed across all six; only the accent rotates at matched L 0.58, from #E4572E through #4C6FA5 to #2E7D5B, so the set reads as one system whether the sheets hang together or apart.
 
 ## Verification
-1. **Pair at final size.** View the pair on both grounds at 100% and at 25%. A step under 10 L*
+1. **Ops receipt.** `get_canvas_image` at page scale is judged before any swatch, and moving one neighbour with `elements` op=modify changes what the colour appears to be. A colour that only works alone fails in context.
+2. **Pair at final size.** View the pair on both grounds at 100% and at 25%. A step under 10 L*
    reads as decoration, not as an interval.
-2. **Material proof.** A 100 mm swatch on the actual stock, or the uncoated simulation of +8% black
+3. **Material proof.** A 100 mm swatch on the actual stock, or the uncoated simulation of +8% black
    and −10% chroma. A screen approval of a paper colour is not a proof.
-3. **Series recipe.** Six accents at matched L 0.58 with hues 40° apart, ordered by hue. A series
+4. **Series recipe.** Six accents at matched L 0.58 with hues 40° apart, ordered by hue. A series
    with drifting L has no sequence and collapses in grey.
-4. **Two lights.** View at 2700 K and at 5000 K. Type separates from its ground under both; a blue
+5. **Two lights.** View at 2700 K and at 5000 K. Type separates from its ground under both; a blue
    that reads navy at noon and black at 2700 K has failed the venue, not the print.
-5. **Area match.** Compare the 10 mm mark with the large field of the same hex: the field is 5–8 L*
+6. **Area match.** Compare the 10 mm mark with the large field of the same hex: the field is 5–8 L*
    lighter. A logo and a full-bleed wash of one value do not match.
 
 ## Related Rules

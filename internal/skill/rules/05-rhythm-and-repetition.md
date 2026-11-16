@@ -17,6 +17,9 @@ Rhythm is the recurrence of intervals — gaps, sizes, weights — at a predicta
 - Rhythm is not equal spacing. Equal spacing everywhere is a metronome, not a composition.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places the repeated unit as one array, so the interval is declared in one call; `elements` op=modify changes the unit everywhere its field changed; `arrange` op=distribute evens the gaps; `canvas` op=validate reports `density`; `get_canvas_image` shows whether the rhythm reads.
+
 1. **Set the unit** — 8 px on a 1080 canvas, 12 px at 1920; every gap, padding, and block height is a multiple. Write the unit into the brief.
 2. **Three-gap system** — 16 within rows, 48 between rows, 144 between sections. Never invent a fourth value for one element.
 3. **Five and a break** — repeat an element five times, then interrupt with scale, color, or a doubled gap exactly once.
@@ -48,13 +51,14 @@ A 1080×1080 schedule with six event rows. Row height 96 px, internal gap 12 px,
 The headliner row is 120 px tall with a 4 px `#FF4D2E` bar on its left edge — the single break, placed where the message is. At 270×270 the rows read as a striped texture and the orange bar is the only colored mark, so the break survives the reduction.
 
 ## Verification
-1. **Interval census.** List every gap and block height. Three distinct values are enough; a fourth
+1. **Ops receipt.** `arrange` op=distribute leaves equal gaps on three or more objects, `canvas` op=validate `density` stays under 75%, and `get_canvas_image` shows one interval, not several. A rhythm you have to measure to see is not a rhythm.
+2. **Interval census.** List every gap and block height. Three distinct values are enough; a fourth
    reads as arbitrary, and a value off the unit — 13 or 17 against an 8 px unit — fails.
-2. **Break count.** Exactly one interruption in the sequence: a doubled gap, a colour, a size. A
+3. **Break count.** Exactly one interruption in the sequence: a doubled gap, a colour, a size. A
    second accent cancels the first, wherever it sits.
-3. **Baseline drift.** Check block tops down a column against the baseline unit: 8 px on a 1080
+4. **Baseline drift.** Check block tops down a column against the baseline unit: 8 px on a 1080
    canvas, 12 px at 1920. Drift of 3–6 px per row fails.
-4. **Texture at 25%.** `get_canvas_image` at 25%: the repeated items read as one striped field and
+5. **Texture at 25%.** `get_canvas_image` at 25%: the repeated items read as one striped field and
    the single break is the only coloured mark. Twelve identical items with no tightening fail.
 
 ## Related Rules

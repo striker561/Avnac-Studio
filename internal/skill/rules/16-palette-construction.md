@@ -16,6 +16,9 @@ A palette is five to seven colors with assigned functions — ground, surface, t
 - Name tokens by role, not appearance. `--surface` and `--text-muted` survive a rebrand; `--sand` and `--rust` do not.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render applies the palette as named roles (surface, text, accent); `elements` op=modify swaps a role across the page; `canvas` op=validate `contrast_floor` holds the usable pairs; `export` op=svg emits the hexes as the handoff. There is no ramp generator: build the steps and paste them.
+
 1. **Anchor from evidence.** Take the color the brand or subject already owns — logo, product, venue — and measure its hue in OKLCH. Everything else is built at that H, or at a deliberate rotation from it.
 2. **Neutral ramp in five steps.** L 0.97, 0.92, 0.82, 0.55, 0.22 at anchor H with C 0.01–0.03. Assign page ground, card surface, hairline, muted text, primary text.
 3. **Accent by rotation.** Rotate H by 150–180° at a matching L (within 5) for a complement, or hold H and push C to 0.20 for a monochrome accent. Matching L stops the edge from vibrating.
@@ -42,15 +45,16 @@ A palette is five to seven colors with assigned functions — ground, surface, t
 A 1080×1350 poster: ground #F4F1EA over 60% of the area, secondary field #1B2A41 at 30%, accent #E4572E at 10%. Text #111111 on the ground measures 16.7:1; secondary text in #1B2A41 is 12.8:1; the accent against the ground is only 3.0:1, so it carries a bar, a rule, and one 96 px word — never the 18 px details, which stay #111111.
 
 ## Verification
-1. **Count and roles.** Five to seven colours, each with a role name. Twelve means none repeats
+1. **Ops receipt.** `export` op=svg carries a hex for every role used on the page, `canvas` op=validate `contrast_floor` passes for text, and `get_canvas_image` shows no two roles that read as the same colour. A palette that grew to fit the page is a list, not a system.
+2. **Count and roles.** Five to seven colours, each with a role name. Twelve means none repeats
    often enough to read as intentional; four means one of the roles is missing.
-2. **Area split.** Measure coverage: 80–90% of the pixels are neutral, the accent sits at or under
+3. **Area split.** Measure coverage: 80–90% of the pixels are neutral, the accent sits at or under
    10%. An accent at 40% is a second ground and the hierarchy it marked is gone.
-3. **Accent at three areas.** Place the accent at 5%, 30% and 100% coverage. It still reads at 5%
+4. **Accent at three areas.** Place the accent at 5%, 30% and 100% coverage. It still reads at 5%
    and does not take over at 30%; if it does, drop chroma by 0.03 and render again.
-4. **Neutral tint.** Every neutral carries 0.01–0.03 chroma at the anchor hue. A neutral at C 0
+5. **Neutral tint.** Every neutral carries 0.01–0.03 chroma at the anchor hue. A neutral at C 0
    beside a saturated anchor reads dirty and makes the set look second-hand.
-5. **Role contrast.** Every text role has a measured ratio against its ground, 4.5:1 minimum, and
+6. **Role contrast.** Every text role has a measured ratio against its ground, 4.5:1 minimum, and
    the accent's own ratio decides what it carries. At 3.0:1 it holds a rule and one large word,
    never an 18 px line.
 

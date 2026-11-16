@@ -4,6 +4,8 @@ Use when a color decision needs a number or a comparison. Rules:
 [`10-color-theory`](../rules/10-color-theory.md) through
 [`19-color-in-context`](../rules/19-color-in-context.md); this file is the lookup.
 
+
+**Avnac ops:** `elements` op=render applies the hex; `canvas` op=validate measures the text pairs (`contrast_floor`); `get_canvas_image` is how a colour is judged in context. Palette generation, ramps and colour-space conversion have no op.
 ## Attributes, in order of visual weight
 
 | Attribute | What it does | Practical control |

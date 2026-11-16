@@ -5,6 +5,8 @@ Use when a design is going to a printer, or when a design decision has to surviv
 [`82-bleed-trim-and-safe-areas`](../rules/82-bleed-trim-and-safe-areas.md),
 [`87-prepress-and-production`](../rules/87-prepress-and-production.md).
 
+
+**Avnac ops:** `canvas` op=resize sets trim plus bleed; `elements` op=render places art and marks; `canvas` op=validate reports `margin_ladder` and bounds; `export` op=png and op=svg are the files Avnac can produce. PDF/X, CMYK and crop marks have no op: specify them and convert outside.
 ## The geometry, with numbers
 
 | Item | Value | Notes |

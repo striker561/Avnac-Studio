@@ -26,6 +26,9 @@ unit and one ratio, so every block has the same structural status while its cont
   rule against three held rules; anything closer to 1:1 is noise.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places the modules and the deliberate imbalance; `arrange` op=align and op=distribute hold the underlying order; `canvas` op=validate reports `density`; `get_canvas_image` is the balance check.
+
 1. **The 62/38 split** — on 1080 px, split at 670: the 670 zone takes the image, the 410 zone
    takes type with 48 px of interior padding. The 410 block sits lower than the image's top edge by
    60–90 px so the two masses are not level, which is what keeps the split from reading as 50/50.
@@ -80,15 +83,16 @@ The image's mass is answered by the orange square's density; the type block's lo
 the vertical split from reading as two equal halves.
 
 ## Verification
-1. **Lever balance.** Measure each mass and its distance from the axis: m1 × d1 against m2 × d2.
+1. **Ops receipt.** `arrange` op=distribute proves the repeated module spacing, `canvas` op=validate `density` stays under 75%, and `get_canvas_image` shows the asymmetry is deliberate rather than a slip. An asymmetry that reads as an accident fails.
+2. **Lever balance.** Measure each mass and its distance from the axis: m1 × d1 against m2 × d2.
    More than 2:1 between the products means the page is unbalanced, not asymmetric.
-2. **Split ratio.** Divide at the dominant vertical and compare with a stated ratio: 62/38, 2:3,
+3. **Split ratio.** Divide at the dominant vertical and compare with a stated ratio: 62/38, 2:3,
    or 3:5, within 2%. A 52/48 split reads as a near-miss, because the eye expects a decision.
-3. **Unit audit.** Every block size and gutter is a multiple of U from one family — 1, 2, 3, 5,
+4. **Unit audit.** Every block size and gutter is a multiple of U from one family — 1, 2, 3, 5,
    8 × 24 px. A 30 px gap or a 100 px block belongs to no unit and aligns with nothing made later.
-4. **Exception count.** Exactly one element is rotated, offset, or differently sized; everything
+5. **Exception count.** Exactly one element is rotated, offset, or differently sized; everything
    else is aligned to the pixel. Two exceptions cancel and read as noise.
-5. **Counterweight area.** The answer to the heaviest mass sits in the opposite quadrant at about
+6. **Counterweight area.** The answer to the heaviest mass sits in the opposite quadrant at about
    1/5 its area. Equal areas in opposite corners produce symmetry by accident.
 
 ## Related Rules

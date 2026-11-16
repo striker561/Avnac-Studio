@@ -26,6 +26,9 @@ the last requires a constructed perspective system; the rest are decisions about
   4–8 px reads as a background; anything above that reads as a focus error rather than distance.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places `polygon` and `line` geometry for the constructed perspective; `vector` op=draw builds the vanishing geometry as editable paths; `get_canvas_image` is the consistency check; `elements` op=modify corrects one plane.
+
 1. **Set the horizon by eye level** — 38% from the top for a standing figure at chest height,
    55–60% for a tabletop, 65–70% for a low angle; every size in the frame follows from it.
 2. **Build three planes** — background flat field plus 10–15% value lift, midground at full
@@ -80,16 +83,17 @@ No perspective construction is used, and the visual still reads as a room becaus
 one horizon, one size ratio, one temperature direction from foreground to background.
 
 ## Verification
-1. **Horizon count.** One horizon, one vanishing point if convergence is used, and every
+1. **Ops receipt.** Every receding line traced with `elements` op=render meets its stated vanishing point at page scale, and `get_canvas_image` shows no plane whose angle contradicts the others. A perspective that needs a ruler to disprove is still wrong.
+2. **Horizon count.** One horizon, one vanishing point if convergence is used, and every
    consistent edge agreeing within 1–2°. A second horizon, usually from a second photograph, reads
    as physically impossible.
-2. **Size ratio.** Measure two depths: at twice the distance the object is half the size, ±5%.
+3. **Size ratio.** Measure two depths: at twice the distance the object is half the size, ±5%.
    Sizes placed by eye miss the ratio by 20–30% and the space flattens.
-3. **Blur bands.** Background blur at 4–8 px, near-plane separation at 0.5–2 px on a 1080 canvas,
+4. **Blur bands.** Background blur at 4–8 px, near-plane separation at 0.5–2 px on a 1080 canvas,
    subject sharp. Blur on the subject reads as a focus miss, not as depth.
-4. **Cue order.** List the cues in play: overlap first, then relative size, then position.
+5. **Cue order.** List the cues in play: overlap first, then relative size, then position.
    Convergence without overlap produces the starburst that competes with the headline.
-5. **Shadow agreement.** Every cast shadow runs at 45° from one light, 2–3× the base in width,
+6. **Shadow agreement.** Every cast shadow runs at 45° from one light, 2–3× the base in width,
    20–35% opacity, 6–12 px blur. Two directions and the composite fails at first glance.
 
 ## Related Rules

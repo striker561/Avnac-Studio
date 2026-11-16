@@ -23,6 +23,9 @@ when equal data differences produce equal visual differences from a stated zero.
   inside the chart.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render draws the chart from `rect`, `line`, `polygon` and text; `elements` op=modify rescales an axis; `get_canvas_image` is the chart-read check; `canvas` op=validate `contrast_floor` on labels.
+
 1. **Pick the form from the question** — comparison: horizontal bar; trend: line with 4–6 ticks;
    distribution: histogram; part-to-whole: stacked bar (pie only at 2–3 slices); correlation: scatter.
 2. **Erase to the data-ink floor** — delete vertical gridlines, frame, and background fill; keep a
@@ -62,19 +65,20 @@ A 1200×800 "Weekly signups" card:
 - Data labels on the max and current bars only: 14 px `#111111`, 8 px above the cap.
 
 ## Verification
-1. **Zero baseline.** Every bar, column and area starts at zero, and the baseline is drawn 1 px
+1. **Ops receipt.** Every axis starts at zero unless the departure is labelled, `get_canvas_image` reads the comparison without the legend, and `canvas` op=validate `contrast_floor` passes on labels. A chart that needs its caption to be honest is not honest.
+2. **Zero baseline.** Every bar, column and area starts at zero, and the baseline is drawn 1 px
    `#D4D4D4` — y=600 in the 1200×800 example. A cropped bar axis does not zoom in, it misstates the
    ratio.
-2. **Lie factor.** (percent change shown) ÷ (percent change in the data) lands in 0.95–1.05. Measure
+3. **Lie factor.** (percent change shown) ÷ (percent change in the data) lands in 0.95–1.05. Measure
    the tallest and shortest bar against the baseline: 4,200 units at 448 px sets the scale, and 8
    bars at 72 px with 38 px gaps fill 842 of 880 px.
-3. **Data-ink floor.** `export` op `svg`: no vertical gridlines, no frame, no plot fill; one 1 px
+4. **Data-ink floor.** `export` op `svg`: no vertical gridlines, no frame, no plot fill; one 1 px
    zero baseline, 4–5 horizontal gridlines at 12%, axis labels 12 px `#6B6B6B`, data labels 14 px
    `#111111`. Every other mark is erasable ink.
-4. **Encoding order.** Position or length carries the quantity, not angle or area: no 3D extrusion,
+5. **Encoding order.** Position or length carries the quantity, not angle or area: no 3D extrusion,
    no pie past 2–3 slices, no twelve-hue categorical palette. A rainbow where one hue in value steps
    would do hides the ranking.
-5. **Label count.** Series are labelled directly at the line's end with the legend deleted, and
+6. **Label count.** Series are labelled directly at the line's end with the legend deleted, and
    points are labelled first, last, max and min only. Nine 240×160 px panels on one shared scale
    beat nine hues in one frame.
 

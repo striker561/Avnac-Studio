@@ -9,6 +9,19 @@ description: Prepare designs for print — bleed, trim and safe areas, CMYK and 
 The final medium is ink on a substrate. If the deliverable is a screen only, use `export`; if it
 is a structural object, add `packaging`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route production | `guide` | print workflow and its rules |
+| Set the sheet | `canvas` op=resize | trim plus bleed at the chosen PPI |
+| Place the art | `elements` op=render | images at 150-300 PPI at final size |
+| Hold the safe area | `arrange` op=align | content inside the 5 mm line |
+| Audit | `canvas` op=validate | `margin_ladder` and bounds |
+| Preview | `export` op=png | the full sheet including bleed |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Confirm the physical spec first**: finished size, quantity, stock, inks, finishing, delivery
    date. Every later decision depends on these; guessing them is how jobs get reprinted.

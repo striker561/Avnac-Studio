@@ -25,6 +25,9 @@ cap treatment, and rules for where a contour ends.
 - Line style is the signature: base weight, taper, joins, and ink temperature (`#000000` vs `#141414`) read first.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw sets `stroke`, `strokeWidth`, `fillOpacity` and path segments; `vector` op=update restyles a line by id; `get_canvas_image` at 400% checks joins and terminals; `export` op=svg is the linework audit.
+
 1. **Weight ramp from one base** — 8 px emphasis, 4 px silhouette, 2 px interior, 1 px texture, all derived from
    one base. Whole pixels only, so nothing blurs.
 2. **Taper ratio** — a brushed line ends at 25–40% of its maximum width over its last 15% of length. More taper
@@ -57,16 +60,17 @@ contour breaks for 80 px where the light hits, so the gap reads as light, not a 
 disappears, which is fine: the silhouette still carries the form.
 
 ## Verification
-1. **Weight census.** List every distinct stroke width: two at 2:1 — 4 px silhouette, 2 px interior
+1. **Ops receipt.** `export` op=svg shows one declared stroke width per line family, `get_canvas_image` at 400% shows no lumpy join, and `vector` op=update can restyle a whole family in one call. A contour that changes weight without a reason is two families.
+2. **Weight census.** List every distinct stroke width: two at 2:1 — 4 px silhouette, 2 px interior
    on a 1000 px board — and three maximum. A 3 px or 6 px stroke is a fourth weight and reads as
    noise; whole pixels only, because a 1.5 px value blurs on export.
-2. **Taper measurement.** Measure each brushed terminal at 85% of its length and at the tip: the tip
+3. **Taper measurement.** Measure each brushed terminal at 85% of its length and at the tip: the tip
    is 25–40% of maximum width. Under 25% is a pen flick, over 40% a worm; both read as error.
-3. **Contour count.** Every closed form closes. The only breaks are the ones placed for light — one
+4. **Contour count.** Every closed form closes. The only breaks are the ones placed for light — one
    80 px gap at the chest in the example — and each break begins and ends on an edge, not mid-curve.
-4. **96 px survival.** Export at 96 px wide: interior 1 px lines either read or are absent, never
+5. **96 px survival.** Export at 96 px wide: interior 1 px lines either read or are absent, never
    grey. A grey average means the line was too thin for the size and should have been dropped.
-5. **Print floor.** At final print size no stroke is below 0.25 pt (0.35 px at 300 ppi). List the
+6. **Print floor.** At final print size no stroke is below 0.25 pt (0.35 px at 300 ppi). List the
    widths in points; a 0.2 pt stroke prints broken or not at all.
 
 ## Related Rules

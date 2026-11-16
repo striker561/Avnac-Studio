@@ -27,6 +27,9 @@ In descending order of frequency:
   disagreements. Fix: tokenize and re-apply.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=validate names the mechanical mistakes (`tight_margin`, `over_dense`, `level_overflow`, `flat_type_steps`, `near_alignment`, `mathematical_centring`) with nodes and numbers; `get_canvas_image` catches the ones with no check.
+
 1. **The squint pass** — zoom to 25% and name the first three things you see. If the order is wrong, stop:
    nothing else can be judged until hierarchy is fixed.
 2. **Grayscale conversion** — flatten to grayscale. Anything that vanishes relied on hue alone; colorblind readers
@@ -61,16 +64,17 @@ threshold — so it becomes 64 px. Margins read 40/40/60/40 and become 96 px all
 5.6:1. The logo sits 24 px from the bottom edge and moves to 96 px. Five changes, no new elements, no new fonts.
 
 ## Verification
-1. **Hierarchy first.** At 25% zoom name the first three things you see. If the order differs from
+1. **Ops receipt.** `canvas` op=validate `issues` are resolved or justified one by one, and `get_canvas_image` is reviewed for the mistakes validate cannot see (mushy silhouette, decoration, wrong tone). Fixing only the checks is fixing half the list.
+2. **Hierarchy first.** At 25% zoom name the first three things you see. If the order differs from
    the intended order, stop: nothing else on the list can be judged until it is fixed. A 1.25× jump,
    40 px headline over 32 px body, fails the 3×–4× step.
-2. **Gap census.** Measure every distance to an edge and to the next element. More than four
+3. **Gap census.** Measure every distance to an edge and to the next element. More than four
    distinct values is fault 2; one margin and one grid replace them.
-3. **Palette count.** List the colours from memory. Three colours and two families pass; if the list
+4. **Palette count.** List the colours from memory. Three colours and two families pass; if the list
    needs the file open, the palette is fault 3 and no contrast fix settles it.
-4. **Contrast in grey.** Body 4.5:1, 24 px and above 3:1, then flatten to grey. The caption at
+5. **Contrast in grey.** Body 4.5:1, 24 px and above 3:1, then flatten to grey. The caption at
    `#8A8A8A` on `#F4EFE6` measures 2.9:1 and disappears in both views.
-5. **Detail at 200%.** Two corner radii, three shadow directions, mixed icon weights: count them at
+6. **Detail at 200%.** Two corner radii, three shadow directions, mixed icon weights: count them at
    200%. More than one radius family or one shadow direction is fault 6.
 
 ## Related Rules

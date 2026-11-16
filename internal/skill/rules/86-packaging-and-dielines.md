@@ -26,6 +26,9 @@ creases; compensation adds board thickness so the box squares up.
   shift after folding, so a logo spanning it will break. Design each panel as a unit.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=resize sets the dieline sheet; `elements` op=render draws the die as `line` geometry and the art on its own layer order; `canvas` op=add-page holds the flat and the assembled view; `export` op=svg keeps the dieline editable.
+
 1. **Request the dieline before the layout** — get the converter's 1:1 PDF with layers, then build
    the Avnac canvas at that size (300×200 mm at 300 PPI = 3543×2362 px).
 2. **Build named zones** — one 10%-opacity `rect` per panel, plus glue and safe-zone guides; group
@@ -61,17 +64,18 @@ brand sits centered on that rect, 6 mm clear of the crease, the background `#1B3
 each crease, and the barcode goes on the base panel, never across a fold.
 
 ## Verification
-1. **Dieline out of the export.** `export` op `svg`: no cut or crease line appears in the delivered
+1. **Ops receipt.** `export` op=svg contains the dieline as separate closed geometry from the art, the panel dimensions add up to the stated box, and `get_canvas_image` shows the assembled view matching the flat. A dieline that only exists as a picture cannot be cut.
+2. **Dieline out of the export.** `export` op `svg`: no cut or crease line appears in the delivered
    art, and the dieline sits on a layer named 'DO NOT PRINT' that is off. A magenta crease in the
    export is a reprint.
-2. **Zone geometry.** Bleed runs 3 mm past every outside cut; the safe zone is 3–5 mm inside every
+3. **Zone geometry.** Bleed runs 3 mm past every outside cut; the safe zone is 3–5 mm inside every
    crease and cut. Measure type at 5 mm and rules at 3 mm clear of the nearest crease.
-3. **Compensation.** Each fold carries the converter's compensation — about 0.5 mm per fold on
+4. **Compensation.** Each fold carries the converter's compensation — about 0.5 mm per fold on
    0.5 mm SBS, 1.5–2 mm on E-flute, 3–4 mm on B-flute. Panel widths measured without it leave the
    box out of square and the seam open.
-4. **Glue area.** 10–15 mm on a folding carton, 20–25 mm on a corrugated case, with no ink and no
+5. **Glue area.** 10–15 mm on a folding carton, 20–25 mm on a corrugated case, with no ink and no
    type inside it. Artwork there is destroyed by glue and shadows through the board.
-5. **Assembled dummy.** Cut and fold a white dummy at 1:1: panels close, the barcode is on the base,
+6. **Assembled dummy.** Cut and fold a white dummy at 1:1: panels close, the barcode is on the base,
    no flap covers the name, and the 1 mm fold shift opens no white line at a crease.
 
 ## Related Rules

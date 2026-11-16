@@ -24,6 +24,9 @@ asymmetry as play rather than as tension.
   serious editorial.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets the squiggles, confetti and offsets; `elements` op=modify tunes the density; `get_canvas_image` is the play check; `canvas` op=validate `density` and `contrast_floor`.
+
 1. **Palette of four** — `#FF4FA3`, `#00C2A8`, `#FFD400`, `#7B4BFF` on `#FFF8E7` or `#111111`. Four,
    not six: the fifth hue adds noise, not delight.
 2. **Three pattern tiles** — a 24 px dot grid, a 12 px stripe, a squiggle `path`. Assign one pattern
@@ -63,13 +66,14 @@ A 1080×1080 record sleeve:
   it at (+8, +8); the track list below is 20 px/600, horizontal, untilted — one readable block.
 
 ## Verification
-1. **Hue ranking.** Measure each hue's coverage: a clear largest, a second, a third, and one accent.
+1. **Ops receipt.** `canvas` op=validate `density` still leaves the message readable, and `get_canvas_image` shows the play bounded by one grid. Memphis without a grid is a mess with a palette.
+2. **Hue ranking.** Measure each hue's coverage: a clear largest, a second, a third, and one accent.
    Hues at equal area give the eye no anchor and the piece fails.
-2. **Angle set.** Every rotated element's angle is in {−12°, −6°, 0°, 6°, 12°}, and all text is
+3. **Angle set.** Every rotated element's angle is in {−12°, −6°, 0°, 6°, 12°}, and all text is
    horizontal. An angle outside the set turns composition into vibration.
-3. **Outline weight.** Every black contour measures 4–6 px. Thinner reads as a border and thicker
+4. **Outline weight.** Every black contour measures 4–6 px. Thinner reads as a border and thicker
    eats the shape; either way the clash has lost its moderator.
-4. **Pattern budget.** Two or three tiles at different scales — 12, 24, 48 px motif — one pattern
+5. **Pattern budget.** Two or three tiles at different scales — 12, 24, 48 px motif — one pattern
    per surface, never two inside one shape.
 
 ## Related Rules

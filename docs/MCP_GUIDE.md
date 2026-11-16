@@ -113,13 +113,13 @@ and routed programmatically:
 
 - [`internal/skill/SKILL.md`](../internal/skill/SKILL.md) — entry point, routing table and always-on gates.
 - `internal/skill/<task>/SKILL.md` — 22 task workflows (poster, logo, brand, color, typography, layout, print, export, ui, ...).
-- [`internal/skill/references/`](../internal/skill/references/) — 14 compact lookup notes: thresholds, tables, format specs.
+- [`internal/skill/references/`](../internal/skill/references/) — 16 compact lookup notes: thresholds, tables, format specs, and the op catalogue.
 - [`internal/skill/rules/`](../internal/skill/rules/) — 125 authoritative, applied design principles, grouped by domain.
 
 [`internal/skill/skill.go`](../internal/skill/skill.go) embeds the markdown, parses it once, and
 routes work: `skill.Default()` then `lib.Plan(task, 0)` returns the matching task workflow plus
 the rules it links, ready to inject into a model context. `lib.Validate()` asserts the structural
-contract (names, section order, cross-links, the 120-rule ceiling) and is exercised by
+contract (names, section order, cross-links, the 128-rule ceiling) and is exercised by
 [`skill_test.go`](../internal/skill/skill_test.go).
 
 ### Design knowledge resources
@@ -131,9 +131,14 @@ nothing still reads it on demand:
 |---|---|
 | `skill://avnac-design` | Entry point: routing table, always-on gates, how to read a rule |
 | `skill://<task>` | 22 task workflows — `skill://poster`, `skill://ui`, `skill://print`, ... |
-| `references://<subject>` | 15 lookup notes — `references://typography`, `references://color`, ... |
+| `references://<subject>` | 16 lookup notes — `references://typography`, `references://avnac-ops`, ... |
 | `rules://<id>` | 125 authoritative principles — `rules://24-typographic-hierarchy`, ... |
 | `rules://index` | Every rule by domain, with counts |
+
+Every rule, workflow and lookup reference is built around the published ops: a rule opens Techniques
+with **Avnac ops:** and Verification with an **Ops receipt**, a workflow carries its own op table,
+and a reference opens with the ops that apply its numbers. `references://avnac-ops` is the
+catalogue, including the operations that do not exist.
 
 All are `text/markdown`. Relative links in the served markdown are rewritten into these URIs, so
 an agent reading `skill://poster` can follow `rules://34-composition-techniques` directly. The

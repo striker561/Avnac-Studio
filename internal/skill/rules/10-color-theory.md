@@ -17,6 +17,9 @@ Color is a point in a three-dimensional space: hue (the angle, red through viole
 - Keep the hue count low: one dominant hue, one accent hue, and a neutral ramp covers most work.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render applies the chosen hex through `fill`, `stroke` and text `color`; `elements` op=modify retunes one role without redrawing; `canvas` op=validate reports `contrast_floor`; `get_canvas_image` is where simultaneous contrast is judged. There is no colour-model op: convert LCh or CMYK outside Avnac and paste the hex.
+
 1. **Name by role and step** — `surface-100`, `ink-900`, `accent-600`. A hex without a role gets misused within a week.
 2. **Build the ramp in OKLCH** — hold hue, step lightness by 6–10 points, convert to hex only at export (see 15).
 3. **Set the neutrals first** — six steps from `#F7F7F5` to `#141414` with a slight warm or cool bias; pure gray looks dead beside saturated color.
@@ -48,16 +51,17 @@ A 1080×1080 tile system: `--surface-50 #F5F3EE`, `--surface-200 #E3DED4`, `--in
 The accent covers about 6% of the canvas and appears only on the action; the neutrals carry everything else. Swap it to `#2B4BC8` and the tile still works: the system is built on value and role, not one lucky hue.
 
 ## Verification
-1. **Coordinate record.** List every fill from `get_canvas_summary`: each colour carries hue, value
+1. **Ops receipt.** `canvas` op=validate `contrast_floor` passes for every text pair, and every colour role is a hex you can name; `get_canvas_image` shows the colours behaving together, not in a swatch. A hue chosen in isolation has not been tested.
+2. **Coordinate record.** List every fill from `get_canvas_summary`: each colour carries hue, value
    and chroma, or L, C, H, and a role name. A hex with no coordinates cannot be reproduced; one with
    no role gets reused by accident.
-2. **Value sequence.** Convert each adjacent pair to L*: the step is at least 15 points of
+3. **Value sequence.** Convert each adjacent pair to L*: the step is at least 15 points of
    lightness. Under 15 the pair is one value in two hues and merges the moment hue is removed.
-3. **Hue census.** Count chromatic families on the page: one dominant, one accent, the rest neutral.
+4. **Hue census.** Count chromatic families on the page: one dominant, one accent, the rest neutral.
    A third chromatic family with no area lead means no colour is doing the labelling.
-4. **Ramp depth.** Each hue in use supplies 6–10 steps. A family with three steps has no value for
+5. **Ramp depth.** Each hue in use supplies 6–10 steps. A family with three steps has no value for
    text or border, so the design borrows one from elsewhere and the system loosens.
-5. **Grey render.** `get_canvas_image`, desaturated: the same three things read first in the same
+6. **Grey render.** `get_canvas_image`, desaturated: the same three things read first in the same
    order. If the order changes, value was not doing the work.
 
 ## Related Rules

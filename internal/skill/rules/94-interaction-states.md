@@ -27,6 +27,9 @@ selected, indeterminate, read-only and success are additions on top.
   form, a toast only for failures with no field.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=add-page per state (default, hover, focus, pressed, disabled); `elements` op=render sets one state per page; `elements` op=modify changes the token that differs; `get_canvas_image` compares; `canvas` op=validate checks each.
+
 1. **Build a state matrix** — rows are components, columns are states, cells hold the token used.
    Empty cells are the audit output; fill them before shipping.
 2. **Keep disabled readable** — 38–45% opacity on the fill, label still at 3:1.
@@ -62,18 +65,19 @@ loading holding 44 px with a 16 px white spinner; error returning the button to 
 96 px illustration and one text button.
 
 ## Verification
-1. **State coverage.** Eight states for every clickable element — default, hover, active, focus,
+1. **Ops receipt.** Each state is a named page from `get_canvas_summary`, exactly one visually different token changes per state, and `canvas` op=validate `contrast_floor` passes on the focus state. A state that differs by two variables is a redesign.
+2. **State coverage.** Eight states for every clickable element — default, hover, active, focus,
    disabled, loading, error, empty. Default and hover only cannot answer 'did that work?' or 'why
    can't I click this?'.
-2. **Transition time.** Each state change runs 100–150 ms on one property. A 400 ms transition, or
+3. **Transition time.** Each state change runs 100–150 ms on one property. A 400 ms transition, or
    three properties animating at once, makes a registered click feel like a failure.
-3. **Disabled legibility.** Fill at 38–45% opacity with the label still at 3:1 and helper text
+4. **Disabled legibility.** Fill at 38–45% opacity with the label still at 3:1 and helper text
    naming the reason. At 20% opacity the label measures about 1.6:1, which is the dead end the rule
    forbids.
-4. **Geometry held.** `get_canvas_image` on the default and loading frames: the width is unchanged,
+5. **Geometry held.** `get_canvas_image` on the default and loading frames: the width is unchanged,
    the label is replaced by a 16 px spinner or the row by a three-bar skeleton at final row height.
    A spinner that replaces the page loses the context.
-5. **Error and empty.** The error appears under the field or as a summary at the top of a long form,
+6. **Error and empty.** The error appears under the field or as a summary at the top of a long form,
    not only as a toast; the empty state is a first-run screen with one line, one action and at most
    a 96 px illustration. 'No data' in a blank panel fails.
 

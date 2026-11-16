@@ -9,6 +9,19 @@ description: Create original illustration — a style system, characters, scenes
 The deliverable is drawn imagery. For a mark, use `logo`; for icons, use `icon`; for photographic
 treatment, use `edit` with the imagery rules.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the story | `guide` | illustration workflow and the style rules |
+| Construct | `vector` op=draw | parts with ids, constraints and paths |
+| Check the silhouette | `get_canvas_image` | one shape at 25% |
+| Refine | `vector` op=update | one part at a time, by id |
+| Place | `elements` op=render | the drawing on the page at the intended size |
+| Verify | `canvas` op=validate | the page checks around the placed art |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Define the job**: explain, decorate, or dramatize. Spot illustrations explain; hero
    illustrations dramatize; decorative illustration must never compete with the message.

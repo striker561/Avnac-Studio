@@ -5,6 +5,8 @@ Use when choosing, treating or placing photography. Rules:
 [`76-visual-metaphors-and-symbolism`](../rules/76-visual-metaphors-and-symbolism.md),
 plus [`71-image-composition`](../rules/71-image-composition.md).
 
+
+**Avnac ops:** `assets` op=unsplash searches and stores the credit on placement; `elements` op=render places with `fit`, `focalPoint` and `crop`; `get_canvas_image` judges the crop; `get_canvas_summary` lists the credits.
 ## Selecting an image
 
 | Criterion | Pass condition | Why |

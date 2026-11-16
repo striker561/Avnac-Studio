@@ -23,6 +23,9 @@ high-chroma fills.
 - Interaction is loud but functional: a pressed button moves 2–8 px and its shadow collapses.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets the heavy strokes, hard offsets and unrefined type; `elements` op=modify hardens one edge; `get_canvas_image` is the usability check; `canvas` op=validate `contrast_floor`.
+
 1. **Neobrutalist component recipe** — `rect` fill `#FFDE59`, 3 px `#000000` border, radius 0, shadow
    offset 8/8 with 0 blur, label 16 px/700 `#000000`. Pressed: translate +8/+8, shadow removed.
 2. **Brutalist page skeleton** — one 720 px column, `system-ui` 18 px/1.6 `#000000` on `#FFFFFF`, 1 px
@@ -64,14 +67,15 @@ A 1440×900 landing page:
 - Focus is a 3 px `#000000` outline at 4 px offset, visible against both fills.
 
 ## Verification
-1. **Shadow measurement.** `get_object_properties` on each element: offset 4–8 px at 45°, blur 0.
+1. **Ops receipt.** `canvas` op=validate `contrast_floor` passes and `get_canvas_image` shows every control still usable, and the deliberate ugliness is one system rather than several. Brutalism that breaks the task is not a style.
+2. **Shadow measurement.** `get_object_properties` on each element: offset 4–8 px at 45°, blur 0.
    treatment into a 2010s drop shadow and fails.
-2. **Border census.** Two widths only — 3 px containers, 2 px controls — and radius 0 everywhere. A
+3. **Border census.** Two widths only — 3 px containers, 2 px controls — and radius 0 everywhere. A
    third width reads as unfinished rather than raw.
-3. **State set.** Four states exist for every control: default, hover (shadow at 4/4), pressed
+4. **State set.** Four states exist for every control: default, hover (shadow at 4/4), pressed
    (shadow removed, translated +8/+8), focus (3 px outline at 4 px offset). A missing focus ring
    fails accessibility, not style.
-4. **Type and contrast.** Body at 16–18 px on 1.5 line-height, black on the saturated fill at 4.5:1
+5. **Type and contrast.** Body at 16–18 px on 1.5 line-height, black on the saturated fill at 4.5:1
    or better. "Raw" is not an exemption from either.
 
 ## Related Rules

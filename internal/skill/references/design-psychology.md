@@ -4,6 +4,8 @@ Use to predict how a viewer will actually behave. Rules:
 [`40-gestalt-principles`](../rules/40-gestalt-principles.md) through
 [`47-cognitive-biases-and-visual-design`](../rules/47-cognitive-biases-and-visual-design.md).
 
+
+**Avnac ops:** `elements` op=render sets proximity, similarity and hierarchy; `arrange` op=group records what reads as one; `get_canvas_image` is the perception test; `canvas` op=validate reports `level_census` and `density`.
 ## Gestalt, applied
 
 | Principle | What it means for layout | Typical failure |

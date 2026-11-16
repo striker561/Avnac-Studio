@@ -24,6 +24,9 @@ advancement. A symbol is a sign read without inference because a culture taught 
   number four, and open palms all change meaning between markets.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw constructs the metaphor as geometry; `elements` op=render places it at the intended size; `get_canvas_image` tests whether it reads without the caption; `canvas` op=validate `contrast_floor` keeps it visible.
+
 1. **Metaphor ladder** — write the claim as one verb ("protects", "ships", "remembers"), list that verb's literal
    objects, then its metonyms, then its metaphors. Choose the most concrete option that still carries two
    attributes.
@@ -60,16 +63,17 @@ only at the keyhole). The 6 px line sits on `#F2EDE4`, with the headline "Every 
 it, so the image finishes the sentence the type starts.
 
 ## Verification
-1. **Mapping table.** Three claim attributes in one column, the visual evidence for each beside it:
+1. **Ops receipt.** `get_canvas_image` shows the metaphor reading before the copy is read, and at 25% it does not collapse into a generic shape. A symbol that needs its caption is an illustration of the caption.
+2. **Mapping table.** Three claim attributes in one column, the visual evidence for each beside it:
    at least two cells filled. One attribute is decoration; a blank cell is filled with the wrong
    meaning by the viewer.
-2. **One-step read.** At 16 px, in one colour, inverted and with no caption, four of five viewers
+3. **One-step read.** At 16 px, in one colour, inverted and with no caption, four of five viewers
    name the claim rather than the object. Two steps of inference halve the audience that arrives.
-3. **Caption test.** Write the caption the image would need. If it is required, rebuild from the
+4. **Caption test.** Write the caption the image would need. If it is required, rebuild from the
    attributes; if it would change the meaning, the metaphor is ambiguous.
-4. **Cliché census.** Zero objects from the list — lightbulb, handshake, puzzle, gear, target,
+5. **Cliché census.** Zero objects from the list — lightbulb, handshake, puzzle, gear, target,
    rocket, circuit-brain. One is a find-and-replace, two means no idea was spent.
-5. **Symbol audit.** Flags, hands, eyes, keys, arrows and crosses are checked against each market,
+6. **Symbol audit.** Flags, hands, eyes, keys, arrows and crosses are checked against each market,
    and the image is tested in three applications — poster, 16 px favicon, one-colour print. A
    symbol that only reads in colour has been decorated, not chosen.
 

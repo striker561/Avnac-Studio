@@ -29,6 +29,9 @@ be visible in the finished piece.
   as strength; white space between fields is what keeps two images from merging.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=resize fixes the sheet the grid divides; `elements` op=render places the columns, gutters and baseline as guides or as computed geometry; `arrange` op=align and op=distribute hold shared edges and equal intervals once the grid values are computed; `get_canvas_image` shows whether the grid is visible. There is no snap-to-grid op: place at the computed x/y.
+
 1. **Column math** — 1440 px canvas, 96 px side margins, 24 px gutters, 12 columns: content =
    1440 − 192 = 1248; column = (1248 − 11×24) / 12 = 82 px. The same content area in 4 columns is
    288 px each with 32 px gutters (4×288 + 3×32 = 1248).
@@ -82,17 +85,18 @@ above a caption block. The image occupies y 96–630, landing on the 24 px basel
 play; its caption starts at y 654, one unit below.
 
 ## Verification
-1. **Column arithmetic.** Recompute content = canvas − margins, then column = (content − gutters ×
+1. **Ops receipt.** Column and gutter values divide the artboard from `get_canvas_summary` with no rounding leftover, every content box from `get_object_properties` starts on a computed grid x/y, and `get_canvas_image` shows the grid holding at page scale.
+2. **Column arithmetic.** Recompute content = canvas − margins, then column = (content − gutters ×
    (n − 1)) / n. Drawn columns equal the arithmetic to the pixel; a grid that does not fill its
    type area exactly is a guide.
-2. **Measure in the column.** Count characters in the narrowest text column: 62–72, which at 16 px
+3. **Measure in the column.** Count characters in the narrowest text column: 62–72, which at 16 px
    Inter is 480–560 px. A 158 px column at 34 characters is too narrow for body, so the text runs
    across two columns instead.
-3. **Gutter floor.** Measure one gutter: 24 px minimum, and at least one body leading — 24 px at
+4. **Gutter floor.** Measure one gutter: 24 px minimum, and at least one body leading — 24 px at
    16/24. Under the leading, two columns merge into one field at 25%.
-4. **Baseline overlay.** Overlay the 24 px unit: every baseline and every image bottom lands on it
+5. **Baseline overlay.** Overlay the 24 px unit: every baseline and every image bottom lands on it
    within 1 px. Elements off by 4–12 px are what makes a page look almost aligned.
-5. **Grid gone.** The delivered file has no group named `GRID` and no 1 px rects at 8% opacity,
+6. **Grid gone.** The delivered file has no group named `GRID` and no 1 px rects at 8% opacity,
    and the export shows no guide lines. A grid that ships is a wireframe with artwork on it.
 
 ## Related Rules

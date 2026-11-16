@@ -24,6 +24,9 @@ the abstract — it is whatever the profile, ink, and stock make of it.
   it did.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render stores CMYK-intended colour as its sRGB hex; `export` op=png is the only raster output; `get_canvas_image` is the soft-proof check. There is no CMYK or ICC op: the conversion happens outside Avnac.
+
 1. **Convert once, with a reason** — relative colorimetric with black point compensation for general work,
    perceptual for photo sets with out-of-gamut color. Convert once and archive the CMYK master.
 2. **Black rule table** — put it in the file notes: body text 0/0/0/100, rules 0/0/0/100, solid panels
@@ -59,18 +62,19 @@ is 40/30/30/100 at 300% TAC. The proof measures 165 C within Delta E 2; the pres
 sample points.
 
 ## Verification
-1. **Output intent.** The file names its destination before the first measurement — GRACoL 2006 for
+1. **Ops receipt.** Every colour has an intended print space and a stated conversion path, and the most saturated pairs are checked in `get_canvas_image` for gamut surprise. A colour approved only in sRGB has not been proofed.
+2. **Output intent.** The file names its destination before the first measurement — GRACoL 2006 for
    US coated, FOGRA39 for European coated, SWOP for US web — and the separations are CMYK or named
    spots. A profile assigned after layout moves every colour on the page.
-2. **Delta E.** Measure every brand solid and proof patch: Delta E 2 or less passes, 3–5 is visible
+3. **Delta E.** Measure every brand solid and proof patch: Delta E 2 or less passes, 3–5 is visible
    in solids, above 5 rejects the proof. The number goes in the job record, not the adjective
    'close'.
-3. **Black build.** Read the separations: body text, hairlines and reversed type sit at 0/0/0/100,
+4. **Black build.** Read the separations: body text, hairlines and reversed type sit at 0/0/0/100,
    large solids at 40/30/30/100. Four inks on 12 pt type fringe at register, which is why the split
    exists.
-4. **Total area coverage.** Sum the four inks at the darkest point: 300% on coated, 240% on
+5. **Total area coverage.** Sum the four inks at the darkest point: 300% on coated, 240% on
    uncoated. The 340% build sets off and scuffs before it dries.
-5. **Tint and grey balance.** On the contract proof a 50% tint measures near 50%, the 50/40/40 grey
+6. **Tint and grey balance.** On the contract proof a 50% tint measures near 50%, the 50/40/40 grey
    balance patch is neutral and the brand solid sits within Delta E 2–3. Then hold the sheet under
    D50 beside the proof, not the monitor.
 

@@ -23,6 +23,9 @@ point, contrast, color balance, saturation, tonal overlay, and grain. The image 
   you cannot state the number, you are matching by mood.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render applies the treatment through `gradientStops`, `opacity` and `blur`; `elements` op=modify re-treats the same node; `get_canvas_image` judges the result; `export` op=png delivers it. There is no colour-grade op.
+
 1. **Recipe sheet** — one line per step with values: black point 8, white 245, contrast +12, saturation −15%,
    `#1B2A4A` Multiply at 18%, grain 4% at 1.5 px. Apply to all, log the exceptions.
 2. **Scrim construction** — a linear gradient from 55% black to 0 over the text zone, or a flat 35% band, with
@@ -60,18 +63,19 @@ gradient scrim from 55% black to 0 covers y=0–420, where the 72 px headline in
 darkest point. Three sources, one voice.
 
 ## Verification
-1. **Recipe conformance.** Every image logs the same numbers: black 8, white 245, contrast +12,
+1. **Ops receipt.** The treatment is one stated recipe (gradient, opacity, blur values), `get_canvas_image` shows detail surviving at both ends, and `export` op=png at the delivery multiplier holds it. A treatment that only looks right in a swatch is not a treatment.
+2. **Recipe conformance.** Every image logs the same numbers: black 8, white 245, contrast +12,
    saturation −15%, `#1B2A4A` at 18%, grain 4% at 1.5 px. An exception is written down; an
    unwritten one is drift and shows in the set.
-2. **Mean lightness.** Measure the set: within ±10 levels — 118, 121 and 114 pass, the untreated 156
+3. **Mean lightness.** Measure the set: within ±10 levels — 118, 121 and 114 pass, the untreated 156
    does not. Saturation within ±8%. Numbers, not mood, decide whether the set is graded.
-3. **Native colour retention.** 20–30% of original chroma survives. Sample skin, food or product
+4. **Native colour retention.** 20–30% of original chroma survives. Sample skin, food or product
    before and after; below 20% the grade has become a 2012 filter and those colours stop being
    trusted.
-4. **Worst-pixel contrast.** Type over image holds 4.5:1 against the worst pixel behind it; the
+5. **Worst-pixel contrast.** Type over image holds 4.5:1 against the worst pixel behind it; the
    scrim runs 55% black to 0 across the text zone (y=0–420), not across the whole photograph.
    7.9:1 at the darkest point in the example.
-5. **Greyscale pass.** In greyscale no image is markedly lighter or flatter than its neighbours. One
+6. **Greyscale pass.** In greyscale no image is markedly lighter or flatter than its neighbours. One
    rescued by its overlay shows as a flat midtone exactly where the type sits.
 
 ## Related Rules

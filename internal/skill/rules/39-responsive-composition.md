@@ -26,6 +26,9 @@ a sentence you can say out loud, not a layout description.
   the image, never by accident because it came first in the layer list.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=add-page with explicit `width` and `height` holds each breakpoint; `elements` op=render sets each layout; `canvas` op=go-page switches between them; `get_canvas_image` compares; `canvas` op=validate checks each.
+
 1. **Design the extremes first** — make the smallest (320 px wide) and the largest (1920 px) before
    the middle. The middle sizes are where compromises hide, so fit them to two known-good ends.
 2. **Ratio anchors per format** — 4:5 splits 55/45 image-to-type, 16:9 splits 38/62, 1:1 splits
@@ -80,16 +83,17 @@ verticals, side-by-side in the horizontal. The 22 px supporting line becomes 26�
 formats, not because the canvas grew but because the reading distance did.
 
 ## Verification
-1. **Concept sentence.** The concept is stated in one sentence and holds in every format. Two
+1. **Ops receipt.** Each breakpoint is a page with its own size from `get_canvas_summary`, every page passes `canvas` op=validate, and `get_canvas_image` is compared side by side. A layout that only exists at one width is not responsive.
+2. **Concept sentence.** The concept is stated in one sentence and holds in every format. Two
    formats that need different sentences are two designs, not one concept adapted twice.
-2. **Critical inventory.** Each format carries the same critical elements — three at most — in the
+3. **Critical inventory.** Each format carries the same critical elements — three at most — in the
    same order. A format missing one, or adding a fourth, has been re-decided rather than adapted.
-3. **Body floor.** Body text is 14–16 px or more in the smallest format and unchanged as the
+4. **Body floor.** Body text is 14–16 px or more in the smallest format and unchanged as the
    canvas grows, while the display drops about 25%. Body that scaled to 10 px is a resized
    artboard.
-4. **Structure change.** Side-by-side becomes stacked at portrait ratios and back again at 16:9. A
+5. **Structure change.** Side-by-side becomes stacked at portrait ratios and back again at 16:9. A
    format that keeps the arrangement and scales to 56% has the pixels and has lost the reading.
-5. **Margin proportion.** Margins are 5–8% of the short side in every format, not a fixed px
+6. **Margin proportion.** Margins are 5–8% of the short side in every format, not a fixed px
    value. The same 96 px on a 320 px panel leaves nothing; on 1920 it looks mean.
 
 ## Related Rules

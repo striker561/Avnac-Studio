@@ -16,6 +16,9 @@ Gestalt principles are the perceptual shortcuts that organize marks into wholes:
 - The cues rank — proximity over similarity over continuity over closure in dense layouts — so spend the strongest cue on the most important boundary.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets proximity, similarity and closure through spacing, `fill`, `cornerRadius` and `stroke`; `arrange` op=group binds what should read as one; `get_canvas_image` is the grouping test.
+
 1. **Fix three spacing tiers before drawing** — 8 px inside a unit (label to value), 24–32 px between units, 64–96 px between sections. Never ship a gap that falls between tiers.
 2. **Separate with value when space is unavailable** — alternate `#FAFAFA` and `#FFFFFF` table rows, or add a 1 px `#E5E5E5` rule, so proximity stops doing the grouping.
 3. **Use one container edge, not many** — one box around a set of controls, dividers only where the set splits; a box per item makes every group equal.
@@ -42,18 +45,19 @@ Gestalt principles are the perceptual shortcuts that organize marks into wholes:
 A 1200×800 pricing block: three `rect` cards 340×520 at x=60, 430, 800, 30 px gaps, 60 px to the canvas edge. Inside each card: plan name 24 px Semibold 28 px from the top; price 56 px Bold 8 px under it (same unit); features 15 px/1.5 32 px under the price (new unit); CTA 12 px under the list. Every card insets its text 24 px from the left edge, so continuity ties the columns while proximity keeps each card's units apart.
 
 ## Verification
-1. **Tier census.** Measure every gap on the rendered page and list the distinct values. Pass: the
+1. **Ops receipt.** `get_canvas_image` at 25% groups the page the way the intent says, and `arrange` op=group records the groups that are real. A grouping that disappears when the elements are moved apart was proximity, not Gestalt.
+2. **Tier census.** Measure every gap on the rendered page and list the distinct values. Pass: the
    set is the three declared tiers — 8, 24–32, 64–96 px — with nothing between them, and each step
    up is at least 2×, so the eye never merges two tiers.
-2. **Merge test.** Render the page, reduce it to 6 px and look once (`get_canvas_image`). Pass: the
+3. **Merge test.** Render the page, reduce it to 6 px and look once (`get_canvas_image`). Pass: the
    surviving clusters equal the intended groups. One fewer means proximity merged two groups; one
    more means a divider invented a group.
-3. **Closure at two sizes.** Render the unclosed form at 64 px and at 24 px. Pass: at 64 px the 2 px
+4. **Closure at two sizes.** Render the unclosed form at 64 px and at 24 px. Pass: at 64 px the 2 px
    arc with its 40% gap reads as closed; at 24 px it is closed, because below that the gap reads as
    damage.
-4. **Edge continuity.** Overlay the shared edges of the column. Pass: every edge lands on one x
+5. **Edge continuity.** Overlay the shared edges of the column. Pass: every edge lands on one x
    value. A 1 px offset builds a seam, and a seam is read as an error rather than a division.
-5. **Container count.** Count the boxes drawn around sets. Pass: one container per group, dividers
+6. **Container count.** Count the boxes drawn around sets. Pass: one container per group, dividers
    only where the set splits. A box per item makes every closure cue equal, so no higher group
    forms.
 

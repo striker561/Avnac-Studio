@@ -17,6 +17,9 @@ Typography is control of those six variables, plus case and color, at a stated v
 - Pixels on the canvas, points in the spec: 1 pt = 4/3 px, so 12 pt body = 16 px. Mixing the two silently sets text 25–33% wrong.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure returns width, line count, line breaks and cap metrics for proposed text; `elements` op=render places it with `fontFamily`, `fontSize`, `fontWeight`, `lineHeight` and `textAlign`; `get_object_properties` returns the rendered cap metrics; `assets` op=fonts verifies the family is loaded.
+
 1. **Set the frame first.** Give every text element an explicit width equal to its measure; auto-width text has no measure and drifts with the copy.
 2. **Build body up, not headline down.** Body 16–18 px at 1.5, then about 1.25× for a subhead and 2.5–3× for the headline; everything else is a variation on those three.
 3. **Snap leading to the grid.** 16 px × 1.5 = 24 px, 20 px × 1.5 = 30 px; multiples of 4 or 6 px keep baselines aligned across blocks.
@@ -43,17 +46,18 @@ Typography is control of those six variables, plus case and color, at a stated v
 A 1080×1350 poster in Inter: headline 96 px/1.0 with −2% tracking in #111111; subhead 32 px/1.2; body 20 px/1.5 in a 620 px frame (about 62 characters); footer 14 px/1.4, all caps, +6% tracking. The body frame is the only measured width on the sheet, and every other element aligns to its left edge.
 
 ## Verification
-1. **Six-value inventory.** List every text element's family, weight, size, measure, leading, and
+1. **Ops receipt.** `assets` op=fonts reports the chosen families `loaded`, `elements` op=measure matches the rendered width of the text it will place, and `get_object_properties` cap metrics agree with the visual baseline. Fallback glyphs in `get_canvas_image` fail the run.
+2. **Six-value inventory.** List every text element's family, weight, size, measure, leading, and
    alignment. One family, three weights at most, one measure, one alignment: a second alignment or
    a fourth weight means the system was never fixed.
-2. **Character count.** Count characters on three full body lines at final size: 45–75, 66 the
+3. **Character count.** Count characters on three full body lines at final size: 45–75, 66 the
    target. At 16 px Inter that is a 600–680 px frame; the same 16 px across 1440 px runs 130+ and
    fails on the width, not on the words.
-3. **Leading by size.** Divide each element's line box by its size: 1.45–1.55 at 16–20 px, 1.2 at
+4. **Leading by size.** Divide each element's line box by its size: 1.45–1.55 at 16–20 px, 1.2 at
    32 px, 1.0–1.05 at 96 px. A 16 px body on 20 px leading measures 1.25 and fails its own band.
-4. **pt and px reconciled.** Every size is declared in one unit: 12 pt body is 16 px, 9 pt is
+5. **pt and px reconciled.** Every size is declared in one unit: 12 pt body is 16 px, 9 pt is
    12 px. A 12 px element that was specified as 12 pt ships 25% small.
-5. **Grid multiple.** Every leading value divides by 4 or 6 px — 16/24, 20/30, 24/36. A 22 px
+6. **Grid multiple.** Every leading value divides by 4 or 6 px — 16/24, 20/30, 24/36. A 22 px
    leading is not a rounding, it is a baseline that will never align with the next block.
 
 ## Related Rules

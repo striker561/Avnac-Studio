@@ -11,6 +11,19 @@ on a wall, a screenshot of their own draft — and the task is understanding rat
 For judging quality, use `critique`; for building from what you learned, use `create` or the
 matching task skill.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Read the document | `get_canvas_summary` | document, pages, every object and its name |
+| Look at the artifact | `get_canvas_image` | the page, or `annotated=true` for boxes |
+| Measure one object | `get_object_properties` | bounds, styles and text cap metrics |
+| Route what it is | `guide` | the workflow and rules that judge this kind of artifact |
+| Isolate a part | `export` op=object | a cropped PNG or SVG of one object, for close reading |
+| Write the finding | `canvas` op=validate | measured checks to support or replace the visual claim |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Look before measuring.** Note, in one sentence each: what you saw first, what the design is
    for, and what feeling it produces. This is data — record it before analysis overwrites it.

@@ -17,6 +17,9 @@ Typesetting is the adjustment of space at three scales — between letters (trac
 - Hyphenation belongs to justified text; ragged right needs it only below 45 characters.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure returns line count and breaks at the proposed `width`, `fontSize` and `lineHeight`; `elements` op=render sets the measure; `get_object_properties` returns the rendered block; `canvas` op=validate `level_census`; `get_canvas_image` is the rag and colour check. There is no tracking or kerning op: choose a face whose spacing already works, or set the lines manually.
+
 1. **Set leading on the grid.** Body 16/24, 20/30, 24/36 — leading as a multiple of 4 or 6 px keeps baselines aligned across columns.
 2. **Track only the extremes.** No tracking at 14–24 px, −2% on display, +6% on caps labels; then check that counters have not closed.
 3. **Separate paragraphs one way.** 16 px body at 1.5 leading gets 18 px of space before, or a 16 px first-line indent with no space — pick one per document.
@@ -46,17 +49,18 @@ Typesetting is the adjustment of space at three scales — between letters (trac
 An A4 editorial page sets 10/12 pt body (120% leading) in two 62 mm columns, justified with hyphenation; captions run 8/9.5 pt ragged right; paragraph spaces are 9 pt with no first-line indent. A widow at the top of column two is cleared by widening that column 2 mm — the measure rises to 64 characters, still inside 45–75 — not by a manual break that would return with the next edit.
 
 ## Verification
-1. **Tracking table.** List every run with its size and tracking: 0 at 14–24 px, −1…−3% above
+1. **Ops receipt.** `elements` op=measure line count equals the rendered line count in `get_object_properties`, no line falls below 45 or above 75 characters without a stated exception, and `get_canvas_image` shows no widows or rivers at delivery size.
+2. **Tracking table.** List every run with its size and tracking: 0 at 14–24 px, −1…−3% above
    48 px, +4…+8% on 10–16 px caps. A value outside its band is an unrecorded decision.
-2. **Leading against measure.** Count characters: 40 → 1.35, 66 → 1.5, 85 → 1.6, and 1.0–1.05 at
+3. **Leading against measure.** Count characters: 40 → 1.35, 66 → 1.5, 85 → 1.6, and 1.0–1.05 at
    96 px. One leading for a 40- and an 85-character measure is wrong for one of them.
-3. **Collision measurement.** At the tightest display setting, measure descender to ascender:
+4. **Collision measurement.** At the tightest display setting, measure descender to ascender:
    anything under 1.1× the size collides with the 1.09 em extender pair. Zero gap is not tight
    setting, it is a broken line.
-4. **Widow and hyphen inventory.** Count widows and hyphenated line-ends in the render
+5. **Widow and hyphen inventory.** Count widows and hyphenated line-ends in the render
    (`get_canvas_image`): no one-word final lines, no two hyphens in a row, no hyphen under three
    characters either side.
-5. **Paragraph separation.** Space-before or first-line indent, never both: 0.75–1.0× the leading
+6. **Paragraph separation.** Space-before or first-line indent, never both: 0.75–1.0× the leading
    — 18 px at 16/24 — or a 1 em indent. Both at once reads as a section break the document does
    not have.
 

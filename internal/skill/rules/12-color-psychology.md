@@ -17,6 +17,9 @@ Color psychology is the study of learned and contextual associations between col
 - Never let color be the only carrier of meaning (see 18).
 
 ## Techniques
+
+**Avnac ops:** `guide` checks the category the colour is being asked to carry; `elements` op=render sets the meaning-bearing colour; `canvas` op=validate reports `contrast_floor`; `get_canvas_image` tests meaning in the composition, where it changes. There is no semantic-colour op.
+
 1. **Audit the category** — collect 8–10 competitor marks, note their dominant hues, and decide whether to match for trust or depart for differentiation. Say which in the rationale.
 2. **Check the markets** — list the three largest markets, flag hues with conflicting meanings, and pair the color with a word or icon that fixes the reading.
 3. **Set affect by value** — for calm and premium, lightness 85–95% with chroma under 20%; for urgency, lightness under 45% with chroma above 60%.
@@ -49,17 +52,18 @@ A 1080×1080 clinic tile. Ground `#EAF4F1` (light, low chroma, so calm), primary
 Green matches the category convention, so the tile reads as medical without explanation. The red appears once in the whole system, which is what makes it read as an exception rather than as the brand's voice.
 
 ## Verification
-1. **Category position.** Lay the piece beside the 8–10 competitor marks from the audit: it either
+1. **Ops receipt.** `get_canvas_image` shows the intended association before the caption is read, `canvas` op=validate `contrast_floor` passes, and the category conventions were checked with `guide`. A colour that needs a paragraph to explain is not carrying meaning.
+2. **Category position.** Lay the piece beside the 8–10 competitor marks from the audit: it either
    sits in the category's dominant hue or it is visibly the exception. Neither means it has a colour
    but no position.
-2. **Ten-second read.** Show it for 10 seconds and ask "what is this selling?". The answer names the
+3. **Ten-second read.** Show it for 10 seconds and ask "what is this selling?". The answer names the
    category unprompted; "a poster", or the colour's name, means the association is not carrying it.
-3. **Affect band.** Measure the dominant colour: calm and premium sit at 85–95% lightness with
+4. **Affect band.** Measure the dominant colour: calm and premium sit at 85–95% lightness with
    chroma under 20%, urgency under 45% lightness with chroma above 60%. A premium build at C 40% is
    outside the band whatever the hue.
-4. **Hue removal.** Desaturate: every state, error and required field keeps a word, icon, shape or
+5. **Hue removal.** Desaturate: every state, error and required field keeps a word, icon, shape or
    position. A meaning that exists only in hue fails this and SC 1.4.1 together.
-5. **Claim audit.** Read the rationale: every colour claim names its context and carries no
+6. **Claim audit.** Read the rationale: every colour claim names its context and carries no
    percentage. "Blue matches the category convention" is checkable; "blue increases trust 34%" is a
    statistic nobody can reproduce.
 

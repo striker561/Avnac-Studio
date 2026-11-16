@@ -25,6 +25,9 @@ targets (2.5.8), no keyboard traps, and semantics that match what the screen sho
   cannot express; it does not substitute for it.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=validate reports `contrast_floor` on text; `elements` op=modify raises a failing value or adds a non-colour cue; `get_canvas_image` checks focus order visually; `elements` op=measure checks target size.
+
 1. **Contrast pass** — check every text/background pair. The recurring failures are 14 px `#999999`
    on white (2.85:1) and brand orange on white. `#767676` is the lightest gray that passes on white
    at 4.54:1; `#595959` gives 7:1 if you want margin.
@@ -62,18 +65,19 @@ A 1440×900 settings page:
 - "Save changes" 40×148 px, `#1A5FB4` with a `#FFFFFF` label (≈6.3:1), "Cancel" 8 px away.
 
 ## Verification
-1. **Contrast pass.** Every text/background pair: 4.5:1 body, 3:1 for large text (≥24 px, or
+1. **Ops receipt.** `canvas` op=validate `contrast_floor` passes every text pair, every control has a visible focus treatment, and `elements` op=measure shows targets at least 24x24 px. A pass on contrast alone does not make the screen usable by keyboard.
+2. **Contrast pass.** Every text/background pair: 4.5:1 body, 3:1 for large text (≥24 px, or
    ≥18.66 px bold) and for input borders, meaningful icons, focus rings and chart lines. `#999999`
    at 14 px measures 2.85:1 and fails; `#767676` is the lightest grey that passes at 4.54:1.
-2. **Keyboard path.** Tab through at 200% zoom: order matches reading order, no trap, and every
+3. **Keyboard path.** Tab through at 200% zoom: order matches reading order, no trap, and every
    control shows a 2 px ring at 2 px offset at 3:1 against the component and the page. Photograph
    each focus state; an invisible one is the defect.
-3. **Target size.** 24×24 px minimum, 44×44 px for primary touch actions, 8 px between adjacent
+4. **Target size.** 24×24 px minimum, 44×44 px for primary touch actions, 8 px between adjacent
    targets. Measure the smallest control on the rendered screen, not the largest.
-4. **Zoom and reflow.** 200% text resize loses no content, 400% zoom reflows to one column, and
+5. **Zoom and reflow.** 200% text resize loses no content, 400% zoom reflows to one column, and
    320 px wide has no horizontal scroll (1.4.10). Horizontal scrolling at 320 px is a failure of
    layout, not of the browser.
-5. **Meaning without hue.** Colour never carries meaning alone: the error has an icon and a word,
+6. **Meaning without hue.** Colour never carries meaning alone: the error has an icon and a word,
    the chart line is labelled, the alert has a sentence. Simulate deuteranopia and the state still
    reads.
 

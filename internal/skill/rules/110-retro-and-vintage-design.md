@@ -25,6 +25,9 @@ to fake.
 - Kitsch risk rises with fidelity to a period the audience never experienced, and with mixing decades.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets the aged palette, type and texture; `get_canvas_image` is the period check; `export` op=png applies the final grain; `canvas` op=validate `contrast_floor` keeps it readable.
+
 1. **Write the era card** — years, type category and two real faces, four hex values from that gamut,
    print process, image treatment, layout habit. Design inside the card only.
 2. **Simulate the process, not the color** — halftone at 45–65 lpi for 1960s offset, 1–2 px
@@ -65,15 +68,16 @@ A 1080×1350 reissue poster:
   keeps it from reading as generic nostalgia.
 
 ## Verification
-1. **Era card.** Six fields: years, type category with two real faces, four hex values from the
+1. **Ops receipt.** `get_canvas_image` places the piece in the stated period without the caption, and `canvas` op=validate `contrast_floor` survives the aged palette. Retro that is only a colour cast is a filter.
+2. **Era card.** Six fields: years, type category with two real faces, four hex values from the
    gamut, print process, image treatment, layout habit. Two decades in one piece cancel each other.
-2. **Ink count.** Two spot inks plus black for a 1960s–70s job, four-colour process for the 1990s. A
+3. **Ink count.** Two spot inks plus black for a 1960s–70s job, four-colour process for the 1990s. A
    third spot ink means the process never constrained the palette.
-3. **Gamut extremes.** Sample the darkest and lightest value: never `#000000` or `#FFFFFF` — the
+4. **Gamut extremes.** Sample the darkest and lightest value: never `#000000` or `#FFFFFF` — the
    darkest sits around `#1A1712` on `#F0E6D2`. Pure black and white date the piece to now.
-4. **Process values.** Halftone at 45–65 lpi, 1–2 px misregistration on one plate, ink spread of
+5. **Process values.** Halftone at 45–65 lpi, 1–2 px misregistration on one plate, ink spread of
    +0.3 px, paper tone with 8% noise. Values outside those bands are a filter, not a process.
-5. **Distress floor.** Distressed type only above 36 px; smaller text keeps a clean edge and 4.5:1.
+6. **Distress floor.** Distressed type only above 36 px; smaller text keeps a clean edge and 4.5:1.
    Texture under 18 px fails contrast however period it looks.
 
 ## Related Rules

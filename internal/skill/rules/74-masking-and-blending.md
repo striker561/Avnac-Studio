@@ -22,6 +22,9 @@ visible, and how it mixes.
 - Build depth with three cues at once — contrast, temperature, sharpness. Any one alone reads as a filter.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render approximates a mask with a shape at `opacity` or a `gradientStops` fade; `elements` op=modify tunes it; `get_canvas_image` judges the seam; `export` op=png delivers the composite. There is no mask or blend-mode op.
+
 1. **Edge integration, five steps** — mask, match black and white points (±2 levels), add 10–15% color spill,
    matched grain, then a contact shadow. Skip one and the seam returns.
 2. **Multiply shadow build** — a broad Multiply at 25–35% plus a tighter core at 45–60%. One flat black ellipse
@@ -58,15 +61,16 @@ path, 1 px feather, contracted 1 px, then given 12% spill of `#E8E2D6` along the
 share one noise floor. At 400% the hair edge shows no light halo.
 
 ## Verification
-1. **Feather measurement.** The mask edge measures 0.5–1.5 px at final size. Above 3 px the edge
+1. **Ops receipt.** The edge treatment is built from declared shapes and opacity values, `get_canvas_image` at delivery scale shows no hard seam where the fade should be, and the note names the approximation. A blend claimed in a format that has no blend mode is a promise the file cannot keep.
+2. **Feather measurement.** The mask edge measures 0.5–1.5 px at final size. Above 3 px the edge
    glows and the glow is visible from across the room; measure the edge at 400%, not at fit.
-2. **Shadow build.** A broad Multiply at 25–35% plus a core at 45–60%. One flat ellipse at 80% is
+3. **Shadow build.** A broad Multiply at 25–35% plus a core at 45–60%. One flat ellipse at 80% is
    the pasted-object tell, and no grade hides it.
-3. **Depth triangulation.** Three planes at blur 0 / 6 / 14 px, lightness 0 / −8 / −16%, temperature
+4. **Depth triangulation.** Three planes at blur 0 / 6 / 14 px, lightness 0 / −8 / −16%, temperature
    +0 / +150 / +350 K. A plane that moves on one cue only reads as a filter, not as distance.
-4. **Fringe audit.** Invert the mask: leaks show as solid regions; contract 1 px and inspect three
+5. **Fringe audit.** Invert the mask: leaks show as solid regions; contract 1 px and inspect three
    edges at 400%. A 1 px white fringe is invisible at fit and obvious on press.
-5. **Edge integration.** Spill is 10–15% of the ground colour, one grain runs over the whole
+6. **Edge integration.** Spill is 10–15% of the ground colour, one grain runs over the whole
    composite, and black and white points match within ±2 levels. A cut-out missing any of the three
    reads as a sticker at 25%.
 

@@ -25,6 +25,9 @@ bound. The reader holds it at a known distance under known light, so size and vi
 - Both sides are the design; below 90 gsm, show-through turns a bold page grey.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=create or op=resize sets the sheet at print pixels (A2 at 300 PPI is 4961x7016); `elements` op=render places the artwork; `export` op=png at the delivery multiplier produces the raster; `get_canvas_image` is the scale check. There is no PDF/X export op.
+
 1. **Sheet and margin plan** — set margins first: 12–20 mm on A4 text pages, 20–30 mm on posters, 5 mm clear of
    any fold. The text block is what remains, not what is left over.
 2. **Size for distance** — 9–10 pt body at 300–400 mm, 24–36 pt poster body at 1 m, 100 pt headline at 3 m.
@@ -58,20 +61,21 @@ measure, about 38 characters — right for a flyer read at arm's length. A `#121
 8 mm of solid, well inside the ink budget for 170 gsm uncoated, and no solid crosses the fold at 99 mm.
 
 ## Verification
-1. **Sheet and margins.** The trim is a standard sheet — A4 210×297 mm, A5 148×210 mm, A3
+1. **Ops receipt.** The artboard from `get_canvas_summary` equals the trim size at the chosen PPI, images are placed at 150-300 PPI at final size, and `export` op=png at 1x carries the full artboard. A sheet authored at screen pixels has no print size.
+2. **Sheet and margins.** The trim is a standard sheet — A4 210×297 mm, A5 148×210 mm, A3
    297×420 mm, US Letter 215.9×279.4 mm. Measure the margins: 12–20 mm on an A4 text page, 20–30 mm
    on a poster, 5 mm clear of every fold. A trim that is not one of those sheets has no standard
    imposition behind it.
-2. **Type at final size.** Print at 100% and measure the smallest setting: 9–10 pt body read at
+3. **Type at final size.** Print at 100% and measure the smallest setting: 9–10 pt body read at
    300–400 mm, 24–36 pt body at 1 m, 100 pt headline at 3 m. Below 6 pt for type, 8 pt for reversed
    type or 0.25 pt for a rule fails at press.
-3. **Ink budget.** The darkest point sums to 240–300%, with 300% the coated ceiling, and
+4. **Ink budget.** The darkest point sums to 240–300%, with 300% the coated ceiling, and
    full-coverage areas stay under 30% of a printed side on uncoated stock. A point above 300%, or a
    solid crossing the fold, is the reprint.
-4. **Page count.** The count is a multiple of 4, and an 8-page A4 self-cover resolves to two A3
+5. **Page count.** The count is a multiple of 4, and an 8-page A4 self-cover resolves to two A3
    sheets printed both sides. An odd count is a blank page or a four-page section with nothing in
    it.
-5. **Show-through.** Below 90 g/m², hold the sheet to the light: a dark flood on the reverse must
+6. **Show-through.** Below 90 g/m², hold the sheet to the light: a dark flood on the reverse must
    not read through body text. Ghosted type means the stock or the coverage changes.
 
 ## Related Rules

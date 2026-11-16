@@ -50,6 +50,9 @@ segments; a closed path joins its last anchor back to the first.
   cannot justify is a bump you will pay to fix later.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw takes `start` plus `segments` (`line` or `cubic` with `control1`/`control2`, `to`); `vector` op=read returns the handles and resolved path; `vector` op=export is the path audit. `vector` op=update cannot move a handle: redraw or add a corrected object.
+
 1. **Magic-triangle audit.** For every curve segment, check that both handles stay inside the
    triangle and cross nothing. If a handle crosses the other's elongation, move the anchor, not the
    handle.
@@ -119,15 +122,16 @@ percentages above are proportions of each segment's triangle, not coordinates:
 ```
 
 ## Verification
-1. **Magic triangle at 400%.** Every handle lies inside its segment's triangle; designed curves use
+1. **Ops receipt.** `vector` op=read lists each control point inside its magic triangle, `vector` op=export shows a `d` path with the intended node count, and `get_canvas_image` at 400% shows no bulge at a join. A handle outside the triangle is a kink, not a curve.
+2. **Magic triangle at 400%.** Every handle lies inside its segment's triangle; designed curves use
    55–65%, arcs 0.556. A handle outside the triangle is an inflection or a cusp nobody asked for.
-2. **Node-type audit.** Smooth nodes have collinear handles; cusps are deliberate. A smooth
+3. **Node-type audit.** Smooth nodes have collinear handles; cusps are deliberate. A smooth
    node with a corner between its handles shows as a kink at 100%.
-3. **Extrema check.** Every curve has an anchor at its horizontal and vertical extremes. Missing
+4. **Extrema check.** Every curve has an anchor at its horizontal and vertical extremes. Missing
    extrema show up as flat spots and as extra anchors added later.
-4. **Anchor budget.** Circle 4 · leaf 6–8 · face 12–20 · character 30–60. Over 1.5× the budget means
+5. **Anchor budget.** Circle 4 · leaf 6–8 · face 12–20 · character 30–60. Over 1.5× the budget means
    simplify before editing; a refit is cheaper than a redraw.
-5. **Open/closed.** List open paths: stroked is legitimate, filled is a bug (the closing chord cuts
+6. **Open/closed.** List open paths: stroked is legitimate, filled is a bug (the closing chord cuts
    the shape).
 
 ## Related Rules

@@ -25,6 +25,9 @@ that the character is recognizable at 24 px and reproducible by someone else.
   shape breaks the cast faster than a color drift.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw builds each part as a named object with constraints; `vector` op=update changes one part without redrawing the set; `get_canvas_image` is the silhouette and set-consistency check; `canvas` op=add-page holds the variations.
+
 1. **Silhouette sheet** — five poses in solid black at 400 px tall on one canvas. Delete any pose you cannot
    identify in black.
 2. **Proportion sheet** — divide the character's height into head units and mark the eye, shoulder, hip, and hand
@@ -60,16 +63,17 @@ outline, so it reads at 24 px. Six expressions on one 96 px base, eyes fixed as 
 — a clipboard — is 1.4× the hand width and sits at the same angle in all four spots.
 
 ## Verification
-1. **Silhouette sheet.** Five poses filled black at 400 px tall, at 10% zoom: all five can be named,
+1. **Ops receipt.** `vector` op=read lists every part by id, `get_canvas_image` shows the silhouette reading at 25%, and changing one part with `vector` op=update does not disturb the others. A character whose parts have no ids cannot be directed.
+2. **Silhouette sheet.** Five poses filled black at 400 px tall, at 10% zoom: all five can be named,
    and the same character is named each time. A pose that needs its interior to be recognised fails.
-2. **Proportion audit.** Divide each drawing by head units: one ratio for the cast, 1:3–1:4 for
+3. **Proportion audit.** Divide each drawing by head units: one ratio for the cast, 1:3–1:4 for
    explainer work, 3.5 units in the example. A drawing at 3.4 or 3.6 units is another character.
-3. **Expression set.** Six faces at 96 px from one base: eye coordinates identical, brow and mouth
+4. **Expression set.** Six faces at 96 px from one base: eye coordinates identical, brow and mouth
    the only changes, every expression distinguishable without a label. A mouth moved 10% of head
    width changes the read; a new eye position breaks the person.
-4. **24 px reduction.** Three shapes, no outline, at 24 px; the identifying shape — hood, hair mass,
+5. **24 px reduction.** Three shapes, no outline, at 24 px; the identifying shape — hood, hair mass,
    prop — survives. When detail carries the read it will not survive a favicon.
-5. **Prop ratio.** Measure the prop against the drawn hand: 1.4× hand width in the example, and the
+6. **Prop ratio.** Measure the prop against the drawn hand: 1.4× hand width in the example, and the
    same ratio and angle in every spot. A prop rescaled by eye looks unholdable at a second size.
 
 ## Related Rules

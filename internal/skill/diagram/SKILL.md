@@ -9,6 +9,19 @@ description: Draw diagrams that explain structure and process — flows, system 
 The graphic exists to make a relationship legible: sequence, hierarchy, dependency, cycle, or
 geography. If the content is numeric, use `visualize`; if the goal is persuasion, use `poster`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the structure | `guide` | diagram workflow and the rules that apply |
+| Lay the nodes | `elements` op=render | rect, ellipse and text in one batch |
+| Draw the relations | `elements` op=render | `line` or `polygon` connectors |
+| Construct a figure | `vector` op=draw | anything that must scale as geometry |
+| Hold the grid | `arrange` op=align | nodes and labels on one system |
+| Export the source | `export` op=svg | editable markup for the document |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Write the sentence the diagram must prove**, e.g. "data enters here, is validated, and leaves
    as a report". If you cannot write it, the diagram has no job yet.

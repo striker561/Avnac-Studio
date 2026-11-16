@@ -9,6 +9,19 @@ description: Design, refine or test a logo, wordmark, monogram or mark — const
 The deliverable is a mark, a wordmark or a lockup. For the surrounding identity system, use
 `brand`. For icons that are not the brand mark, use `icon`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the mark | `guide` | logo workflow and construction rules |
+| Construct | `vector` op=draw | primitives, constraints, mirrorOf |
+| Refine | `vector` op=update | by object id, re-resolved once |
+| Test sizes | `get_canvas_image` | 16 px and 4000 px, plus one colour |
+| Build the lockups | `canvas` op=add-page | each variation on its own page |
+| Export | `export` op=object | cropped SVG or PNG per lockup |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Write the mark's job in one sentence.** What must it signal, to whom, and where will it be
    seen smallest? This determines how much detail is allowed.

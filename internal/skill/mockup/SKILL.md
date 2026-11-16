@@ -10,6 +10,19 @@ The design exists and needs to be shown in a believable context. A mockup is a c
 tool, not a design step: fix the design first ([`113-design-quality-checklist`](../rules/113-design-quality-checklist.md)),
 then present it. Mockups hide flaws and create false confidence — including yours.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the presentation | `guide` | context and presentation rules |
+| Source the scene | `assets` op=unsplash | photo with remaining quota and credit |
+| Place the work | `elements` op=render | the design into the scene with `fit` and `focalPoint` |
+| Hold the frame | `canvas` op=validate | bounds, contrast and type size in context |
+| Look | `get_canvas_image` | the mockup as the client will see it |
+| Deliver | `export` op=png | one image per context |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Decide what the mockup must prove**: scale, material, context of use, or craft. One mockup
    per claim.

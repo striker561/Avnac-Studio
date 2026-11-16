@@ -17,6 +17,9 @@ Design process is the ordered set of stages — brief, research, thumbnails, ref
 - Freeze the concept before production. After the freeze, changes are scope changes, priced and scheduled, not edits.
 
 ## Techniques
+
+**Avnac ops:** `guide` opens the process with the route; `canvas` op=create (new deliverable) or op=add-page (variant) fixes the surface; `elements` op=measure sizes the copy before it is drawn; `elements` op=render makes the first draft in one batch; `canvas` op=snapshot marks the approved state; `export` op=png shows it.
+
 1. **Five-line brief** — audience, single message, canvas in px, constraints, success test ("a stranger can name the event and date from 2 m"). Ten minutes maximum.
 2. **Timed divergence** — 20 thumbnails at 90 seconds each, 270 px wide for a 1080 px canvas (1:4). No undo, no color, no type detail: shape and placement only.
 3. **Two-pass selection** — pick five by gut, then score them 1–5 on message clarity, distinctiveness, and producibility. Take the highest total and keep the runner-up.
@@ -52,17 +55,18 @@ Refinement: numerals at 460 px, tracked −4%, cropped 40 px past the edge; body
 Production: PNG at 1080×1350 for the feed, plus an A4 master at 2480×3508 px with 35 px bleed (3 mm at 300 ppi) for the run.
 
 ## Verification
-1. **Five-line brief.** Audience, one message, canvas in px, constraints, and a success test that
+1. **Ops receipt.** `canvas` op=snapshot returns a token before the first exploratory render, and `guide` has been called with the brief; `get_canvas_summary` names the page the draft lives on. A process with no token and no route is a draft nobody can return from.
+2. **Five-line brief.** Audience, one message, canvas in px, constraints, and a success test that
    names a distance and a size ("the date reads at 250 px wide"). A missing line, or a test that
    cannot be measured, sends the job back a stage.
-2. **Divergence count.** At least ten thumbnails at 1:4 exist before the first refinement — 270 px
+3. **Divergence count.** At least ten thumbnails at 1:4 exist before the first refinement — 270 px
    wide for a 1080 px canvas; 20 at 90 seconds is the target. One first draft, refined, is a fail.
-3. **Gate record.** Each stage ends with the decision and the alternative rejected. If the runner-up
+4. **Gate record.** Each stage ends with the decision and the alternative rejected. If the runner-up
    cannot be named, no selection happened and the stage did not close.
-4. **Slice propagation.** One section is finished to final quality and tested at 25%. List the type
+5. **Slice propagation.** One section is finished to final quality and tested at 25%. List the type
    size, margin and colour it fixed; a later section carrying a different value for the same role is
    unfinished.
-5. **File check.** `export` returns the dimensions the brief names: 2480×3508 px with 35 px bleed
+6. **File check.** `export` returns the dimensions the brief names: 2480×3508 px with 35 px bleed
    for the A4 master, 1080×1350 for the feed. Compare the file, not the intention.
 
 ## Related Rules

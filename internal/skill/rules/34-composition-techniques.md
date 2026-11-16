@@ -27,6 +27,9 @@ rather than a mood.
   more active than either perfect alignment or obvious separation.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places the composition in one batch so the gesture survives; `arrange` op=align and op=distribute hold the structure; `get_canvas_image` is the thumbnail and squint check; `canvas` op=validate reports the measured checks.
+
 1. **Ten thumbnails at 120×160** — ten distinct mass distributions in ten minutes: centred,
    top-heavy, corner, diagonal, horizon-split, radial, grid, off-edge, small-in-void,
    full-bleed. Pick two, render both at full size, keep the one that survives at 25% zoom.
@@ -79,15 +82,16 @@ eye at (200, 430) — left third intersection. Headline at 120 px Inter Bold, `#
 travels right along the gaze, hits the headline, and drops to the date: three stops, no detour.
 
 ## Verification
-1. **Focal ratio.** Compare the focal element with the runner-up: 1.5–3× in visual weight. At
+1. **Ops receipt.** `get_canvas_image` at 25% still shows the intended entry point, and `canvas` op=validate reports no unintended `near_alignment` or `tight_margin`. The composition is judged as a thumbnail first, then at size.
+2. **Focal ratio.** Compare the focal element with the runner-up: 1.5–3× in visual weight. At
    1:1.1 the eye flickers between them and the frame has no entry point.
-2. **Centre distance.** Every element is on an axis or edge, or 60 px and more off it; nothing is
+3. **Centre distance.** Every element is on an axis or edge, or 60 px and more off it; nothing is
    4 px off centre. Near-centre reads as a slip, while 6–24 px from an edge reads as tension.
-3. **Thumbnail collapse.** Downscale the render to 120×160: the mass distribution still reads and
+4. **Thumbnail collapse.** Downscale the render to 120×160: the mass distribution still reads and
    there is still one focal point. A frame that turns into a grey rectangle was a list.
-4. **Three-value read.** Block the frame into 10%, 50%, and 90% grey. If it reads as one value, no
+5. **Three-value read.** Block the frame into 10%, 50%, and 90% grey. If it reads as one value, no
    plane separates and the composition was never in the file.
-5. **Stop count.** Trace the path from the focal point: the second element sits 30–40° off the
+6. **Stop count.** Trace the path from the focal point: the second element sits 30–40° off the
    line and the total is three or four stops. A fifth stop is where the eye abandons the route.
 
 ## Related Rules

@@ -29,6 +29,9 @@ wants" instead of to fashion (p. 28).
 - A trend used knowingly is a decision; a trend used by default is a liability.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw and op=export keep the mark resolution-free; `export` op=svg keeps the type editable; `canvas` op=snapshot preserves the approved state before a trend pass; `get_canvas_image` is the ten-year test.
+
 1. **Write the lifespan sentence** — "This must still work in ___ years" in the brief. Every later
    decision about type, effect, and image treatment is measured against it.
 2. **Strip the trend markers** — list the three you are drawn to, name what each connotes now and
@@ -77,19 +80,20 @@ blend" label, where the trend is the point and the refresh date is printed in th
 invariants for B are written down: mark geometry, the 4 mm rule, the two inks, the seal size.
 
 ## Verification
-1. **Lifespan sentence.** Find the written lifespan: hours, weeks, 3–5 years, or 10 years plus.
+1. **Ops receipt.** `export` op=svg opens with explicit fills and a matching viewBox, `canvas` op=snapshot holds the approved version, and `get_canvas_image` still reads when reduced to one colour. A look that needs this year filter is not timeless.
+2. **Lifespan sentence.** Find the written lifespan: hours, weeks, 3–5 years, or 10 years plus.
    Pass: the number exists and the trend budget matches it — at most one marker on a 10-year asset.
    Without the sentence the visual checks cannot be scored.
-2. **Dating-surface count.** Count typefaces, colours, effects and distinct shapes. Pass: two
+3. **Dating-surface count.** Count typefaces, colours, effects and distinct shapes. Pass: two
    typefaces, three colours plus neutrals, two effects, four shapes. Over any one of the four, the
    asset has more surfaces to re-cut than the message needs.
-3. **Ten-year test.** Remove the trend markers from a copy and render both. Pass: the idea survives
+4. **Ten-year test.** Remove the trend markers from a copy and render both. Pass: the idea survives
    — the mark still identifies and the reading order is unchanged. If the copy collapses, the idea
    was the trend.
-4. **Marker inventory.** Name each trend marker and the year it reads as. Pass: at most one on an
+5. **Marker inventory.** Name each trend marker and the year it reads as. Pass: at most one on an
    identity, with a refresh date in the delivery note. Three markers reading 2025 is a season, not a
    decade.
-5. **Primitive redraw.** Rebuild the mark or the layout from a circle, a square, a triangle and one
+6. **Primitive redraw.** Rebuild the mark or the layout from a circle, a square, a triangle and one
    typeface. Pass: it still works, which proves the structure carries the design and the surface is
    replaceable.
 

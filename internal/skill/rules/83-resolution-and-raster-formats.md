@@ -24,6 +24,9 @@ addressable dots, lpi the press's halftone screen. A file has no resolution unti
 - Upscaling past about 120% invents detail. Interpolation smears an edge; it cannot rebuild one.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=resize sets final pixel dimensions; `elements` op=render places images no larger than their native pixels; `export` op=png `multiplier` produces the raster; `export` op=object crops one element; `get_canvas_image` is the 100% check.
+
 1. **Effective-PPI audit** — compute pixel width ÷ placed inches for every image and flag anything
    under 90% of target. Decide per image, not per document.
 2. **Resize the placement before you resample** — 60% of the placed width turns 180 PPI into 300
@@ -63,19 +66,20 @@ tolerable for a soft background but not for a product shot. Shrink the image to 
 Avnac canvas stays 426×600 mm; only the `image` element's width changes.
 
 ## Verification
-1. **Effective PPI.** For each image, pixel width ÷ placed inches: 300 at 100% for continuous tone,
+1. **Ops receipt.** The artboard pixels equal inches x PPI from `get_canvas_summary`, no image is placed above its native pixels, and `export` op=png at 1x is inspected at 100%. A file upscaled at export has invented detail.
+2. **Effective PPI.** For each image, pixel width ÷ placed inches: 300 at 100% for continuous tone,
    350 at 175 lpi, 150 at 1 m, 100 at 2 m, 30–50 at 10 m. Anything under 90% of the target is
    flagged per image, not per document.
-2. **Pixel arithmetic.** The placement's pixel count is final width in inches × target PPI: 210 mm
+3. **Pixel arithmetic.** The placement's pixel count is final width in inches × target PPI: 210 mm
    at 300 PPI needs 2480 px, and an A4 page 2480×3508. A 1500 px file across 210 mm measures 181 PPI
    whatever the file is called.
-3. **Upscale factor.** Compare placed width with the file's pixel width: no image exceeds 120% of
+4. **Upscale factor.** Compare placed width with the file's pixel width: no image exceeds 120% of
    native. Past that the detail is invented by interpolation and the edge is softer than the file
    supplied.
-4. **Edge check.** Rasterise at the final size and inspect a hard edge at 100%: bitmap line art and
+5. **Edge check.** Rasterise at the final size and inspect a hard edge at 100%: bitmap line art and
    scanned logos need 600–1200 PPI and show no stair-steps. Anti-aliasing on a 200 PPI logo is a
    blur at print size, not a fix.
-5. **Format match.** The format follows the content: TIFF or PSD for press CMYK, PNG for UI and flat
+6. **Format match.** The format follows the content: TIFF or PSD for press CMYK, PNG for UI and flat
    colour, JPEG q80–90 for web photography only, SVG for vector, WebP or AVIF for page weight. A
    JPEG of type, a screenshot or line art fails on every edge.
 

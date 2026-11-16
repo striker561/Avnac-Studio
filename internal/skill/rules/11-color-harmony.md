@@ -17,6 +17,9 @@ Harmony is a controlled set of intervals between colors — in hue, value, and c
 - Any color can work with any other given the right quantities. A scheme is a starting hypothesis, not a guarantee.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render lays the scheme down as roles (ground, structure, accent); `elements` op=modify re-hues one role; `canvas` op=validate reports `contrast_floor`; `get_canvas_image` shows the harmony in context. No ramp op exists: build the steps and paste the hexes.
+
 1. **Choose by intent** — calm: analogous or monochrome. Tension: complementary or split. Playful: triadic with one dominant. Premium: monochrome plus one metallic neutral.
 2. **Make the areas unequal** — one color owns most of the canvas, a second supports, the accent stays small. Equal thirds destroy the hierarchy the scheme implies.
 3. **Vary value, not hue count** — two hues with four values is richer and safer than four hues at one value.
@@ -49,16 +52,17 @@ A 1080×1350 poster, split-complementary: base `#1B3A4B` (cool blue-green, 62% o
 The accent is the only high-chroma element and sits on the call to action. The split keeps the orange from vibrating against the blue because the neutral carries the middle, which a straight complementary pair would not do at these areas.
 
 ## Verification
-1. **Hue intervals.** Measure the hue angle of every pair: 0 for monochrome, up to 30 for analogous,
+1. **Ops receipt.** `canvas` op=validate `contrast_floor` passes for every text pair and `get_canvas_image` keeps the 60/30/10 proportion visible; every harmonious pair has one measured value relationship, not just a hue relationship.
+2. **Hue intervals.** Measure the hue angle of every pair: 0 for monochrome, up to 30 for analogous,
    150/210 split-complementary, 180 complementary, 120 triadic. A pair at 75° is a scheme nobody
    named and nobody can repeat.
-2. **Area shares.** Measure coverage. One colour owns the majority, the second supports, the accent
+3. **Area shares.** Measure coverage. One colour owns the majority, the second supports, the accent
    stays small — the worked example runs 62 / 30 / 8. Equal thirds fail before any other test.
-3. **Value spread.** Desaturate: the palette still separates into four or more values. An analogous
+4. **Value spread.** Desaturate: the palette still separates into four or more values. An analogous
    scheme held at one value is mud, and no hue change repairs it.
-4. **Three sizes.** Render at 32 px, 256 px and full canvas. At 32 px the accent still registers as
+5. **Three sizes.** Render at 32 px, 256 px and full canvas. At 32 px the accent still registers as
    the accent; a harmony that only works at full size collapses in a feed.
-5. **Edge vibration.** An edge between near-complements with neither a neutral gap nor a value shift
+6. **Edge vibration.** An edge between near-complements with neither a neutral gap nor a value shift
    shimmers at 100%; the shimmer is the finding, not a defect of the render.
 
 ## Related Rules

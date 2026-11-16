@@ -26,6 +26,9 @@ single column, multi-column, modular, broken, and full-bleed.
   emphasis; three violations read as an unfinished file.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render builds the structure (bands, columns, modules) in one call; `arrange` op=align and op=group keep it consistent; `canvas` op=validate reports `margin_ladder` and `density`; `get_canvas_image` shows the structure before the detail.
+
 1. **Count the streams** — list every piece of content and mark whether it is read as a sequence
    (1 stream), in parallel with one other (2–3 streams), or scanned as a set (4+). The count picks
    the structure without further debate.
@@ -83,16 +86,17 @@ one element violates the column edge — the headline — and it is also the mos
 the page.
 
 ## Verification
-1. **Structure census.** Name the structure of each canvas: single column, multi-column, modular,
+1. **Ops receipt.** `canvas` op=validate `margin_ladder` passes with the bottom largest and `density` stays under 75%; `get_canvas_image` still reads as one structure when the content is removed mentally. A structure that depends on its decoration is not a structure.
+2. **Structure census.** Name the structure of each canvas: single column, multi-column, modular,
    broken, full-bleed. One per design; a second needs a different content type, not a change of
    mood halfway down the page.
-2. **Reading order.** Multi-column pages declare Z or N, the layer names follow it, and the render
+3. **Reading order.** Multi-column pages declare Z or N, the layer names follow it, and the render
    agrees. Undeclared, readers split and half of them take the other route.
-3. **Module swap.** Swap two modular blocks and look again. If the design survives, the structure
+4. **Module swap.** Swap two modular blocks and look again. If the design survives, the structure
    is real; if it collapses, the blocks were a story told once.
-4. **Bleed budget.** Count the elements that reach the trim: one. The second stops 48–96 px short.
+5. **Bleed budget.** Count the elements that reach the trim: one. The second stops 48–96 px short.
    Two full-bleeds halve each other's claim on the canvas.
-5. **Break count.** Count the edges a deliberate break crosses: one, on the highest-value element.
+6. **Break count.** Count the edges a deliberate break crosses: one, on the highest-value element.
    Three violations read as an unfinished file, and worse across a series.
 
 ## Related Rules

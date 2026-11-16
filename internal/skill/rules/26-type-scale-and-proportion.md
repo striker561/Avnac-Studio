@@ -17,6 +17,9 @@ A modular scale is a geometric series of sizes, s_n = s_0 × r^n, where s_0 is t
 - Responsive type compresses the ratio, not the body: body stays 16–18 px while the top steps come down.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure tests each step before it is committed; `elements` op=render sets the scale; `canvas` op=validate reports `type_steps`; `get_canvas_image` is the reduced-size check.
+
 1. **Pick the ratio from the level count.** Three levels → 1.5; four → 1.25 (1.333 on large formats); five → 1.2; six or more → 1.125.
 2. **Generate, then round once.** 16 × 1.333 = 21.3, 28.4, 37.9, 50.6 → 21, 28, 38, 51. Write those as tokens, `--fs-1` through `--fs-5`.
 3. **Step below the base with the same ratio.** 16 / 1.25 = 12.8 → 13 for captions; 16 / 1.5 = 10.7 → 11 for legal.
@@ -43,15 +46,16 @@ A modular scale is a geometric series of sizes, s_n = s_0 × r^n, where s_0 is t
 A 1080×1350 poster, base 20 px, ratio 1.5: 20, 30, 45, 68, 101. Four steps are used — body 20/1.5, subhead 30/1.2, headline 45/1.1, and 68/1.0 with −2% tracking. The 101 px step exists for one word, "SALT", used once. At 600 px wide the two top steps drop to 45 and 30 while body stays at 20.
 
 ## Verification
-1. **Ratio recovery.** Divide each adjacent pair of sizes in the file. One quotient, matching the
+1. **Ops receipt.** `canvas` op=validate reports no `flat_type_steps`: every adjacent size is 1.3x-1.5x apart or visibly separated by weight. The scale is written as numbers before `elements` op=render, not discovered afterwards.
+2. **Ratio recovery.** Divide each adjacent pair of sizes in the file. One quotient, matching the
    declared ratio within a few per cent; two quotients mean two scales, which is no hierarchy.
-2. **Ratio against level count.** Three levels → 1.333–1.5; four → 1.25; five or six → 1.2; dense
+3. **Ratio against level count.** Three levels → 1.333–1.5; four → 1.25; five or six → 1.2; dense
    interfaces → 1.125. Six levels on a 1.5 ratio put the top step past the canvas edge.
-3. **Rounding drift.** Recompute s0 × r^n from the base and compare with the tokens: the fifth
+4. **Rounding drift.** Recompute s0 × r^n from the base and compare with the tokens: the fifth
    step lands within 3–5%. A set rounded at every step drifts further than that at the top.
-4. **Base stability.** The body token is 16–18 px in every format, including below 600 px, where
+5. **Base stability.** The body token is 16–18 px in every format, including below 600 px, where
    the top step drops instead. Body that moved with the viewport is the failure no ratio repairs.
-5. **Small-step perception.** Any 1.2 step below 18 px is checked at 25% zoom: two levels that
+6. **Small-step perception.** Any 1.2 step below 18 px is checked at 25% zoom: two levels that
    read as one have the wrong ratio, and another weight will not separate them.
 
 ## Related Rules

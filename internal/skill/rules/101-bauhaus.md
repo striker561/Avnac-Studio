@@ -23,6 +23,9 @@ lowercase, and limits color to the primaries plus black and a warm white.
 - The workshop standard: every element competently made, aligned, and reproducible by someone else.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets the primary geometry (`rect`, `circle`, `line`), the sans type and the three-colour limit; `arrange` op=align and op=distribute hold the structural grid; `get_canvas_image` is the form check.
+
 1. **Build on a module** — a 3×3 or 4×4 module grid, elements on 8 px multiples, circles tangent to
    block edges. In Avnac, place `ellipse` and `rect` so their bounding boxes land on those lines.
 2. **60-30-10 in primaries** — 60% warm white `#F4F1EA`, 30% black `#111111`, 10% split between red
@@ -65,14 +68,15 @@ A 700×1000 exhibition poster:
 - Grid: 4 columns, 56 px margins, 24 px gutters — columns 129 px wide, so every x is 56 + n(153).
 
 ## Verification
-1. **Ornament test.** For every triangle, circle and rule, name the content it holds or the field it
+1. **Ops receipt.** Every element is a primary shape or type from `get_canvas_summary`, `arrange` op=align puts the geometry on the grid, and `canvas` op=validate `level_census` stays at three. A diagonal added for decoration breaks the grammar.
+2. **Ornament test.** For every triangle, circle and rule, name the content it holds or the field it
    divides. A shape that does neither is decoration and is deleted.
-2. **Area ranking.** Measure the colour areas: warm white largest, black second, primaries least,
+3. **Area ranking.** Measure the colour areas: warm white largest, black second, primaries least,
    with one primary dominant where two appear. Three primaries at full area fail — the triad fights
    itself.
-3. **Type audit.** Display is lowercase geometric sans at 72–120 px with −2% tracking; body is 16–18
+4. **Type audit.** Display is lowercase geometric sans at 72–120 px with −2% tracking; body is 16–18
    px sentence case. Count centred display lines: zero.
-4. **Asymmetry.** Measure the horizontal centre of each major mass. Nothing sits on the canvas
+5. **Asymmetry.** Measure the horizontal centre of each major mass. Nothing sits on the canvas
    centre line, and weight is carried off-axis by mass rather than by symmetry.
 
 ## Related Rules

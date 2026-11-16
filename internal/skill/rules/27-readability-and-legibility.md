@@ -17,6 +17,9 @@ Legibility is the ease of distinguishing individual characters — a property of
 - Size floors: 16 px minimum for screen body, 18 px for long blocks, 9 pt for print body, 12 pt and up for large-print editions.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure proves the copy fits before it is set; `canvas` op=validate reports `contrast_floor`; `get_canvas_image` at the smallest delivered size is the legibility test; `elements` op=modify reflows a failing block.
+
 1. **Count characters.** Average three full lines; outside 45–75, change the frame width rather than the type size.
 2. **Read three lines at 100%.** If you re-read a line, add 0.1 to the leading before changing anything else.
 3. **Check justification by word space.** Compare the same word across adjacent lines; a difference above 50% means ragged right or hyphenation is needed.
@@ -45,16 +48,17 @@ Legibility is the ease of distinguishing individual characters — a property of
 A 600-word article on a 1440×900 canvas: body 18 px/1.6 in a 680 px frame, about 72 characters in Inter, #1A1A1A on #FAFAFA at 16:1, ragged right, 24 px between paragraphs. At a 900 px frame the same copy runs about 95 characters and the test reader loses the line on the return sweep; at 680 px the re-reads stop.
 
 ## Verification
-1. **Character count.** Average three full lines: 45–75, target 66; below 35 or above 90 fails
+1. **Ops receipt.** `canvas` op=validate `contrast_floor` passes, `elements` op=measure line count holds at the smallest delivered width, and `get_canvas_image` is read at that size, not at 100%. A paragraph approved only zoomed in has not been set.
+2. **Character count.** Average three full lines: 45–75, target 66; below 35 or above 90 fails
    outright, and the frame width changes rather than the type size.
-2. **Leading by size.** 1.4–1.6 at 16–18 px, 1.25–1.35 at 24–32 px, rising with measure. A 1.2
+3. **Leading by size.** 1.4–1.6 at 16–18 px, 1.25–1.35 at 24–32 px, rising with measure. A 1.2
    leading on a 66-character line is the grey wall the reader calls dense.
-3. **Contrast ratio.** Compute the composite pair — text, background, opacity, any image behind:
+4. **Contrast ratio.** Compute the composite pair — text, background, opacity, any image behind:
    4.5:1 floor, 7:1 for long-form. #808080 on #FFF measures 3.95:1 and fails before the image is
    considered.
-4. **Justification audit.** A justified block has hyphenation on, 45+ characters, and word-space
+5. **Justification audit.** A justified block has hyphenation on, 45+ characters, and word-space
    variation under 50% between adjacent lines. Missing any one, the block is set ragged.
-5. **Caps and floors.** All-caps runs hold at three or four words; body is 16 px minimum on
+6. **Caps and floors.** All-caps runs hold at three or four words; body is 16 px minimum on
    screen, 18 px long-form, 9 pt in print, 12 pt for large print. One line below its floor fails
    the page.
 

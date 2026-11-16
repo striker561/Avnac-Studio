@@ -5,6 +5,8 @@ Use when deciding structure before placing elements. Rules:
 [`31-layout-structures`](../rules/31-layout-structures.md),
 [`32-editorial-layout`](../rules/32-editorial-layout.md).
 
+
+**Avnac ops:** `canvas` op=resize fixes the sheet; `elements` op=measure sizes the copy; `elements` op=render places the grid; `arrange` op=align and op=distribute hold it; `canvas` op=validate reports `margin_ladder` and `density`. There is no snap-to-grid op: place at computed coordinates.
 ## Grid anatomy
 
 | Part | Definition | Typical value |

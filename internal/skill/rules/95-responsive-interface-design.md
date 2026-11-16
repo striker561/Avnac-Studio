@@ -27,6 +27,9 @@ moving from horizontal to vertical). It is not proportional scaling: type does n
   indicator, 48 px for Android gesture navigation.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=add-page with each `width`; `elements` op=render sets the layout at that width; `canvas` op=go-page compares; `get_canvas_image` checks; `canvas` op=validate `margin_ladder` at each.
+
 1. **Measure your breakpoints** — resize in 8 px steps, note where the layout fails (704, 912, 1180),
    then round to a 16 px multiple. These are the only breakpoints you need.
 2. **Reflow in named patterns** — 12→8→4→1 columns, sidebar→top bar→drawer, 4-up→2-up→1-up cards,
@@ -61,17 +64,18 @@ is `clamp(32px, 26px + 2.4vw, 52px)` — 32 px at 320, 44 px at 768, 52 px at 12
 48 px tall with 12 px gaps. No copy drops below 16 px and no feature is removed on mobile.
 
 ## Verification
-1. **Width sweep.** Resize in 8 px steps from 320 to 1440 and record where the layout fails. The
+1. **Ops receipt.** Each width is a page of the stated size, every breakpoint passes `canvas` op=validate `margin_ladder`, and `get_canvas_image` shows the same hierarchy at the smallest width. A layout that only survives at one width is a mockup.
+2. **Width sweep.** Resize in 8 px steps from 320 to 1440 and record where the layout fails. The
    breakpoints sit at those failures rounded to a 16 px multiple — 704, 912, 1180 — not at 375, 768
    and 1440 because those are device widths.
-2. **320 px floor.** At 320 CSS px: one column, 16 px margins, no horizontal scroll and no copy
+3. **320 px floor.** At 320 CSS px: one column, 16 px margins, no horizontal scroll and no copy
    under 16 px. At 400% zoom the content reflows to one column with nothing lost (WCAG 1.4.10).
-3. **Reflow pattern.** 12→8→4→1 columns, sidebar→top bar→drawer, 4-up→2-up→1-up cards, table→stacked
+4. **Reflow pattern.** 12→8→4→1 columns, sidebar→top bar→drawer, 4-up→2-up→1-up cards, table→stacked
    block with labels: one named pattern per component. Two patterns in one component is the bug.
-4. **Small targets.** 44×44 px with 8 px between, 48 px where controls sit close together, measured
+5. **Small targets.** 44×44 px with 8 px between, 48 px where controls sit close together, measured
    on the 320 px render. A 32 px target carried over from the desktop layout is under the touch
    floor.
-5. **Clamped type.** Every `clamp()` has both ends rendered: body 16–19 px, page title 32–52 px, and
+6. **Clamped type.** Every `clamp()` has both ends rendered: body 16–19 px, page title 32–52 px, and
    the value at 320, 768 and 1280 is one of those ends. Type scaled only in `vw` fails at both
    extremes.
 

@@ -218,7 +218,10 @@ func TestGuidePayloadShipsVerificationDigests(t *testing.T) {
 		t.Error("digest dropped the workflow's qualifier for the rule")
 	}
 	lines, _ := first["checks"].([]string)
-	if len(lines) == 0 || !strings.Contains(lines[0], "Level census") {
+	if len(lines) == 0 || !strings.Contains(lines[0], "Ops receipt") {
+		t.Errorf("digest lines = %v, want the ops receipt first", lines)
+	}
+	if !strings.Contains(strings.Join(lines, "\n"), "Level census") {
 		t.Errorf("digest lines = %v, want the rule's own Verification items", lines)
 	}
 	if payload["moreChecks"] != len(payload["rules"].([]map[string]any))-guideDigestRules {
@@ -228,6 +231,27 @@ func TestGuidePayloadShipsVerificationDigests(t *testing.T) {
 	for _, entry := range checks {
 		if n := len(entry["checks"].([]string)); n > 2 {
 			t.Errorf("rule %v ships %d checks, want at most 2", entry["rule"], n)
+		}
+	}
+}
+
+// The router reads the joined task text left to right, so the order the
+// payload's keys are walked in changes which skill matches. Go randomises map
+// iteration; textKeyRank pins the order and keeps attachment reproducible.
+func TestTaskTextIsStableAcrossRuns(t *testing.T) {
+	payload := map[string]any{
+		"name": "Blue Note jazz poster",
+		"elements": []any{
+			map[string]any{"type": "text", "text": "Blue Note jazz trio, live"},
+		},
+	}
+	first := taskTextFromPayload(payload)
+	if !strings.HasPrefix(first, "Blue Note jazz poster") {
+		t.Fatalf("task text = %q, want the name first", first)
+	}
+	for i := 0; i < 20; i++ {
+		if got := taskTextFromPayload(payload); got != first {
+			t.Fatalf("run %d = %q, want %q", i, got, first)
 		}
 	}
 }

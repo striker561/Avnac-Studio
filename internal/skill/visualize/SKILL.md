@@ -10,6 +10,19 @@ The content is quantitative. If the graphic explains a process rather than numbe
 A chart is an instrument for comparison; if no comparison is needed, the number belongs in a
 sentence.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the chart | `guide` | data-visualization workflow and its rules |
+| Draw the plot | `elements` op=render | `rect`, `line`, `polygon` and text |
+| Label it | `elements` op=render | axis, unit and source |
+| Audit | `canvas` op=validate | `contrast_floor` on labels |
+| Look | `get_canvas_image` | the comparison without the legend |
+| Deliver | `export` op=svg | the chart as editable markup |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **State the question the chart answers.** "Which region grew?" not "show revenue". The question
    determines the chart type.

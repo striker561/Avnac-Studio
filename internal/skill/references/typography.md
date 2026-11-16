@@ -4,6 +4,8 @@ Use when choosing, pairing, sizing or setting type. The applied rules are
 [`20-typography-fundamentals`](../rules/20-typography-fundamentals.md) through
 [`29-variable-and-digital-type`](../rules/29-variable-and-digital-type.md); this is the value table.
 
+
+**Avnac ops:** `assets` op=fonts verifies the families; `elements` op=measure returns line count and cap metrics; `elements` op=render sets the type; `get_object_properties` returns the rendered metrics; `canvas` op=validate reports `level_census` and `type_steps`.
 ## Sizes at final size
 
 | Use | Screen | Print |

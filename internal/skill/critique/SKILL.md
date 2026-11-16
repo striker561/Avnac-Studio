@@ -10,6 +10,19 @@ The artifact exists and the question is "is this good?" rather than "make this".
 covers critiquing your own draft before delivery, and interpreting vague client feedback
 ("make it pop", "it feels off") into a fixable defect.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Read the artifact | `get_canvas_summary` | what is on the page, named |
+| Look annotated | `get_canvas_image` | bounding boxes with `annotated=true` |
+| Run the checks | `canvas` op=validate | the measured evidence for the verdict |
+| Make one pass | `elements` op=modify | the single corrective change, by id |
+| Re-look | `get_canvas_image` | the pass, not the intention |
+| State the verdict | `get_canvas_image` | one screenshot per claim |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Restate the brief in one sentence.** Audience, message, medium. A design can only be judged
    against a job; without the job, critique collapses into taste.

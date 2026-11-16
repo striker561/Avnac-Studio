@@ -26,6 +26,9 @@ five to seven invariants, let everything else be free, and treat unlisted variat
 - Log approved exceptions with date, surface, and reason; three on one surface means the system is wrong.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=add-page holds each appearance; `elements` op=render applies the same tokens; `elements` op=modify corrects drift; `get_canvas_summary` compares the objects; `export` op=svg is the audit.
+
 1. **Invariant sheet** — one page, six rows with exact values: lockup and clear space in px, hero hex, secondary
    hex, family and weight per level, margins in px and mm, image treatment in one sentence.
 2. **Touchpoint inventory** — every surface with owner, format, and whether a non-designer can edit it. Surfaces
@@ -63,19 +66,20 @@ The fix was three values, not a redesign: one `color.hero` token at `#E8B54B`, a
 the Pantone reference only, and a 2 px `#12100E` hairline in the audit template.
 
 ## Verification
-1. **Invariant sheet.** Count the named invariants and their values. Pass: five to seven, each with
+1. **Ops receipt.** The same hex, family and spacing values appear in `export` op=svg for every appearance, and `get_canvas_image` of two appearances side by side shows one brand. A consistency claim made without a second surface is untested.
+2. **Invariant sheet.** Count the named invariants and their values. Pass: five to seven, each with
    a number — clear space in px, hero hex, margins in mm. An invariant with no value does not exist,
    so it cannot be audited.
-2. **12-up contact sheet.** Place twelve touchpoints on one 2400 × 1800 canvas at matched 400 px
+3. **12-up contact sheet.** Place twelve touchpoints on one 2400 × 1800 canvas at matched 400 px
    width and view it with `get_canvas_image`. Pass: one lockup geometry, one hero hex, one image
    grade across all twelve. An outlier shows in ten seconds; file-by-file inspection never finds it.
-3. **Hex census.** List every value used as the hero across the twelve. Pass: exactly one. Three
+4. **Hex census.** List every value used as the hero across the twelve. Pass: exactly one. Three
    ambers — `#E8B54B`, `#EAB84F`, `#F0C05A` — is three companies. Read values from the master or the
    tokens, never eyedropped from a compressed screenshot.
-4. **Token round-trip.** Build one deliverable from tokens alone and diff it against the approved
+5. **Token round-trip.** Build one deliverable from tokens alone and diff it against the approved
    file. Pass: no manual nudge. Every nudge is an undocumented invariant, and it belongs in the
    tokens or out of the design.
-5. **Exception log.** Count approved exceptions per surface. Pass: two or fewer, each dated with a
+6. **Exception log.** Count approved exceptions per surface. Pass: two or fewer, each dated with a
    reason. Three on one surface means the system is wrong, not the surface.
 
 ## Related Rules

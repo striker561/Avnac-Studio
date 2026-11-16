@@ -34,6 +34,9 @@ fill containing several subpaths, with even-odd or non-zero deciding how overlap
   should be the first subpath so holes read as holes in every renderer.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw composes the result from explicit paths and a `fillRule` (`nonzero` or `evenodd`); `vector` op=read proves the winding; `vector` op=export is the composite audit. There is no boolean op: subtract and union are authored into the path.
+
 1. **Silhouette first, then cut.** Build one closed outer silhouette, then subtract the interior
    holes and separations. Fewer nodes and no trapped seams between adjacent filled shapes.
 2. **Same-colour union.** Two overlapping shapes of identical paint can simply be grouped; run a
@@ -91,15 +94,16 @@ The outer contour runs clockwise and the inner counter-clockwise. Reverse the in
 fills solid under `nonzero` — which is the failure the fill rule is there to prevent.
 
 ## Verification
-1. **Expression first.** Write the boolean as an expression (`outer − inner`, then `+ highlight`)
+1. **Ops receipt.** `vector` op=export shows the compound path with its fill rule and no unintended hole, and `get_canvas_image` shows the overlap edge closed. A boolean claimed in the note but not in the path is a description, not a shape.
+2. **Expression first.** Write the boolean as an expression (`outer − inner`, then `+ highlight`)
    before operating. The operand order is the design decision; a wrong order is silent.
-2. **Winding and fill rule.** Every compound path declares `fill-rule`. Reverse the inner contour of
+3. **Winding and fill rule.** Every compound path declares `fill-rule`. Reverse the inner contour of
    a ring: the hole must fill solid, proving the rule is doing the work.
-3. **Node delta.** Count anchors before and after the boolean. A union that adds more than about 20%
+4. **Node delta.** Count anchors before and after the boolean. A union that adds more than about 20%
    means the inputs were the wrong shapes; rebuild from primitives instead.
-4. **Overlap scan.** Before export, no two painted paths overlap. Overlap that looks fine on screen
+5. **Overlap scan.** Before export, no two painted paths overlap. Overlap that looks fine on screen
    shows as a seam in print and a double cut at the cutter.
-5. **Double-overlap render.** At 4000 px, stacked translucent shapes show no white gap at the seam.
+6. **Double-overlap render.** At 4000 px, stacked translucent shapes show no white gap at the seam.
 
 ## Related Rules
 - [`122-geometric-primitives-and-construction`](122-geometric-primitives-and-construction.md) — the inputs a boolean should be built from.

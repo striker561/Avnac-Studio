@@ -32,6 +32,9 @@ one coordinate frame (the board) and a layer partition.
   zero-area nodes that still paint. Anything the renderer has to special-case is a modelling bug.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw resolves the object graph and places it; `vector` op=read returns the IR, document and bounds; `vector` op=update edits by id; `export` op=svg is the resolved document.
+
 1. **Scene table first.** Before coordinates, write a table: id, type, parent, role, paint, z.
    If two rows describe the same visual thing, merge them now.
 2. **Name by role, not by order.** `rocket/body`, `rocket/fin-left`, `rocket/window`. Suffix
@@ -94,16 +97,17 @@ Five nodes, three layers, depth 2 — small enough to edit in one pass, and ever
 addressable by name. Array order is z-order: ground, then the body and fins, then the window.
 
 ## Verification
-1. **Id audit.** `vector` op `read`: every part has a role-prefixed id (`rocket/body`,
+1. **Ops receipt.** `vector` op=read lists every object with a stable id and no duplicate, `vector` op=update can address each one, and `export` op=svg contains one path group per object. A scene that can only be read as a flat final path has no graph.
+2. **Id audit.** `vector` op `read`: every part has a role-prefixed id (`rocket/body`,
    `rocket/fin-left`), no duplicates and no `path-17`. An id you would not say aloud in an
    edit request is the wrong id.
-2. **Depth audit.** Count board → group → shape. Three levels maximum; a group with one child is a
+3. **Depth audit.** Count board → group → shape. Three levels maximum; a group with one child is a
    folder, not a transform, and is flattened.
-3. **Z-order read.** Array order is paint order. Remove the fills for one render: anything that
+4. **Z-order read.** Array order is paint order. Remove the fills for one render: anything that
    vanishes behind its neighbour was ordered wrong, not coloured wrong.
-4. **Edit test.** Ask for one part to change ("move the window up 4 units") and apply it with
+5. **Edit test.** Ask for one part to change ("move the window up 4 units") and apply it with
    `vector` op `update` by id. If any other part moves, the tree is wrong.
-5. **Layer count.** Three to five layers, named for a role. Ten layers means the file is organised
+6. **Layer count.** Three to five layers, named for a role. Ten layers means the file is organised
    by accident.
 
 ## Related Rules

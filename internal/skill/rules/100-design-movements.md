@@ -23,6 +23,9 @@ of the constraints.
   Bauhaus triad because it is a discipline, not because a press once held two inks.
 
 ## Techniques
+
+**Avnac ops:** `guide` routes the movement to its rule; `elements` op=render applies its grammar (geometry, type, colour); `get_canvas_image` tests whether the grammar reads without the label; `export` op=svg is the specimen.
+
 1. **Write the constraint card before designing** — palette (3–5 hex), type (families and weights),
    geometry (angles, shapes), grid, texture (none, grain, halftone), stance (one sentence). Design
    inside the card; if a choice contradicts it, change the card out loud.
@@ -65,17 +68,18 @@ Brief: a 1970s jazz-night poster, 700×1000 px.
   2 px rule at y=600 divides type from image; date 16 px/600 caps `#2F5D50` bottom-left.
 
 ## Verification
-1. **Constraint card.** Six lines exist before the composition: palette of 3–5 hex, type families
+1. **Ops receipt.** `get_canvas_image` identifies the movement from the form alone, and every borrowed device has a stated reason tied to the content. A movement pasted as a filter is costume, not language.
+2. **Constraint card.** Six lines exist before the composition: palette of 3–5 hex, type families
    and weights, geometry, grid, texture, and stance in one sentence. A piece without a card cannot
    be audited against its own movement.
-2. **Deletion test.** Duplicate the artwork and remove every signature gesture. If the structure,
+3. **Deletion test.** Duplicate the artwork and remove every signature gesture. If the structure,
    rank order and grid still hold, the constraints were doing the work; if the piece collapses, it
    was a costume.
-3. **Motif budget.** Count signature gestures: two at most, one dominant and one supporting. A third
+4. **Motif budget.** Count signature gestures: two at most, one dominant and one supporting. A third
    is a theme party and fails.
-4. **Process values.** Where the era claims a process, measure it: 45–65 lpi halftone, 1–2 px
+5. **Process values.** Where the era claims a process, measure it: 45–65 lpi halftone, 1–2 px
    misregistration on one plate. A clean gradient in a 1960s piece fails the period.
-5. **One movement.** Count the historical languages: one, plus at most one borrowed gesture. Two
+6. **One movement.** Count the historical languages: one, plus at most one borrowed gesture. Two
    full languages produce a third, accidental one.
 
 ## Related Rules

@@ -25,6 +25,9 @@ neighbors.
   gray.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw resolves the IR to cubic paths and places it; `vector` op=update refines by id; `vector` op=export returns the SVG; `get_canvas_image` is the scale check.
+
 1. **Silhouette block, then subtract** — draw the whole outline as one closed path, then subtract the interior
    holes. Fewer nodes, and no overlapping seams to trap a fill.
 2. **Anchor audit** — select all and count. If a shape has more than 1.5× the anchors its form requires, simplify
@@ -60,15 +63,16 @@ at 60%. The stem is a 4 px stroked path converted to a fill, tapering 4 px to 1.
 is 3 KB; at 24 px the vein is dropped rather than thinned below 0.5 px.
 
 ## Verification
-1. **Anchor audit.** `vector` op `read`: leaf 6–8 anchors, face 12–20, silhouette 30–60, circle 4.
+1. **Ops receipt.** `vector` op=read shows the objects and their constraints, `vector` op=export opens with a matching viewBox, and `get_canvas_image` is unchanged in character between 25% and 400%. A vector illustration that loses its proportions when scaled was not vector.
+2. **Anchor audit.** `vector` op `read`: leaf 6–8 anchors, face 12–20, silhouette 30–60, circle 4.
    Above 1.5× the form's requirement, simplify before export; the extra anchors are bumps.
-2. **Closure audit.** No open path carries a fill, and every closed path's first and last anchor
+3. **Closure audit.** No open path carries a fill, and every closed path's first and last anchor
    coincide. An open filled path closes implicitly with a straight line, the usual icon artefact.
-3. **Boolean delta.** Anchor count after a subtract or union rises by 0–2. Dozens more means the
+4. **Boolean delta.** Anchor count after a subtract or union rises by 0–2. Dozens more means the
    boolean crossed itself; duplicate and redo rather than patching the result.
-4. **Render pair.** Rasterise at 24 px and 4000 px: at 24 px no feature is under 0.5 px, so the vein
+5. **Render pair.** Rasterise at 24 px and 4000 px: at 24 px no feature is under 0.5 px, so the vein
    is dropped rather than thinned; at 4000 px handles show no facet and no stray geometry.
-5. **Export read.** `vector` op `export` returns the file: one fill per path, three gradient stops
+6. **Export read.** `vector` op `export` returns the file: one fill per path, three gradient stops
    maximum, no `style=` attributes, and under 100 KB per spot.
 
 ## Related Rules

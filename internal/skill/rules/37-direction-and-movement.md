@@ -27,6 +27,9 @@ arrangement — an incomplete action, a trail, a lean, a repeated offset.
   element and stops there, which is rarely the one you chose.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places the vectors (`polygon`, `line`, image `rotation`); `elements` op=modify turns one element to test the flow; `get_canvas_image` is the eye-path check; `canvas` op=validate reports any accidental alignment.
+
 1. **Annotate the vectors** — on a copy of the design, draw an arrow for every cue that carries
    direction, including the rag of each text block. Where arrows cross, decide which one owns the
    focal point; usually the one attached to the largest mass wins.
@@ -79,17 +82,18 @@ The eye goes: runner → chevrons → headline → route line back to the start.
 dominant vector (left to right), no crossing arrows.
 
 ## Verification
-1. **Vector ownership.** Annotate every cue that carries direction, including each text rag, and
+1. **Ops receipt.** `get_canvas_image` at 25% sends the eye along the intended path, and `canvas` op=validate finds no unintended `near_alignment` that stops it. Movement you have to trace with a cursor has not been composed.
+2. **Vector ownership.** Annotate every cue that carries direction, including each text rag, and
    name the one that owns the focal point. Two diagonals crossing at the focal point cancel, and
    the page is left with no path.
-2. **Gaze containment.** The figure looks into the frame; the headline sits inside the gaze cone
+3. **Gaze containment.** The figure looks into the frame; the headline sits inside the gaze cone
    in the right 55% of the canvas, with nothing competing behind the sightline. A subject looking
    out of the frame sends the eye to the edge.
-3. **Stop count.** Trace the path from entry to exit: three or four stops. More than four and the
+4. **Stop count.** Trace the path from entry to exit: three or four stops. More than four and the
    eye picks the loudest element and stays there, which is rarely the intended one.
-4. **Leading-edge crop.** A moving subject is cut so 20–25% of it exits the frame in its direction
+5. **Leading-edge crop.** A moving subject is cut so 20–25% of it exits the frame in its direction
    of travel. Under 20% the crop reads as a misfit; over 25% the subject is gone.
-5. **Progression arithmetic.** A repetition series has 5–12 repeats, each rotated 2–4° further or
+6. **Progression arithmetic.** A repetition series has 5–12 repeats, each rotated 2–4° further or
    4–6% larger. Below that it is a static pattern; above it, a fan that reads as one more object.
 
 ## Related Rules

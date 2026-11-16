@@ -17,6 +17,9 @@ Figure-ground is the perceptual split between the object of attention (figure) a
 - The ground is never neutral. Its value determines how every figure above it reads.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets figure against ground through `fill`, `opacity`, `stroke` and `strokeWidth`; `elements` op=modify separates a figure that disappears; `canvas` op=validate reports `contrast_floor` where text is the figure; `get_canvas_image` is the squint.
+
 1. **Silhouette test** — duplicate the subject, fill `#000000`, scale to 64 px on `#FFFFFF`, and simplify the contour until it reads.
 2. **Push the ground two steps** — darken or lighten the background by two value steps instead of adding a shadow or an outline to the subject.
 3. **Depth stack** — overlap first, then blur the ground 2–4 px, then cool and desaturate it; stop as soon as separation reads.
@@ -49,13 +52,14 @@ A 1080×1080 product tile. A white bottle on `#F4F4F2` gives roughly 1.1:1 and v
 The label stays `#F4F4F2` and the shadow stays soft and directional. The ground change does the work; an outline would have flattened the product.
 
 ## Verification
-1. **Edge ratio.** Sample figure and ground at their shared boundary: 3:1 or a 30% lightness
+1. **Ops receipt.** `canvas` op=validate `contrast_floor` passes for every text figure, and `get_canvas_image` keeps the figure readable when the ground is the same hue. Figure-ground that depends on hue alone fails print and colour blindness.
+2. **Edge ratio.** Sample figure and ground at their shared boundary: 3:1 or a 30% lightness
    difference for shapes, 4.5:1 for text. Report both values; 1.1:1 dissolves at thumbnail.
-2. **Silhouette at 64 px.** `get_canvas_image`: fill the figure `#000000` on `#FFFFFF` and scale to
+3. **Silhouette at 64 px.** `get_canvas_image`: fill the figure `#000000` on `#FFFFFF` and scale to
    64 px. A shape that is not identifiable is either too complex or too weakly separated.
-3. **Reversal.** Invert the composition to white on black and re-read it. A shape that works only
+4. **Reversal.** Invert the composition to white on black and re-read it. A shape that works only
    one way is fragile and fails the second ground.
-4. **Text plate.** Where type sits on an image, measure the plate at 70–85% opacity and re-check
+5. **Text plate.** Where type sits on an image, measure the plate at 70–85% opacity and re-check
    4.5:1 through the darkest part of the ground. An outline around the letters fails as the
    distracting figure.
 

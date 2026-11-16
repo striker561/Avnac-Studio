@@ -29,6 +29,9 @@ experience of a sequence of pages" (p. 84).
   binding opens flat (see `88-binding-and-book-construction`).
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=add-page per beat or frame keeps the sequence inspectable; `elements` op=render places each; `canvas` op=go-page steps through; `get_canvas_image` judges the cut.
+
 1. **Write a beat sheet, one row per spread** — beat, density %, image size, type role, and the
    reward for the turn. Thirty-two rows fit on one page and can be argued about before any layout
    exists.
@@ -79,17 +82,18 @@ and the two reveals sit four spreads apart, at the opening quarter and the centr
 the only image that crosses the fold; every other image is composed to stand within its page.
 
 ## Verification
-1. **Beat sheet complete.** One row per spread: beat, density %, image size, type role, reward. For
+1. **Ops receipt.** Every beat has a page named for its position, `get_canvas_image` is reviewed in sequence rather than singly, and the pacing holds when the pages are read at the delivery interval. A sequence judged one panel at a time has no rhythm.
+2. **Beat sheet complete.** One row per spread: beat, density %, image size, type role, reward. For
    the 32-page example that is 32 rows. A row without a beat name is a spread designed by accident.
-2. **Density run.** Read the density column: no three spreads above 60% in a row, and two or three
+3. **Density run.** Read the density column: no three spreads above 60% in a row, and two or three
    dense spreads are followed by one below 25%. The example runs open, open, dense, reveal, medium,
    open.
-3. **Reveal count.** One full-bleed, one colour surprise and one scale jump per 16-page signature,
+4. **Reveal count.** One full-bleed, one colour surprise and one scale jump per 16-page signature,
    at the emotional peak. The two reveals in the example sit four spreads apart, p8–9 and p16–17.
-4. **Turn test.** Review pairs 1-2, 2-3, 3-4 as the reader turns: every right-hand page adds what
+5. **Turn test.** Review pairs 1-2, 2-3, 3-4 as the reader turns: every right-hand page adds what
    the left did not. A right page that only continues the left has no turn and the beat sheet is
    fiction.
-5. **Fold clearance.** On perfect binding, faces stay 10 mm clear of the fold; the only cross-gutter
+6. **Fold clearance.** On perfect binding, faces stay 10 mm clear of the fold; the only cross-gutter
    image in the example sits on a saddle-stitched spread at p16–17.
 
 ## Related Rules

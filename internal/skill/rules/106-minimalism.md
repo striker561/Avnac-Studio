@@ -21,6 +21,9 @@ four elements a 1 px misalignment is a visible defect.
 - Reduction without hierarchy is just emptiness — a minimal design still needs one entry point.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places only the surviving elements; `canvas` op=validate reports `density` and `margin_ladder`; `get_canvas_image` is the reduction check; `elements` op=delete removes the rest.
+
 1. **The removal pass** — delete an element, then justify each survivor in one clause ("this rule
    separates title from detail"). If you cannot, delete it.
 2. **Optical precision** — align to a 4/8 px grid, use one margin value everywhere (say 96 px), and
@@ -61,15 +64,16 @@ A 1600×900 hero:
 - A single 1 px `#DADADA` rule at y=760 from x=120 to 1480 — the only other mark on the page.
 
 ## Verification
-1. **Margin census.** One margin value on all four sides — 120 px on the 1600×900 example. Two
+1. **Ops receipt.** `canvas` op=validate `density` is low and `margin_ladder` is generous, and `get_canvas_image` shows nothing that could leave without changing the meaning. Minimalism with one decoration is not minimalism.
+2. **Margin census.** One margin value on all four sides — 120 px on the 1600×900 example. Two
    distinct margins mean the precision has already gone.
-2. **Empty measure.** Overlay the grid and count: 40–60% of the canvas is empty. Below 40% the
+3. **Empty measure.** Overlay the grid and count: 40–60% of the canvas is empty. Below 40% the
    subtraction did not happen; above 60% there is no structure left to read.
-3. **Grid remainder.** Every element's x and y divide by 4 or 8 with no remainder. At this element
+4. **Grid remainder.** Every element's x and y divide by 4 or 8 with no remainder. At this element
    count a 1 px misalignment is a visible defect.
-4. **Contrast floor.** Body at 16 px minimum and 7:1 against its ground, with the accent under 10%
+5. **Contrast floor.** Body at 16 px minimum and 7:1 against its ground, with the accent under 10%
    of the area. Grey-on-grey at 4.5:1 fails as washed out, not as restrained.
-5. **Element justification.** Every surviving element answers in one clause what it carries. An
+6. **Element justification.** Every surviving element answers in one clause what it carries. An
    element with no answer is deleted and the removal pass rerun.
 
 ## Related Rules

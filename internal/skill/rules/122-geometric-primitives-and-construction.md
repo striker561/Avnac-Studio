@@ -40,6 +40,9 @@ grid lines, intersections — used to derive the final path, then discarded.
   need the stroke narrowed locally. Fix the joint, never the whole form.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw builds `rect`, `ellipse`, `circle`, `capsule`, `polygon`, `star` and `line` from measured boxes; `vector` op=update resizes one primitive by id; `get_canvas_image` is the construction check.
+
 1. **The three-circle logo grid.** Draw the outer circle, an inner circle at the counter radius,
    and a third circle at the stroke joint; derive the connecting edges as tangents. Every point is
    then an intersection, not a nudge.
@@ -111,16 +114,17 @@ One radius family (224, 176, 144, 24), one star ratio, and no point placed by ey
 radius is a parameter, so it can be tuned without redrawing the points.
 
 ## Verification
-1. **Primitive audit.** `vector` op `read`: a circle reports 4 anchors, a rounded rectangle 8
+1. **Ops receipt.** Every part is a published primitive with a measured box, `vector` op=read shows the box the primitive was built from, and `vector` op=update can resize it without rebuilding the scene. A curve that approximates a circle by hand fails the primitive test.
+2. **Primitive audit.** `vector` op `read`: a circle reports 4 anchors, a rounded rectangle 8
    (four lines and four corner arcs), a five-point star 10. More anchors than the primitive needs
    means it was hand-drawn.
-2. **Radius family.** List every distinct corner radius in the file. Four or fewer; more means the
+3. **Radius family.** List every distinct corner radius in the file. Four or fewer; more means the
    eye will read the corners as unrelated.
-3. **Tangency at 400%.** Where an arc meets a line, the join shows no kink. A kink is a construction
+4. **Tangency at 400%.** Where an arc meets a line, the join shows no kink. A kink is a construction
    error — the radius centre is not on the perpendicular — not an anti-aliasing artifact.
-4. **Feature floor.** At final size, no painted feature is under 0.5 px on screen or 0.25 pt in
+5. **Feature floor.** At final size, no painted feature is under 0.5 px on screen or 0.25 pt in
    print. Anything smaller is deleted or enlarged, never left to chance.
-5. **Guides gone.** The delivered file contains no construction circles or guide layers; guides that
+6. **Guides gone.** The delivered file contains no construction circles or guide layers; guides that
    ship are read as artwork.
 
 ## Related Rules

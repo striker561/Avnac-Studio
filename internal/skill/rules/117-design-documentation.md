@@ -28,6 +28,9 @@ not in the room.
   deciding.
 
 ## Techniques
+
+**Avnac ops:** `get_canvas_summary` is the source list of what exists; `elements` op=measure supplies the real numbers; `canvas` op=add-page holds the documentation page; `export` op=png and op=svg deliver it.
+
 1. **Keep a decision log** — a table with `id | date | decision | alternatives | reason | owner`, ten to
    twenty rows for a project: `D07 · 2026-11-05 · body 16 px, not 14 px · 14 px was on the table for
    density · it passed contrast but failed the 320 px reflow test · AR`.
@@ -80,16 +83,17 @@ A six-week identity project, documented in four small files.
 Six months later a new designer reads those four files and knows why the red changed.
 
 ## Verification
-1. **Decision shape.** Every row carries id, date, decision, alternatives, reason and owner. A
+1. **Ops receipt.** Every documented value comes from `elements` op=measure or `get_object_properties`, not from memory, and the documentation page passes `canvas` op=validate. A rationale that cites no measurement is a story.
+2. **Decision shape.** Every row carries id, date, decision, alternatives, reason and owner. A
    reason that names a constraint can be re-tested; "per client feedback" cannot, when the
    constraint moves.
-2. **Version immutability.** v02 opens as a separate file and v01 still opens. An edited v01 has
+3. **Version immutability.** v02 opens as a separate file and v01 still opens. An edited v01 has
    destroyed the reason the change happened.
-3. **Asset schema.** Every asset has name, format, dimensions, colour space, licence, source,
+4. **Asset schema.** Every asset has name, format, dimensions, colour space, licence, source,
    intended use and owner. A missing licence column is a blocker, not a filing gap.
-4. **Names resolve.** Every element named in the record appears in `get_canvas_summary` under that
+5. **Names resolve.** Every element named in the record appears in `get_canvas_summary` under that
    name — `poster/headline`, not "the big text". A note nobody can locate is unverifiable.
-5. **Supersession chain.** Every superseded decision points at its replacement, and following the
+6. **Supersession chain.** Every superseded decision points at its replacement, and following the
    chain ends at an accepted entry. A dead instruction with no successor is how a brand book goes
    stale.
 

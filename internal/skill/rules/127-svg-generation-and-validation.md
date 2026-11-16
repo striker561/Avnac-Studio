@@ -36,6 +36,9 @@ dependencies it cannot carry, and numbers a renderer can parse without guessing.
   a decorative one is `aria-hidden="true"`.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=export returns the SVG source; `export` op=svg exports a page or selection; `vector` op=read returns the resolved document; `canvas` op=validate checks the placed artboard; `get_canvas_image` at 16 px and 4000 px is the render test.
+
 1. **Canonical serialisation.** Emit elements in a fixed attribute order, one element per line, two
    decimals, no trailing whitespace. Diffs then show design changes, not formatting noise.
 2. **Frame assertion.** Check `viewBox` equals the board and every painted bound lies inside it
@@ -96,16 +99,17 @@ numbers; 18 anchors total; renders at 16 px with the window and flame still legi
 with no facet.
 
 ## Verification
-1. **Frame assertion.** `viewBox` equals the board, origin `0 0`, `width`/`height` agree, and
+1. **Ops receipt.** The SVG from `export` op=svg is well-formed, its viewBox matches its width and height, every fill and stroke is explicit, and it renders at 16 px and 4000 px. An SVG that needs a stylesheet or a script to look right is not a deliverable.
+2. **Frame assertion.** `viewBox` equals the board, origin `0 0`, `width`/`height` agree, and
    `xmlns` is present. `vector` op `export` returns the file to inspect.
-2. **Paint audit.** Every painted element declares `fill` or `stroke`; no element relies on the
+3. **Paint audit.** Every painted element declares `fill` or `stroke`; no element relies on the
    default black; no `style=` attributes.
-3. **Path audit.** Compound paths declare `fill-rule`, no open path carries a fill, and every id is
+4. **Path audit.** Compound paths declare `fill-rule`, no open path carries a fill, and every id is
    unique.
-4. **Number audit.** No `NaN`, `Infinity` or exponent notation; two decimals at most.
-5. **Render matrix.** Rasterise at 16, 24, 64, 512 and 4000 px. Small sizes test drop-out and the
+5. **Number audit.** No `NaN`, `Infinity` or exponent notation; two decimals at most.
+6. **Render matrix.** Rasterise at 16, 24, 64, 512 and 4000 px. Small sizes test drop-out and the
    stroke minimum; large sizes test handles and stray geometry.
-6. **Self-contained.** No external `href`, font or stylesheet; a data-URL placement that depends on
+7. **Self-contained.** No external `href`, font or stylesheet; a data-URL placement that depends on
    the network is an invisible design change.
 
 ## Related Rules

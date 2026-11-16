@@ -9,6 +9,20 @@ description: Get files out of the design correctly — choose formats, set color
 The design is done and must become files. Wrong export settings are the most common way a good
 design arrives broken — check this even when the user does not ask.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Confirm the page | `get_canvas_summary` | the page name and artboard size |
+| Fix the board, if wrong | `canvas` op=resize | the artboard itself, not the export scale |
+| Raster | `export` op=png | multiplier and transparency for the destination |
+| Crop one part | `export` op=object | PNG or SVG of one object or group |
+| Vector | `export` op=svg | editable page or selection, optionally written to disk |
+| Look before export | `get_canvas_image` | the page as the file will carry it |
+| Check the written file | no op | open the path `export` returned, outside Avnac |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **List the destinations.** Each one gets its own export: web page, social platform, print,
    printer, developer, archive. One file cannot serve all of them well.

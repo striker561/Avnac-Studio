@@ -17,6 +17,9 @@ Unity is the evidence, visible at a glance, that all parts belong to the same th
 - Variety must not change what the reader understands. A varied property should signal a difference in content, or it is noise.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets the shared vocabulary (one palette, one type family, one radius); `arrange` op=group binds a module; `canvas` op=validate reports `level_census` and `contrast_floor`; `get_canvas_image` is the unity check.
+
 1. **Fix four tokens first** — family (Inter), palette (`#0E0E0E`, `#F5F1E8`, `#D8FF3E`), radius (24 px), stroke (2 px). Reuse them in every element.
 2. **Vary one property** — pick scale, rotation, texture, or color; vary exactly one, in exactly one place.
 3. **Grade the images** — apply the same duotone (`#101820` / `#F2AA4C`) and 15% grain to every photo in the set.
@@ -47,14 +50,15 @@ A six-card carousel at 1080×1080. Shared: 64 px margins, 24 px radius, Inter, p
 Variety: card 4 turns its label 90° and sets it at 96 px against 24 px everywhere else. One wild card, on the card whose content is the turn. At 270 px the set reads as one system with one interruption, which is exactly the intent.
 
 ## Verification
-1. **Token census.** Count distinct font sizes, hex values, radii and stroke weights. More than
+1. **Ops receipt.** `canvas` op=validate shows one stable `level_census` and no new level for the variation; `arrange` op=group leaves the module intact. `get_canvas_image` must show variety inside one system, not a second system.
+2. **Token census.** Count distinct font sizes, hex values, radii and stroke weights. More than
    three in any one category is drift; the four fixed tokens — family, palette, radius, stroke — are
    the shared set.
-2. **Wild-card count.** Find the deviant element and name the one property it varies. Two deviants
+3. **Wild-card count.** Find the deviant element and name the one property it varies. Two deviants
    are a second system, not an accent.
-3. **Shared-property ratio.** Across the set, roughly 80% of properties are identical and 20%
+4. **Shared-property ratio.** Across the set, roughly 80% of properties are identical and 20%
    deviate. A card set sharing four of five tokens is unified; one sharing two is a collection.
-4. **Treatment census.** Count treated and untreated photographs. One untreated image in a graded
+5. **Treatment census.** Count treated and untreated photographs. One untreated image in a graded
    set reads as an error, so the count is all or none.
 
 ## Related Rules

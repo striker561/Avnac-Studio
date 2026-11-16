@@ -3,6 +3,8 @@
 Use when you need to decide *where* things go and *why*, or when a layout looks correct but
 feels dead. This is the fast lookup; the reasoning lives in the linked rules.
 
+
+**Avnac ops:** `elements` op=render places the elements; `arrange` op=align and op=distribute hold the structure; `get_canvas_image` is the squint; `canvas` op=validate reports `density`, `margin_ladder` and `alignment`.
 ## The three questions, in order
 
 1. **What is the focal point?** Exactly one element must win the first fixation. If two tie,

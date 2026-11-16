@@ -26,6 +26,9 @@ type, so only relationships are perceived.
   with the type, the layout inflates and loses density.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure returns the real dimensions before placement; `elements` op=render sets the size relationship; `arrange` op=fit rescales the group as one; `get_canvas_image` shows the proportion at page scale.
+
 1. **Write the scale plan first** — three or four sizes, decided before placing anything. A 1080
    poster: 8 px legal, 24 px body, 96 px headline, 420 px display numeral. Four values, one
    message.
@@ -78,17 +81,18 @@ threshold, so each level is unmistakable at 25% zoom. The 26 px body is 2.2× th
 the smallest ratio in the set and still legible as a separate level.
 
 ## Verification
-1. **Step quotients.** Divide each adjacent pair of sizes in the file: every pair is 1.15× or
+1. **Ops receipt.** The key ratio is written as numbers, `elements` op=measure confirms the rendered boxes carry it, and `get_canvas_image` shows the same proportion at thumbnail size. Proportion that changes with the canvas is not a proportion.
+2. **Step quotients.** Divide each adjacent pair of sizes in the file: every pair is 1.15× or
    more, and the set matches its declared ratio. 18/20/22 gives 1.11 and 1.10 — one size set
    three times.
-2. **Medium threshold.** Largest to next: 1.25–1.4× for editorial, 3–8× for a poster, and above 4×
+3. **Medium threshold.** Largest to next: 1.25–1.4× for editorial, 3–8× for a poster, and above 4×
    the design stops reading as a document. A 1.25× poster has no image element; an 8× report
    shouts.
-3. **Spacing factor.** When type doubles, gaps grow about 1.4× — 70% of the type factor. Gaps that
+4. **Spacing factor.** When type doubles, gaps grow about 1.4× — 70% of the type factor. Gaps that
    double with the type inflate the layout and lose the density that made it work.
-4. **Two-zoom test.** At 25% every level is still separate; at 400% the detail rewards the zoom. A
+5. **Two-zoom test.** At 25% every level is still separate; at 400% the detail rewards the zoom. A
    frame that only works at 100% has scale but no structure.
-5. **Canvas split.** The frame divides on a stated ratio — 540/810 (2:3), 506/844 (3:5), 670/410
+6. **Canvas split.** The frame divides on a stated ratio — 540/810 (2:3), 506/844 (3:5), 670/410
    (1.618:1) — measured on the canvas rather than estimated under a grid overlay.
 
 ## Related Rules

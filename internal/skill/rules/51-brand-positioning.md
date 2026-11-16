@@ -17,6 +17,9 @@ A positioning statement names the audience, the need, the category the brand com
 - Write it before the moodboard. A statement written after the visual direction is a caption for a decision already made.
 
 ## Techniques
+
+**Avnac ops:** `guide` routes positioning to the brand rules; `elements` op=render puts the position on a comparison board; `get_canvas_image` tests whether it is distinguishable; `export` op=png presents it.
+
 1. **Fill the template in 35 words or fewer** — longer statements hide the disagreement rather than resolving it.
 2. **Write the anti-statement** — "we are not ___" for three named competitors, plus three things you refuse to be. Refusals are more actionable than ambitions.
 3. **Benefit ladder** — feature, then functional benefit, then emotional benefit. Design usually carries the emotional level with type and color, and the functional level with diagrams and numbers.
@@ -44,18 +47,19 @@ A positioning statement names the audience, the need, the category the brand com
 Thirty-four words: "For studio owners who lose weekends to admin, Ledgerly is the bookkeeping service that closes the month in four days, because every account is handled by one named bookkeeper." Design consequences: the four-day claim becomes a repeated three-step timeline band with numerals at 28 px; "one named bookkeeper" requires a real portrait and first names on the page; "studios" sets the photographic reference to workspaces rather than stock handshakes; the anti-statement "not a marketplace" removes star ratings and browse-all grids.
 
 ## Verification
-1. **Template fill.** Write the statement into its five slots — audience, need, category, benefit,
+1. **Ops receipt.** `get_canvas_image` shows the position distinguishable from the two nearest competitors named in the note, and every element on the board supports the one claim. A position that any competitor could also claim is not a position.
+2. **Template fill.** Write the statement into its five slots — audience, need, category, benefit,
    proof — and count the words. Pass: 35 or fewer, one audience, one category, one benefit. A second
    benefit or a second audience cannot rank anything.
-2. **Swap test.** Replace the brand name with each of three named competitors. Pass: no sentence
+3. **Swap test.** Replace the brand name with each of three named competitors. Pass: no sentence
    still reads true. One that does is a category description with your name in it.
-3. **Proof inventory.** List the assets that prove the claim: a number, a process, a material, a
+4. **Proof inventory.** List the assets that prove the claim: a number, a process, a material, a
    person, a date. Pass: two or more, each checkable. Fewer than two means the claim is a wish, and
    "quality" is not an asset.
-4. **Constraint table.** Check each clause against its "must" and "must not". Pass: five rows, and
+5. **Constraint table.** Check each clause against its "must" and "must not". Pass: five rows, and
    zero must-not violations in the built asset. A statement that has rejected nothing has not been
    used.
-5. **Benefit rank.** On the first screen or cover, measure the reading order at 25%. Pass: the
+6. **Benefit rank.** On the first screen or cover, measure the reading order at 25%. Pass: the
    benefit is read before the proof and before the category. Proof that outranks the benefit
    contradicts the statement it exists to support.
 

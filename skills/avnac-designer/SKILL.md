@@ -15,8 +15,9 @@ Every design task runs these steps before the first composition call:
 1. `guide(task=<the brief>)` — route the brief. Returns the workflow URI, the rules, and the
    Verification lines of the top three rules in `checks`; always-on `gates` ride along.
 2. Read `skill://<task>` (the workflow). Its "Rules to apply" list is the reading set.
-3. Read the rules behind `checks`, and any the workflow links that name your fault. Design from
-   those lines; open the rule when a check needs the reasoning.
+3. Read the rules behind `checks`, and any the workflow links that name your fault. Every rule
+   opens with its **Avnac ops** paragraph and its first check is the **Ops receipt** — run the
+   command, then read the reason. Open the rule when a check needs more than the receipt.
 4. Compose (`canvas` → `elements`).
 5. `canvas op=validate`, then `get_canvas_image`. Report pass/fail per check and name the rules.
 
@@ -44,6 +45,8 @@ token as a liveness check.
 ## 3. Tools
 
 Fourteen tools: six reads, seven `op` mutations, and `guide`. Legacy action names work as `op`.
+Every rule and workflow is built around these ops; `references://avnac-ops` is the catalogue,
+including the operations that do not exist (no palette, mask, blend or PDF op).
 
 | Tool | Use |
 |---|---|

@@ -24,6 +24,9 @@ decision made in advance: you specify the photograph before it exists and buy ri
   rules out the poster you are designing.
 
 ## Techniques
+
+**Avnac ops:** `assets` op=unsplash searches with the remaining quota and stores the credit on placement; `elements` op=render adds the photo with `fit` and `focalPoint`; `get_canvas_summary` lists the credit; `get_canvas_image` judges the selection.
+
 1. **Write the shot brief** — three reference frames, lens (35 mm environmental, 85 mm portrait), one light
    at 45°, wardrobe, which side stays empty for type, and the final aspect ratio.
 2. **Search by the crop you need** — search scene plus action plus "copy space left", collect six
@@ -60,16 +63,17 @@ at 68×92 mm; only one keeps the face readable and the wall empty. Licensed for 
 North America, 10,000 units.
 
 ## Verification
-1. **120 px test.** At 120 px wide the subject and the claim still read. An image that only works at
+1. **Ops receipt.** `get_canvas_summary` lists a credit for every Unsplash placement, the image is placed with `fit=cover` and a `focalPoint` where the ratio differs, and `get_canvas_image` shows the subject surviving the crop. An uncredited photo is not deliverable.
+2. **120 px test.** At 120 px wide the subject and the claim still read. An image that only works at
    full size is a texture; change the crop or the picture before the layout hardens.
-2. **Copy-space contrast.** At final crop and size the quiet zone carries type at 4.5:1 at the worst
+3. **Copy-space contrast.** At final crop and size the quiet zone carries type at 4.5:1 at the worst
    pixel, and sits where the light falls away rather than across a highlight. In the example the
    headline holds 12:1 on the `#8A8A86` wall.
-3. **Set temperature.** Six to twelve images side by side: temperatures within ±300 K, one key
+4. **Set temperature.** Six to twelve images side by side: temperatures within ±300 K, one key
    direction, similar grain and casting. A 500 K outlier is a second shoot, not variety.
-4. **Licence gate.** Record media, term, territory, print run, permitted modifications and releases
+5. **Licence gate.** Record media, term, territory, print run, permitted modifications and releases
    before approval. An editorial-only frame in an advertisement fails, however well it crops.
-5. **Candidate comparison.** All six candidates placed at final size and crop, never judged on the
+6. **Candidate comparison.** All six candidates placed at final size and crop, never judged on the
    contact sheet; the chosen frame keeps the face readable at 68 × 92 mm with the wall empty.
 
 ## Related Rules

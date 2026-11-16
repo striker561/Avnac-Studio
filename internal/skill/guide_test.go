@@ -129,8 +129,14 @@ func TestRuleChecksAreTaskShaped(t *testing.T) {
 	if len(checks) < 3 {
 		t.Fatalf("rule 24 exposes %d checks", len(checks))
 	}
-	if !strings.HasPrefix(checks[0], "Level census — ") {
-		t.Errorf("first check = %q, want the task label in front", checks[0])
+	// The ops receipt is deliberately first: a guide prints the first two
+	// checks, and the command to run is more useful there than the third
+	// description of what to look at.
+	if !strings.HasPrefix(checks[0], "Ops receipt — ") {
+		t.Errorf("first check = %q, want the ops receipt in front", checks[0])
+	}
+	if !strings.Contains(strings.Join(checks, "\n"), "Level census — ") {
+		t.Errorf("checks = %v, want the Level census task label kept", checks)
 	}
 	for _, id := range lib.RuleIDs() {
 		rule, _ := lib.Rule(id)

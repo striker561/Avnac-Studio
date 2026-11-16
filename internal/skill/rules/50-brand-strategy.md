@@ -17,6 +17,9 @@ Brand strategy is the set of decisions that determine what the brand must mean �
 - Strategy ends in constraints, not adjectives. If the brief says "make it premium", the strategy work is not finished.
 
 ## Techniques
+
+**Avnac ops:** `guide` routes the identity work to the brand workflow and rules; `elements` op=render makes the strategy visible as a direction board on `canvas` op=add-page; `export` op=svg captures the direction board. Strategy itself has no op.
+
 1. **Two-by-two** — plot three to five competitors on the two axes the audience actually cares about (price vs. hand-holding). Find the empty quadrant, then check whether it is empty because it is unavailable or because nobody wants it.
 2. **Onlyness statement** — "Our brand is the only ___ that ___." If a competitor fits the blank, revise until none does.
 3. **Three attributes, ranked** — pick three, order them, delete any that cannot be shown in a layout. "Confident, warm, exact" beats ten adjectives.
@@ -44,18 +47,19 @@ Brand strategy is the set of decisions that determine what the brand must mean �
 A two-person letterpress studio. Audience: design-led couples booking 6–12 months ahead. Category: craft stationery. Difference: press work done in-house with 10-day proofs. Idea: "printed, not pictured." Constraints that follow: paper-forward photography at 1:1 and 4:5 crops; one ink plus one paper color, no gradients or gloss; type at 11/16 px minimum in the price list; every layout shows a real press sheet, never a mockup render.
 
 ## Verification
-1. **Idea length.** Count the words of the organizing idea. Pass: ten or fewer, and one named visual
+1. **Ops receipt.** The strategy is one sentence with an audience, a difference and a reason to believe; `get_canvas_image` shows two directions that differ in idea, not only in colour, and `export` op=svg carries the colour tokens. A strategy with no rejected alternative is a preference.
+2. **Idea length.** Count the words of the organizing idea. Pass: ten or fewer, and one named visual
    carrier — a photograph rule, a mark, a type move — that draws it. Over ten words, or no carrier,
    the idea is a paragraph rather than a brief.
-2. **Carrier table.** Open the strategy-to-design table. Pass: one row per attribute with carrier,
+3. **Carrier table.** Open the strategy-to-design table. Pass: one row per attribute with carrier,
    proof and anti-pattern filled. An attribute with no carrier cannot be built or judged; an empty
    anti-pattern column is where drift starts.
-3. **Onlyness swap.** Put three competitors' names into the onlyness sentence. Pass: none fits. If
+4. **Onlyness swap.** Put three competitors' names into the onlyness sentence. Pass: none fits. If
    one does, the sentence describes the category, and a competitor could make the claim tomorrow.
-4. **Three moments.** Show the actual assets at search result, shelf and invoice — the three moments
+5. **Three moments.** Show the actual assets at search result, shelf and invoice — the three moments
    the audience meets the brand. Pass: the same idea is legible at each, at its real size and
    distance, with no caption.
-5. **Audience count.** Count named audiences. Pass: one primary and one secondary, ranked. Three
+6. **Audience count.** Count named audiences. Pass: one primary and one secondary, ranked. Three
    audiences in one brief produce a design that signals none of them.
 
 ## Related Rules

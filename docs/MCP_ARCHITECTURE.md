@@ -59,7 +59,7 @@ scripted way to start a task, it is a prompt.**
 │                                  │                                                                │
 │  ┌───────────────────────────────▼───────────────────────────────┐                                │
 │  │ internal/skill (embedded markdown, parsed once)                │                                │
-│  │ SKILL.md · 22 task skills · 15 references · 125 rules          │                                │
+│  │ SKILL.md · 22 task skills · 16 references · 125 rules          │                                │
 │  └────────────────────────────────────────────────────────────────┘                                │
 │                                                                                                    │
 │  React frontend                                                                                    │
@@ -83,7 +83,7 @@ scripted way to start a task, it is a prompt.**
 | `internal/skill/skill.go` | Embed, parse, validate, route, search, plan |
 | `internal/skill/rules/` | 117 rule documents plus the generated `README.md` index |
 | `internal/skill/<task>/SKILL.md` | 22 task workflows |
-| `internal/skill/references/` | 15 lookup notes |
+| `internal/skill/references/` | 16 lookup notes (including `avnac-ops`) |
 | `frontend/src/features/scene-editor/use-mcp-actions.ts` | Dispatches `mcp:action` events into the scene store |
 | `frontend/src/lib/mcp/transport.ts` | Subscribes to the Wails event and calls `SubmitResponse` |
 | `frontend/src/lib/mcp/payload.ts` | Converts loosely typed agent input into engine values |
@@ -331,7 +331,7 @@ content — the `.md` files are the product.
 internal/skill/
 ├── SKILL.md               entry point: routing table, gates, how to read a rule
 ├── <task>/SKILL.md        21 workflows (poster, logo, brand, color, ...)
-├── references/*.md        15 lookup notes (thresholds, tables, formats)
+├── references/*.md        16 lookup notes (thresholds, tables, formats, ops)
 ├── rules/NN-topic.md      117 principles, fixed 10-section shape
 └── rules/README.md        generated index by domain (rules://index)
 ```
@@ -439,7 +439,7 @@ Instructions are paid for on every message, so the server does not enumerate 125
 The design library is served as resources. Read the one the task needs rather than guessing:
 - `skill://avnac-design` — entry point: routing table, always-on gates, how to read a rule.
 - `skill://<task>` — 22 task workflows: analyze, brand, color, ... visualize.
-- `references://<subject>` — 15 lookup notes: accessibility, branding, ... web-and-ui.
+- `references://<subject>` — 16 lookup notes: accessibility, branding, ... web-and-ui, avnac-ops.
 - `rules://index` — all 125 rules by domain, with links.
 - `rules://<id>` — one authoritative principle, e.g. `rules://24-typographic-hierarchy`.
 Start at `skill://avnac-design`, then the task skill, then the 4–8 rules it links.
@@ -487,7 +487,7 @@ Client                          Avnac MCP                                    Lib
 `Server.AddResourceTemplate` is supported by go-sdk v1.6.0. The alternative design exposes
 `rules://{id}` as a template and only lists `rules://index`, which keeps `resources/list` short.
 It is not used because explicit resources work in every client, while template support varies.
-If the rule count grows past the point where a 164-entry list is unwieldy, the migration is:
+If the rule count grows past the point where a 165-entry list is unwieldy, the migration is:
 register the index explicitly, add one template, and drop the 125 individual registrations —
 `designResources` is the single place to change.
 

@@ -32,6 +32,9 @@ it is noise.
   hierarchy designed downward from the headline usually ends with unreadable body copy.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure sizes each level before it is drawn; `elements` op=render sets the levels; `canvas` op=validate reports `level_census` and `type_steps`; `get_canvas_image` is the squint that proves the order.
+
 1. **Scale jump** — set body at 16 px, then headline at 48–72 px (3×–4×, not 1.5×). Display
    type is a different regime: a poster headline can be 8× body; a UI dialog title rarely
    exceeds 1.75×.
@@ -84,16 +87,17 @@ distinctly heavier than the 22 px body, so level 2 reads as a caption to the hea
 as another body line.
 
 ## Verification
-1. **Level census.** List every text level with all four values: size, weight, colour, leading.
+1. **Ops receipt.** `canvas` op=validate reports `level_census` at four or fewer and no `flat_type_steps`: every adjacent pair is at least 1.3x or differs by two weight steps. `get_canvas_image` must show the order without reading the words.
+2. **Level census.** List every text level with all four values: size, weight, colour, leading.
    Four is the norm, five the poster maximum, three on a social post; two levels sharing all four
    values are one level.
-2. **Step measurement.** Each adjacent pair differs by a full step: 1.3×–1.5× size, two weight
+3. **Step measurement.** Each adjacent pair differs by a full step: 1.3×–1.5× size, two weight
    steps, or 30% lightness. An 18/20/22 px ladder is 1.11 and 1.10 and reads as one size.
-3. **Three-second read.** Render with `get_canvas_image`, view at 25%, and name the levels
+4. **Three-second read.** Render with `get_canvas_image`, view at 25%, and name the levels
    top-down in three seconds. The pair that costs a second is the pair that needs a full step.
-4. **Value floor.** Secondary at 70% of the primary's value, tertiary at 55%, and no text level
+5. **Value floor.** Secondary at 70% of the primary's value, tertiary at 55%, and no text level
    below 4.5:1 on its actual ground. Measure the tertiary over the composite, not over white.
-5. **Proximity ratio.** Space above every heading is about 2× the space below it. Equal space
+6. **Proximity ratio.** Space above every heading is about 2× the space below it. Equal space
    makes the heading float between two blocks and belong to neither.
 
 ## Related Rules

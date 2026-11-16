@@ -17,6 +17,9 @@ Balance is the distribution of visual weight around the canvas's axes. Proportio
 - The golden section is a preference, not a law; experimental preference for it is mild and highly context-dependent.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure returns the real boxes the balance depends on; `arrange` op=align and op=distribute build the structure; `canvas` op=validate reports `optical_centring`; `get_canvas_image` is how the weight is judged.
+
 1. **Weight map** — divide the canvas into a 4×4 grid, count dark cells per quadrant, note the centroid. Move one element rather than resizing three.
 2. **Small dark counterweight** — place the logotype or a solid block at the light end of the diagonal from the main mass.
 3. **Pick a ratio and apply it** — 2:3 gives 640×960, 400×600, 240×360; every block echoes the canvas.
@@ -49,15 +52,16 @@ A 1080×1350 invitation (4:5). A dark block 1080×480 is anchored at the bottom 
 Margins are unequal by design: 120 px top, 96 px sides, 0 px bottom because the block bleeds. The 620 px type block is 0.57 of the width, close to 3:5, so the type area echoes the canvas rather than sitting on it arbitrarily.
 
 ## Verification
-1. **Weight map.** Overlay a 4×4 grid and count dark cells per quadrant. The main mass and its
+1. **Ops receipt.** `canvas` op=validate reports no `mathematical_centring` warning: display type sits 2-4 px high at 100 px, not on the geometric centre. `get_canvas_image` confirms the visual centre matches the measured one.
+2. **Weight map.** Overlay a 4×4 grid and count dark cells per quadrant. The main mass and its
    counterweight sit in opposite quadrants across the diagonal; two dark masses on one side mean the
    piece tips.
-2. **Split arithmetic.** Measure where the composition divides: 0.57 of the width in the example,
+3. **Split arithmetic.** Measure where the composition divides: 0.57 of the width in the example,
    never at 50/50. A split between 1/3 and 2/3 recurs in the blocks; a second split line is a
    second system.
-3. **Margin ladder.** Measure all four margins: bottom largest, then outer, then top, and no two
+4. **Margin ladder.** Measure all four margins: bottom largest, then outer, then top, and no two
    equal. Equal margins fail on the evidence, not on taste.
-4. **Optical centring.** Centred type sits 2–4 px above its bounding-box centre at 100 px size, and
+5. **Optical centring.** Centred type sits 2–4 px above its bounding-box centre at 100 px size, and
    the optical centre about 5% above the geometric one. A 0 px offset means it was centred
    mathematically and will read low.
 

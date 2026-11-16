@@ -10,6 +10,19 @@ Elements are already on the canvas and the problem is arrangement, not content. 
 the copy is wrong, fix that first; composition cannot rescue a bad message. If nothing exists
 yet, use `create`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Read what is there | `get_canvas_summary` | objects, names and the active page |
+| Look before touching | `get_canvas_image` | what the composition actually does |
+| Find the failure | `canvas` op=validate | `margin_ladder`, `density`, `alignment`, `level_census` |
+| Move the structure | `arrange` op=align | align to the artboard or to each other |
+| Even the intervals | `arrange` op=distribute | three or more objects, equal gaps |
+| Fix without rebuilding | `elements` op=modify | by id or unique name, one pass |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Diagnose before moving anything.** Write the three symptoms the user described and the one
    you see. "Feels flat" is not a diagnosis; "nothing has more than 1.2× the visual weight of

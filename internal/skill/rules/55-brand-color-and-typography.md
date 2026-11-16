@@ -21,6 +21,9 @@ and size fixed per hierarchy level.
 - Check the fallback stack: a different x-height changes measure and line breaks on the platforms you ship on.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render applies brand `fill` and text `fontFamily`; `assets` op=fonts verifies the family; `canvas` op=validate `contrast_floor` checks the pairs; `export` op=svg emits the hexes and font names as handoff.
+
 1. **Anchor on a value** — take the target hex into OKLCH, then build 100/300/500/700/900 by moving lightness
    only, so every tint stays the same hue.
 2. **60-30-10 test** — on 1920×1080, set 60% neutral, 30% support, 10% hero. If the hero dies at 240 px wide,
@@ -59,18 +62,19 @@ Fraunces runs 72–120 px only, axis locked to `wght 600 / SOFT 40`; Inter cover
 Inter → system sans and both web licenses are logged.
 
 ## Verification
-1. **Palette count.** List brand fills by role: one hero, two supports, three neutrals. Pass: six. A
+1. **Ops receipt.** `export` op=svg lists one hex per brand role and the selected families, `assets` op=fonts reports them loaded, and `canvas` op=validate `contrast_floor` passes on every text pairing. A brand colour with no contrast pair is half a spec.
+2. **Palette count.** List brand fills by role: one hero, two supports, three neutrals. Pass: six. A
    seventh saturated colour is a mood the next editor re-balances.
-2. **Hue spread.** Convert every fill to OKLCH and measure its hue distance from the hero. Pass:
+3. **Hue spread.** Convert every fill to OKLCH and measure its hue distance from the hero. Pass:
    within ±10° for every support, with value and chroma carrying the difference. State the spread in
    degrees; 30° is a second palette.
-3. **60-30-10 area.** Measure painted area on the 1920 × 1080 application. Pass: 60% neutral, 30%
+4. **60-30-10 area.** Measure painted area on the 1920 × 1080 application. Pass: 60% neutral, 30%
    support, 10% hero, and the hero's hue is still nameable when the page is rendered 240 px wide. A
    hero that dies at 240 px sits too close to the neutral in value.
-4. **Three-size proof.** Set one sentence at 96, 32 and 14 px in every weight in use. Pass: no
+5. **Three-size proof.** Set one sentence at 96, 32 and 14 px in every weight in use. Pass: no
    closed counter at 14 px, no gappy spacing at 96 px, and the same line breaks in the declared
    fallback stack.
-5. **Adjacent-brand check.** Six competitor swatches at 200 × 200 px. Pass: where a competitor sits
+6. **Adjacent-brand check.** Six competitor swatches at 200 × 200 px. Pass: where a competitor sits
    within about 10° of the hero's hue, the value or chroma differs measurably — print the delta.
 
 ## Related Rules

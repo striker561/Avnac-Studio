@@ -9,6 +9,19 @@ description: Choose, pair, size and set type — typeface selection, hierarchy, 
 Type is the main material: covers, posters with type as image, editorial pages, slide decks, brand
 wordmarks. If the task is a UI screen, use `ui`; if it is a logo, use `logo`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the type | `guide` | typography workflow and its rules |
+| Check the families | `assets` op=fonts | what is loaded, not what is named |
+| Measure the setting | `elements` op=measure | width, line count, breaks, cap metrics |
+| Set it | `elements` op=render | `fontFamily`, `fontSize`, `lineHeight`, `textAlign` |
+| Read the metrics back | `get_object_properties` | the render, not the proposal |
+| Audit the scale | `canvas` op=validate | `level_census` and `type_steps` |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Decide the voice first.** Three adjectives (e.g. "precise, warm, a little severe") and their
    opposites. Typeface choice follows voice; it cannot create it after the fact.

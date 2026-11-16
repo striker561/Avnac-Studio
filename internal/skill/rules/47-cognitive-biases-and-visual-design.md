@@ -17,6 +17,9 @@ A cognitive bias is a systematic, predictable departure from neutral judgment. T
 - Loss aversion: a real loss ("Your draft expires in 7 days") outweighs an equal gain, and a fabricated one destroys trust permanently.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render sets the anchor and the comparison; `elements` op=modify changes one variable at a time; `get_canvas_image` shows the effect; `canvas` op=validate reports the measured checks.
+
 1. **Set the anchor on purpose** — highest value first in reading order (left, or largest), with the unit stated once: "per month, billed annually".
 2. **Three tiers, one recommended** — three cards, the middle 6% larger with a 2 px accent border, tagged "Most popular", and the only filled CTA in the row.
 3. **Preselect the common case** — annual billing, standard shipping, the middle plan — plus one reassurance line ("Change any time") to lower the cost of committing.
@@ -44,18 +47,19 @@ A cognitive bias is a systematic, predictable departure from neutral judgment. T
 A 1200 px pricing section: three cards 360 px wide with 24 px gutters; the middle card is 380 px and 6% taller with a `#1F6FEB` 2 px border and a 12 px all-caps "Most popular" tag. Prices read `$19`, `$48`, `$129` per month; the anchor sits above the row as one line, "Agency annual: $1,380", at 13 px `#6B7280`, so the monthly figures are read against a larger number first. The annual toggle is preselected with "Save 20%" in `#0F766E`, and only the middle card's CTA is filled.
 
 ## Verification
-1. **Option count.** Count the options visible at the moment of choice. Pass: three to five. Six
+1. **Ops receipt.** Only one variable changes between the two `get_canvas_image` reads, and `get_canvas_summary` shows nothing else changed. A bias tested with three changes at once proves nothing.
+2. **Option count.** Count the options visible at the moment of choice. Pass: three to five. Six
    columns is a scan; 24 options cut purchase to about 3% where six reached about 30%.
-2. **Anchor order.** Read the numbers in reading order and find the first. Pass: it is the largest,
+3. **Anchor order.** Read the numbers in reading order and find the first. Pass: it is the largest,
    with its unit stated once. A "was" price needs a real prior price and a date; an invented one is
    fraud with a design credit.
-3. **Recommended tier.** Compare the three cards. Pass: exactly one differs, by 6% size, a 2 px
+4. **Recommended tier.** Compare the three cards. Pass: exactly one differs, by 6% size, a 2 px
    accent border, one tag, and the row's only filled CTA. A second filled CTA turns the
    recommendation into a question.
-4. **Default audit.** List every preselected control. Pass: each default is the one you would
+5. **Default audit.** List every preselected control. Pass: each default is the one you would
    recommend, carries a "change any time" line, and consent is unchecked. A pre-checked marketing
    box converts once and breaches consent.
-5. **Frame consistency.** Count gain-framed and loss-framed statements. Pass: one frame on the page.
+6. **Frame consistency.** Count gain-framed and loss-framed statements. Pass: one frame on the page.
    "90% success" in the hero and "10% failure" in the table is one fact used twice, and it reads as
    manipulation.
 

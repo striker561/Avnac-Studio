@@ -4,6 +4,8 @@ Use when a brief asks for a historical style, or when you need to know *why* a c
 Rules: [`100-design-movements`](../rules/100-design-movements.md) and the movement rules
 [`101-bauhaus`](../rules/101-bauhaus.md) through [`110-retro-and-vintage-design`](../rules/110-retro-and-vintage-design.md).
 
+
+**Avnac ops:** `guide` routes the movement; `elements` op=render applies its grammar; `vector` op=draw constructs period ornament as geometry; `get_canvas_image` tests whether the style reads without its label.
 ## Timeline that matters for design decisions
 
 | Period | Movement | Core idea | Visual shorthand |

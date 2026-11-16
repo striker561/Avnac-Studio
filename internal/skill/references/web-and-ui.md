@@ -4,6 +4,8 @@ Use for screen-native layouts and interface work. Rules:
 [`90-ui-design-principles`](../rules/90-ui-design-principles.md) through
 [`99-interface-consistency`](../rules/99-interface-consistency.md).
 
+
+**Avnac ops:** `canvas` op=preset sets the screen; `elements` op=render builds components from tokens; `arrange` op=align holds the spacing; `canvas` op=validate reports `contrast_floor`, `density` and `margin_ladder`; `canvas` op=add-page holds the states.
 ## Spacing scale
 
 Use one 4 px base; the scale below covers almost every need.

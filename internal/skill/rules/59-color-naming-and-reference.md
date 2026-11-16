@@ -32,6 +32,9 @@ and unmemorable, which is why it gets substituted at the first handoff.
   shifts every patch slightly. Agree on the coordinate, then proof on the substrate.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render stores each named colour as a hex; `export` op=svg is the canonical reference a developer reads; `get_canvas_summary` names the objects the colours belong to; `assets` op=fonts confirms the type the colour is paired with.
+
 1. **Keep a palette table with five columns** — role, name, hex, print build, reference. One row
    per color; no color enters a file before it has a row.
 2. **Run the three-name test** — the client's word, the dictionary's "other names", and the trade
@@ -85,19 +88,20 @@ Pantone-matched masterbatch, not a CMYK build, and the foil-blocked logo is pric
 line rather than implied by the word "gold".
 
 ## Verification
-1. **Row audit.** Take every colour in the file and find its row. Pass: five columns filled — role,
+1. **Ops receipt.** `export` op=svg shows one hex per named colour and no near-duplicate names for the same value; the note gives hex, usage and a colour-space target. A name with no hex, or two hexes under one name, is not a reference.
+2. **Row audit.** Take every colour in the file and find its row. Pass: five columns filled — role,
    name, hex, print build, reference — and the name is a role (`accent`, `surface-raised`), never an
    appearance (`sage-300`). A colour with no row is an intention.
-2. **Coordinate agreement.** Compare the hex, the CMYK build and the Pantone reference. Pass: all
+3. **Coordinate agreement.** Compare the hex, the CMYK build and the Pantone reference. Pass: all
    three name one colour, the coordinate is written as the authority, and the proof on the specified
    stock matches it. Print the delta; a hex and a build a visible step apart are two colours.
-3. **Three-name test.** Put the client's word, the dictionary's other names and the trade name
+4. **Three-name test.** Put the client's word, the dictionary's other names and the trade name
    beside one coordinate. Pass: all three land on it, or a swatch pair was shown and the client
    chose the coordinate rather than the word.
-4. **Material claim.** Check every material word in the brief. Pass: each has ink, stock, finish and
+5. **Material claim.** Check every material word in the brief. Pass: each has ink, stock, finish and
    a price, and none ships as a hex. Gold on uncoated stock appears brown; CMYK cannot make the
    shine.
-5. **Neighbour proof.** Render the approved swatch on warm white `#F4F1EA` and on pure `#FFFFFF`,
+6. **Neighbour proof.** Render the approved swatch on warm white `#F4F1EA` and on pure `#FFFFFF`,
    then on the named substrate. Pass: it reads as intended on the stock it ships against, and the
    pair goes into the approval.
 

@@ -16,6 +16,9 @@ Color contrast is the perceived difference between two adjacent colors: mostly l
 - Dark themes are not inverted light themes. At 21:1 (#FFFFFF on #000000) thin text halates; cap dark-theme text near 15:1 and lift surfaces instead of casting shadows.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render carries fill and colour pairs; `canvas` op=validate reports `contrast_floor` with the measured ratio for every text object; `elements` op=modify raises the value that fails. Shape-to-shape contrast has no op: compute the WCAG ratio by hand.
+
 1. **Compute, don't eyeball.** Linearize each channel (c/255 ≤ 0.03928 → c/12.92, else ((c/255+0.055)/1.055)^2.4), weight 0.2126/0.7152/0.0722, then (L_light+0.05)/(L_dark+0.05). If the pair fails, move the text step and keep the hue.
 2. **Build a value ladder on white:** #111111 at 18.9:1, #4D4D4D at 8.5:1, #767676 at 4.5:1, #949494 at 3.0:1. Assign primary, secondary, tertiary, and non-text respectively; anything lighter is ornament.
 3. **Rebuild dark themes by elevation:** base #121212, raised #1E1E1E, overlay #2C2C2C; text #E8E8E8 (~15:1) and #A0A0A0 (~7:1). Elevation is a lightness step, not a shadow.
@@ -41,18 +44,19 @@ Color contrast is the perceived difference between two adjacent colors: mostly l
 A 1080×1350 poster on #1B2A41 (L* ≈ 17): headline #FFFFFF at 14.4:1, subhead #949494 at 4.8:1, accent #E4572E at 4.2:1 — fine for a 64 px accent word, not for the 18 px date line, which stays #FFFFFF. White reversed out of the accent block is 3.4:1, so that block carries only 40 px+ text or a shape.
 
 ## Verification
-1. **Named pairs.** Table every text and background pair with its computed ratio: body 4.5:1, large
+1. **Ops receipt.** `canvas` op=validate `contrast_floor` passes: body text at 4.5:1, large text and UI at 3:1, measured against the topmost solid shape. Any pair the tool did not measure is computed by hand and written into the note.
+2. **Named pairs.** Table every text and background pair with its computed ratio: body 4.5:1, large
    text and UI boundaries 3:1, sustained reading 7:1. A pair recorded as "looks fine" has not been
    measured.
-2. **Top of range.** One element holds the highest ratio, about 18:1; each level below sits at least
+3. **Top of range.** One element holds the highest ratio, about 18:1; each level below sits at least
    30 L* under it. Two elements at 18:1 means neither leads.
-3. **Adjacency measured.** Compute each pair against the ground it sits on: `#767676` is 4.54:1 on
+4. **Adjacency measured.** Compute each pair against the ground it sits on: `#767676` is 4.54:1 on
    white and 4.8:1 on `#1B2A41`. A ratio taken from the swatch rather than the composite is the
    wrong number.
-4. **Dark-theme ceiling.** In the dark build text sits at or under about 15:1 and surfaces step by
+5. **Dark-theme ceiling.** In the dark build text sits at or under about 15:1 and surfaces step by
    lightness. Thin text at 21:1 halates on screen, and the light palette inverted is not a dark
    theme.
-5. **Hue removed.** Replace every colour with its L* equivalent: functional elements still separate.
+6. **Hue removed.** Replace every colour with its L* equivalent: functional elements still separate.
    Anything that merges depended on hue and fails for a colour-blind reader.
 
 ## Related Rules

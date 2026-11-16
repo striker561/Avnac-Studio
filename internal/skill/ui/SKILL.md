@@ -9,6 +9,19 @@ description: Design screens and interfaces — layout, spacing, components, stat
 The medium is an interactive screen. If the deliverable is a static graphic or poster, use those
 skills; if it is primarily charts, use `visualize`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the screen | `guide` | ui workflow and its rules |
+| Set the frame | `canvas` op=preset | the target screen size |
+| Build the components | `elements` op=render | from declared tokens |
+| Hold the rhythm | `arrange` op=align | panels and spacing on the unit |
+| Audit | `canvas` op=validate | `contrast_floor`, `level_census`, `density` |
+| Show the states | `canvas` op=add-page | one page per state, then compare |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Define the screen's one job** and the primary action. Every screen has one; if it has three,
    it is three screens.

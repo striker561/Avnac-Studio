@@ -29,6 +29,9 @@ source, and editable by whoever comes next.
   runs first.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=validate finds the mechanical tells (`level_overflow`, `flat_type_steps`, `over_dense`, `tight_margin`) with numbers; `get_canvas_image` finds the visual tells; `elements` op=modify fixes them; `export` op=png re-checks after export.
+
 1. **Re-target resolution** — compute the pixels the placement needs, then pick: regenerate larger, place
    smaller, composite over a solid panel, or accept lower PPI for a soft background (150 PPI is fine at
    1 m; atmosphere does not need 300).
@@ -81,17 +84,18 @@ Three artifacts from one campaign, cleaned before export.
 Each artifact gets one provenance row, so the next revision knows what was rebuilt.
 
 ## Verification
-1. **PPI at placement.** Recompute for every raster: 1024 px across 420 mm is 62 PPI. Regenerate,
+1. **Ops receipt.** `canvas` op=validate returns no failing check that was not deliberately accepted, and `get_canvas_image` at 25% shows no tell from the generated-art list. An artifact shipped with its tells is a draft.
+2. **PPI at placement.** Recompute for every raster: 1024 px across 420 mm is 62 PPI. Regenerate,
    place smaller or composite over a solid panel; upscaling is not a fix.
-2. **Quadrants at 100%.** Four corners and the centre on `#808080`: no tile seams, repeated motifs,
+3. **Quadrants at 100%.** Four corners and the centre on `#808080`: no tile seams, repeated motifs,
    mush in high frequencies, watermarks or almost-words.
-3. **SVG clean.** `vector` op `export` returns the file: explicit `viewBox`, no `<metadata>`,
+4. **SVG clean.** `vector` op `export` returns the file: explicit `viewBox`, no `<metadata>`,
    `sodipodi` or `inkscape` attributes, no `<style>` block, rounded coordinates, a `<title>`, and
    ≤10 KB per icon or ≤50 KB per illustration. It renders at 16 px and at 512 px.
-4. **Chart honesty.** Recompute every total from the source data: bars start at zero, units are
+5. **Chart honesty.** Recompute every total from the source data: bars start at zero, units are
    labelled, labels are live text, and the lie factor sits near 1.05. A generated legend the data
    does not support is fiction.
-5. **Provenance row.** Each artifact has one line — tool, date, prompt summary, seed, edits — so the
+6. **Provenance row.** Each artifact has one line — tool, date, prompt summary, seed, edits — so the
    next revision knows what was rebuilt and what was merely cleaned.
 
 ## Related Rules

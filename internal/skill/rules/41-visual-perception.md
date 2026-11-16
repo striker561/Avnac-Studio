@@ -16,6 +16,9 @@ Perception runs on fixations (pauses of 200–300 ms) joined by saccades (jumps 
 - Change blindness is real: a viewer comparing two versions will miss a swapped 16 px label. Never let a small change carry the argument.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render places the stimuli; `get_canvas_image` is the perception test; `canvas` op=validate reports `contrast_floor` where readability depends on it; `elements` op=modify corrects an illusion.
+
 1. **50 ms glance test** — export at 25% zoom, look once, look away, write down what you saw. If it isn't the intended first message, the hierarchy is inverted, not the color.
 2. **Blur ladder** — 16 px blur is the poster-at-distance read, 8 px the shelf read, 4 px the first-screen read; check the same layout at all three.
 3. **One fixation zone per message** — keep a headline and its subhead inside roughly 350×350 px so one fixation takes both; 900 px apart costs a saccade and a beat of comprehension.
@@ -42,19 +45,20 @@ Perception runs on fixations (pauses of 200–300 ms) joined by saccades (jumps 
 A 1200×628 link card: headline "Ship your first print run" at 44 px Semibold, x=80, y=210; subhead 18 px at y=268, so both sit inside one 340×340 fixation zone on the left. The product photo fills the right 40%, cropped at the canvas edge so its silhouette reads in the glance. Logo 120 px wide, 40 px from the bottom-left corner — a peripheral cue that only needs to register. At 25% zoom the headline survives and the subhead blurs to a gray band, which is acceptable: the headline carries the message.
 
 ## Verification
-1. **Gist pass.** Show the page at 25% for one glance, look away, then write the message it carried.
+1. **Ops receipt.** `get_canvas_image` is judged at the delivered size with the neighbouring element present, and the correction is made with `elements` op=modify rather than argued. A perception claim tested only in isolation is untested.
+2. **Gist pass.** Show the page at 25% for one glance, look away, then write the message it carried.
    Pass: the written message is the intended first message. Anything else means the hierarchy is
    inverted, not the colour.
-2. **Fixation grouping.** Measure the headline box to its subhead, edge to edge. Pass: both sit
+3. **Fixation grouping.** Measure the headline box to its subhead, edge to edge. Pass: both sit
    inside 350 × 350 px, one fixation. At 900 px the pair costs a saccade and a beat of
    comprehension.
-3. **Blur ladder.** Render with 16, 8 and 4 px of blur — the poster, shelf and first-screen reads.
+4. **Blur ladder.** Render with 16, 8 and 4 px of blur — the poster, shelf and first-screen reads.
    Pass: the same first message survives at each step. A message that appears only at the sharpest
    step is being read, not seen.
-4. **Periphery budget.** Mark the outer 10% on all four sides. Pass: it holds only peripheral cues —
+5. **Periphery budget.** Mark the outer 10% on all four sides. Pass: it holds only peripheral cues —
    logo, folio, "continued inside" — and nothing that must be read. A price or a caption in that
    band is never fixated.
-5. **Distance ratio.** Measure the headline's cap height and the viewing distance. Pass: the type is
+6. **Distance ratio.** Measure the headline's cap height and the viewing distance. Pass: the type is
    roughly 3× the 1 m proof for a 3 m read. A poster that matches the 1 m proof is a proof, not a
    poster.
 

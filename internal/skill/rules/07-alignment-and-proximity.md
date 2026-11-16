@@ -17,6 +17,9 @@ Alignment is the sharing of edges or centers along one or more axes. Proximity i
 - Interrupted diagonals appear to shift; the stronger the contrast, the larger the break, so offset continuous lines deliberately.
 
 ## Techniques
+
+**Avnac ops:** `arrange` op=align (including `cap-middle`) is the alignment; `arrange` op=distribute sets the proximity intervals; `arrange` op=group keeps a proximity cluster movable; `get_object_properties` returns the cap metrics `cap-middle` uses; `canvas` op=validate reports the `alignment` check.
+
 1. **Declare the axes** — one primary (left edge x=96), one secondary (baseline y=880). Every element references one of them; nothing floats.
 2. **Three-gap proximity** — 16 px inside a group, 48 px between groups, 144 px between sections. Grouping becomes visible without frames.
 3. **Optical overshoot** — a 100 px circle extends 2 px past the alignment line; a triangle's point sits 1–2 px beyond the cap line to look level.
@@ -48,15 +51,16 @@ A 1200×628 banner. Left axis x=64; logo 180×48 at y=48; headline baseline y=23
 Gaps: 24 px between logo and headline, 64 px between headline and CTA. The 2.7:1 ratio makes the first two read as one lockup and the CTA as a separate action, with no divider anywhere.
 
 ## Verification
-1. **Axis census.** Count the edges and centres elements align to. One or two axes; a third means no
+1. **Ops receipt.** `canvas` op=validate reports no `near_alignment` warning (display type 0-8 px off axis), and `get_object_properties` cap metrics agree with the visible baseline. A gap chosen by eye is checked next to the one `arrange` op=distribute produced.
+2. **Axis census.** Count the edges and centres elements align to. One or two axes; a third means no
    axis, and every element must reference one of them by coordinate.
-2. **Near-alignment scan.** Measure every pair of "aligned" edges. A difference under 8 px on a 1080
+3. **Near-alignment scan.** Measure every pair of "aligned" edges. A difference under 8 px on a 1080
    canvas fails unless it is snapped to 0 or widened past 24 px.
-3. **Gap ratio.** Divide the between-group gap by the within-group gap. Grouping needs at least
+4. **Gap ratio.** Divide the between-group gap by the within-group gap. Grouping needs at least
    1.5:1, 2:1 to 3:1 is comfortable, and 1:1 means the groups are unseparated.
-4. **Dividers gone.** Delete every rule and box. If grouping collapses, the gaps were never doing
+5. **Dividers gone.** Delete every rule and box. If grouping collapses, the gaps were never doing
    the work and the layout fails without its lines.
-5. **Overshoot.** A 100 px circle overshoots the alignment line by 2 px, a triangle's point by 1–2
+6. **Overshoot.** A 100 px circle overshoots the alignment line by 2 px, a triangle's point by 1–2
    px, centred type by 2–4 px. Zero correction is mathematical alignment, not optical.
 
 ## Related Rules

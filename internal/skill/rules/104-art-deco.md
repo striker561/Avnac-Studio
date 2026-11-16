@@ -23,6 +23,9 @@ palette with one metallic accent, around tall condensed display lettering.
 - Three or four colors, and a wide value range from near-black to cream.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw constructs the symmetric ornament from primitives and mirrors; `vector` op=update refines the repeat; `elements` op=render sets the type; `get_canvas_image` at 400% checks the repeat.
+
 1. **One motif, three scales** — draw a chevron or sunburst ray as a `path` on a 24 px module, repeat
    on 24 px steps, scale ×1, ×3, ×9. Group and duplicate along the step rather than redrawing by eye.
 2. **Palette** — `#0E0E0E`, brass `#C9A227`, cream `#F3E9D2`, optional deep green `#1F3B34`. Brass
@@ -64,15 +67,16 @@ A 1080×1350 invitation:
 - Body 18 px serif `#E8DCC2`, centered, three lines; date 14 px caps +12% at y=1180.
 
 ## Verification
-1. **Motif census.** One motif, repeated at three scales on a 24 px step (×1, ×3, ×9). A second
+1. **Ops receipt.** `vector` op=read shows the ornament mirrored from one source, `get_canvas_image` at 400% shows no slipped repeat, and the palette is held to the stated metals. Deco built from two different corners is not symmetry.
+2. **Motif census.** One motif, repeated at three scales on a 24 px step (×1, ×3, ×9). A second
    motif, or a repeat off the step, reads as wallpaper rather than ornament.
-2. **Axis.** The frame centre, the rule pair and the headline share one vertical centre line: 0 px
+3. **Axis.** The frame centre, the rule pair and the headline share one vertical centre line: 0 px
    difference. An offset axis wearing deco ornament fails — the language is centripetal.
-3. **Palette.** Four values — `#0E0E0E`, `#C9A227`, `#F3E9D2`, optional `#1F3B34` — with brass as a
+4. **Palette.** Four values — `#0E0E0E`, `#C9A227`, `#F3E9D2`, optional `#1F3B34` — with brass as a
    flat fill. One gradient stop, bevel or inner shadow on the metallic fails.
-4. **Frame arithmetic.** Border 8 px, inner rule 2 px, corner motif 48×48, text inset 1.5× the
+5. **Frame arithmetic.** Border 8 px, inner rule 2 px, corner motif 48×48, text inset 1.5× the
    border (12 px). Measure the inset; air that does not match the frame's weight looks borrowed.
-5. **Hairline floor.** No painted hairline below 0.5 pt, and 1 pt for foil. `export` the plate and
+6. **Hairline floor.** No painted hairline below 0.5 pt, and 1 pt for foil. `export` the plate and
    check the thinnest stroke against the output process.
 
 ## Related Rules

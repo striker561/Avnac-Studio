@@ -28,6 +28,9 @@ reads the rules, orders them by dependency, and produces concrete positions.
   centring; mark the object as optically adjusted so a later re-solve does not undo it.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw resolves `constraints` (centered_on, left_of, right_of, above, below, inside, aligned_with, equal_size) and `mirrorOf`; `vector` op=read returns the resolved positions; `vector` op=update moves the constraint source and re-resolves.
+
 1. **Constraint table first.** List subject, relation, reference, anchor pair, gap. Six rows are
    usually enough for a composition; twenty means the drawing is being solved instead of designed.
 2. **Top-down solve.** Board placement → subject → groups → details. Each pass only reads objects
@@ -92,15 +95,16 @@ no object is re-placed by hand. The mirror carries no constraint of its own: it 
 so editing one eye moves both.
 
 ## Verification
-1. **One pin per group.** Exactly one object in each solved group carries absolute coordinates;
+1. **Ops receipt.** Moving a source with `vector` op=update moves its dependants by the resolved relation, `vector` op=read shows no hand-placed duplicate, and the note names each relation. A centred pair placed by hand is two positions that will drift.
+2. **One pin per group.** Exactly one object in each solved group carries absolute coordinates;
    everything else names a relation. Two pins is a conflict, none is an unresolved group.
-2. **Cycle check.** Walk the dependency graph: it must be acyclic. Mutual `left_of` is an error to
+3. **Cycle check.** Walk the dependency graph: it must be acyclic. Mutual `left_of` is an error to
    report, not a tie to break arbitrarily.
-3. **Gap audit.** Every gap is a ratio or a spacing token. Search the IR for a gap that is a bare
+4. **Gap audit.** Every gap is a ratio or a spacing token. Search the IR for a gap that is a bare
    number with no derivation; that is the value that will break at the next size.
-4. **Re-solve test.** Change the pin's size or position once and re-run. Every child moves with it
+5. **Re-solve test.** Change the pin's size or position once and re-run. Every child moves with it
    and nothing stays behind at its old coordinates.
-5. **Mirror reads one source.** A mirrored object carries no constraint of its own; edit the source
+6. **Mirror reads one source.** A mirrored object carries no constraint of its own; edit the source
    and both halves move, exactly.
 
 ## Related Rules

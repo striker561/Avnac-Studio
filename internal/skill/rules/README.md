@@ -1,19 +1,24 @@
 # Rules index
 
 The authoritative half of the library. Each file is one applied principle, written to be used on
-a canvas rather than quoted: purpose, definition, core principles, techniques, when to use and
-avoid, common mistakes, a worked example, the checks that prove it, related rules and sources.
+a canvas rather than quoted: purpose, definition, core principles, techniques and the ops that
+perform them, when to use and avoid, common mistakes, a worked example, the checks that prove it,
+related rules and sources.
 
 Read the rule that the routed task skill links. Read this index once after the route and before the
 first render: the route is a sample chosen by word overlap, not the set. Read it again when a
 decision has no obvious owner — but do not wait to feel lost, because that feeling never arrives.
 
 - **Reading order**: `SKILL.md` → `<task>/SKILL.md` → the 4–8 rules it links → a reference for numbers.
+- **Ops, not adjectives**: every rule opens Techniques with **Avnac ops:** and Verification with an
+  **Ops receipt**. A cited op is `tool` op=name and must exist in
+  [`avnac-ops`](../references/avnac-ops.md); `go test ./internal/skill -run TestRulesCiteKnownOps`
+  enforces it, so a renamed op fails the build instead of an agent's call.
 - **Authority**: when a rule and a reference disagree about a number, the rule wins — fix the reference.
 - **Ceiling**: this library holds at most 128 rule files so an agent can hold the index in context.
 - **Adding a rule**: follow the template in any existing rule exactly; the H2 headings and their
-  order are enforced by `go test ./internal/skill`. A rule whose example is a fenced `json vector`
-  or `svg` block is compiled by that test, so a stale example fails the build.
+  order are enforced by `go test ./internal/skill`. Add the ops paragraph, add the receipt as check 1,
+  and keep every fence with `json vector` or `svg` compiling.
 - **Regenerating**: `node scripts/gen-rule-index.mjs` rewrites this file from the rule headers.
 
 ## Index

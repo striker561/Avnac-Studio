@@ -10,6 +10,19 @@ The deliverable is a *set* of colors with roles and rules, not a single color de
 choosing one color or judging a pair, use `color`; for owning a brand color strategically, use
 `brand`.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the system | `guide` | palette workflow and the color rules |
+| Apply the roles | `elements` op=render | surface, text, accent as hex on real elements |
+| Test the pairs | `canvas` op=validate | `contrast_floor` on the usable combinations |
+| Swap a role | `elements` op=modify | one value across the page |
+| Look in context | `get_canvas_image` | the palette working, not listed |
+| Emit | `export` op=svg | every hex on the page, as the handoff |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Pick the anchor.** One color the design must own. Source it from the most meaningful place
    available: the logo, the product, a material, the audience's category conventions.

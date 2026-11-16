@@ -25,6 +25,9 @@ focus treatment, all taken from system tokens rather than local values.
 - Density is a variant, not a fork: a 32 px table row and a 56 px list row are the same component.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render builds the component from `rect`, `cornerRadius`, `stroke`, text and `opacity`; `elements` op=modify sets a state; `get_object_properties` returns its box; `canvas` op=validate `contrast_floor`.
+
 1. **Draw the state matrix before the polish** — default, hover, active, focus, disabled, loading,
    error. Seven states × three sizes is 21 frames; if that is too many, the component is too complex.
 2. **Define elevation as shadows** — `0 1px 2px rgba(17,20,24,.08)` cards, `0 4px 12px rgba(17,20,24,.12)`
@@ -61,19 +64,20 @@ the label at 72% white. On the `#111418` sidebar the same component switches to 
 `#F5F3EC` label to hold 4.8:1.
 
 ## Verification
-1. **State matrix.** Seven states — default, hover, active, focus, disabled, loading, error — at
+1. **Ops receipt.** The component is built from the declared tokens, `get_object_properties` shows the box and styles match the spec, and `canvas` op=validate `contrast_floor` passes in every state. A component that changes radius between states is two components.
+2. **State matrix.** Seven states — default, hover, active, focus, disabled, loading, error — at
    three sizes: 21 frames. A missing frame is the finding; hover without focus fails the keyboard
    user.
-2. **Size and padding.** Heights 32, 40, 48 px with 44 px the touch floor, icons 16/20/24 px at an
+3. **Size and padding.** Heights 32, 40, 48 px with 44 px the touch floor, icons 16/20/24 px at an
    8 px gap, horizontal padding 2× vertical — 12 px vertical gives 24 px horizontal, 16 px for text
    only. Measure the built component, not the spec.
-3. **Radius and elevation.** Radius 4 px inputs and buttons, 8 px cards, 16 px modals, full for
+4. **Radius and elevation.** Radius 4 px inputs and buttons, 8 px cards, 16 px modals, full for
    pills and avatars; elevation 0–3, with a 1 px `border-subtle` from level 2 up. A 6 px radius
    beside an 8 px one reads as two families at a glance.
-4. **Focus ring.** 2 px at 2 px offset in `focus-ring`, at 3:1 against both the control fill and the
+5. **Focus ring.** 2 px at 2 px offset in `focus-ring`, at 3:1 against both the control fill and the
    page. `get_canvas_image` on the button over its darkest background shows the ring complete, not
    lost at the edge.
-5. **Value steps.** Hover and active move by value only: `#1F6F4A` → `#195C3D` → `#14492F` plus a
+6. **Value steps.** Hover and active move by value only: `#1F6F4A` → `#195C3D` → `#14492F` plus a
    1 px inset shadow, never a hue change. Disabled sits at 38–45% fill with a label at 3:1; 20%
    opacity drops the label to about 1.5:1.
 

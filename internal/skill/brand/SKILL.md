@@ -10,6 +10,19 @@ The work spans more than one artifact or must express a position rather than a m
 single logo file, use `logo`; for a palette alone, use `palette`. Use this skill when the question
 is "what should this brand look like *everywhere*".
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the strategy | `guide` | brand workflow and the rules that own identity |
+| Hold the directions | `canvas` op=add-page | one page per direction, never a new project |
+| Make it visible | `elements` op=render | positioning board, specimens, lockups |
+| Build the mark | `vector` op=draw | editable geometry for the identity |
+| Hand off tokens | `export` op=svg | hex, type and geometry a developer can copy |
+| Prove consistency | `get_canvas_image` | two applications side by side, one brand |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Collect the strategy inputs**, in this order: audience, category, differentiator, proof,
    personality (3–5 adjectives with opposites), constraints. If two are missing, ask; do not

@@ -30,6 +30,9 @@ point of use, with no caption explaining it and no designer in the room.
   repair in the order meaning → structure → surface.
 
 ## Techniques
+
+**Avnac ops:** `guide` names what the artifact is for; `elements` op=render makes the sign (shape, type, image); `get_canvas_summary` reads the result back as objects; `export` op=svg lets the semantics be inspected as markup.
+
 1. **Write the semantic brief in three lines** — what it must mean, to whom, in what context of
    use. If the third line needs a paragraph, the context is not understood yet.
 2. **Audit meaning per element** — list every element and its job in one phrase. "Decoration" is a
@@ -85,19 +88,20 @@ foyer the season name is legible before the film titles. A decorative film-strip
 barcode at thumbnail size; it was cut in the meaning audit, not retouched later.
 
 ## Verification
-1. **Element job list.** List every element with its job in one phrase. Pass: no row reads
+1. **Ops receipt.** `get_canvas_summary` names every object in the user vocabulary, and `export` op=svg shows no decorative element whose name and role cannot be stated. A sign whose meaning lives only in the designer head fails the readback.
+2. **Element job list.** List every element with its job in one phrase. Pass: no row reads
    "decoration". Every row that does is demoted to support or deleted, and the page is re-rendered
    before the next check runs.
-2. **Exception count.** Audit the four relationships — heading to body size, image edges to the
+3. **Exception count.** Audit the four relationships — heading to body size, image edges to the
    grid, caption spec, margin ladder. Pass: one exception per page at most. A second exception means
    the syntax is broken, not expressive.
-3. **Pragmatic five seconds.** At final size and distance, show the piece for five seconds and ask
+4. **Pragmatic five seconds.** At final size and distance, show the piece for five seconds and ask
    "what does it say, and what do you do next?". Pass: the answer matches the semantic brief,
    without the rationale. A viewer who needs the explanation is looking at a failed artifact.
-4. **Thumbnail read.** At 25%, the headline and the first item still read within three seconds. A
+5. **Thumbnail read.** At 25%, the headline and the first item still read within three seconds. A
    decorative border that reads as a barcode at that size is cut here, in the meaning audit, not
    retouched later.
-5. **Specificity.** Name the decisions that would have to change for another client: medium, scale,
+6. **Specificity.** Name the decisions that would have to change for another client: medium, scale,
    expression, colour, texture. Pass: the list is not empty. An element that would serve any client
    equally is a template, not a solution to this problem.
 

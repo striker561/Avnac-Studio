@@ -16,6 +16,9 @@ Cognitive load is the working-memory cost of using a design: the items to compar
 - Progressive disclosure is a depth budget, not a hiding trick: two levels maximum, each with a visible label.
 
 ## Techniques
+
+**Avnac ops:** `get_canvas_summary` counts what is on the page; `elements` op=render places the surviving elements; `get_canvas_image` is the glance test; `canvas` op=validate reports `density` and `level_census`.
+
 1. **Count decisions per zone** — list every choice a viewer makes in one view. Above four, split the view or set a default.
 2. **Chunk to three or four** — a 12-field form becomes three sections of four with visible headings; nine settings become three groups of three.
 3. **Default the boring decisions** — quantity 1, standard shipping, monthly billing, the middle plan. A default removes a decision, so it must be the one you would recommend.
@@ -43,18 +46,19 @@ Cognitive load is the working-memory cost of using a design: the items to compar
 A 1440×900 settings screen: 240 px left nav with three sections; the content column is 640 px wide, each section headed by a 13 px all-caps `#6B7280` label with four rows beneath — twelve settings read as three chunks. Each row is label 15 px `#111111` at left, control at right, 16 px vertical padding, no dividers inside a section and a 1 px `#E5E5E5` rule between sections. One `#1F6FEB` "Save changes" button, 44 px tall, at the bottom; nothing else is filled.
 
 ## Verification
-1. **Decision count.** List every choice a viewer makes in one view, from the rendered page. Pass:
+1. **Ops receipt.** `canvas` op=validate `density` and `level_census` are within band, and `get_canvas_image` at the real viewing distance yields the three intended items. If the fourth item is needed, remove something else rather than shrink it.
+2. **Decision count.** List every choice a viewer makes in one view, from the rendered page. Pass:
    four or fewer. Above four the view splits or a default removes one; eight reads as slow and
    twenty as work.
-2. **Chunk census.** Count items per visible group and check each group carries a heading. Pass:
+3. **Chunk census.** Count items per visible group and check each group carries a heading. Pass:
    groups of three or four, and twelve settings read as three chunks. Twelve ungrouped rows are
    twelve items.
-3. **Disclosure depth.** Count the levels between the primary action and the deepest detail in one
+4. **Disclosure depth.** Count the levels between the primary action and the deepest detail in one
    view. Pass: two, each labelled. A third level inside a static layout is a maze, and the main
    action is never the thing hidden.
-4. **Control weight.** Count filled controls in the decision area. Pass: one. Four buttons of equal
+5. **Control weight.** Count filled controls in the decision area. Pass: one. Four buttons of equal
    weight force the viewer to read all four before choosing anything.
-5. **Deletion test.** Remove every element no viewer acts on — the decorative rule, the restated
+6. **Deletion test.** Remove every element no viewer acts on — the decorative rule, the restated
    label, the icon repeating its text — and re-render. Pass: the page reads the same, which proves
    the elements were load.
 

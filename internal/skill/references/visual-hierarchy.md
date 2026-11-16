@@ -4,6 +4,8 @@ Use when you need to check or fix the order in which a design is read. The reaso
 [`02-visual-hierarchy`](../rules/02-visual-hierarchy.md) and
 [`24-typographic-hierarchy`](../rules/24-typographic-hierarchy.md); this file is the value table.
 
+
+**Avnac ops:** `elements` op=measure sizes each level; `elements` op=render sets them; `canvas` op=validate reports `level_census` and `type_steps`; `get_canvas_image` is the blur-and-squint pass.
 ## How many levels
 
 | Surface | Levels | Typical elements |

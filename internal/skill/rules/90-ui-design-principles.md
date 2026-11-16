@@ -24,6 +24,9 @@ pixel grids, input methods (mouse 1 px, finger 44 px) and the platform's own con
   rows. The wrong density is a format problem, not a spacing bug.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=preset or op=resize sets the screen; `elements` op=render places components and type; `canvas` op=validate reports `contrast_floor`, `level_census` and `margin_ladder`; `get_canvas_image` is the state check.
+
 1. **Name the screen's job in one verb** — publish, review, compare. Every element either serves
    that verb or moves below the fold; delete the rest.
 2. **Build the type ramp first** — 12/14/16/20/24/32 px, 1.25–1.5 line-height; body sits at 16 px.
@@ -62,19 +65,20 @@ into three sections separated by 32 px and a 1 px `#E3E1DA` rule. One filled `#1
 sits bottom-right at 40 px, with "Cancel" as a text button beside it.
 
 ## Verification
-1. **Primary action.** `get_canvas_image`: count the filled buttons. Exactly one per screen; every
+1. **Ops receipt.** `canvas` op=validate passes `contrast_floor`, `level_census` and `margin_ladder` on the screen, and `get_canvas_image` shows the primary action first. A screen that passes the checks but has no visible action has failed the product test.
+2. **Primary action.** `get_canvas_image`: count the filled buttons. Exactly one per screen; every
    other action is outlined, a text button or a link. Two filled buttons at equal weight leave the
    eye no entry point, and the user hesitates.
-2. **Target floors.** Measure every control: 44×44 px on touch, 32×32 px for a mouse, 24×24 px in a
+3. **Target floors.** Measure every control: 44×44 px on touch, 32×32 px for a mouse, 24×24 px in a
    dense toolbar, 8 px between adjacent targets. A 28 px row in a mobile list is under the floor and
    mis-taps the row above.
-3. **Contrast.** Body text 4.5:1, large text 3:1, icons, boundaries and the focus ring 3:1 against
+4. **Contrast.** Body text 4.5:1, large text 3:1, icons, boundaries and the focus ring 3:1 against
    their neighbours. Report the lowest ratio on the screen; 2.8:1 on secondary text is the failure
    this rule names.
-4. **Rhythm and ramp.** Every padding, gap and height is a multiple of 4, type comes from
+5. **Rhythm and ramp.** Every padding, gap and height is a multiple of 4, type comes from
    12/14/16/20/24/32 px at 1.25–1.5 line-height, and body sits at 16 px. An off-scale 10 or 14 px
    gap is the audit output.
-5. **Viewport test.** At 100% on 1280×720, the primary task and one anchor per region sit above the
+6. **Viewport test.** At 100% on 1280×720, the primary task and one anchor per region sit above the
    fold, and a settings page shows 8–12 elements. If the task needs scrolling there, the hierarchy
    is wrong however good the screen looks at 2560 px.
 

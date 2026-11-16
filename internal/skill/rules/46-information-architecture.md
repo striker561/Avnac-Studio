@@ -17,6 +17,9 @@ Information architecture is the structure of a body of content: the items, their
 - Visual hierarchy is IA made visible: indent 24 px per level, parents at full weight, children at 70% value.
 
 ## Techniques
+
+**Avnac ops:** `get_canvas_summary` lists what exists; `canvas` op=add-page holds each level of the structure; `elements` op=render makes the navigation; `get_canvas_image` tests the hierarchy; `canvas` op=validate `level_census`.
+
 1. **Card sort first** — 20–30 items, five users, ask them to group. Adopt a grouping only when 60–70% of participants produce it; anything less is your opinion.
 2. **Seven-item cap** — if the top level exceeds seven, promote a hub ("More", "All tools") or merge two siblings. Never shrink the type to fit an eighth item.
 3. **Bare-label test** — read each label with no context. If it needs its children to make sense, it is a category description, not a label.
@@ -44,18 +47,19 @@ Information architecture is the structure of a body of content: the items, their
 A 1440×900 documentation site: 264 px left nav with six sections of at most six items; the active item carries a 3 px `#1F6FEB` bar on its left edge plus Semibold weight; children indent 24 px and drop to 70% value. A 13 px breadcrumb sits above the H1, and the right column lists four to six on-page anchors. The three most-wanted pages — "Install", "Tokens", "Changelog" — all sit at level 2, two clicks from home.
 
 ## Verification
-1. **Breadth and depth.** Count top-level items and the deepest nesting in the rendered structure.
+1. **Ops receipt.** Every node in the structure maps to a named page or object from `get_canvas_summary`, and `get_canvas_image` shows the label set at one consistent level per depth. An IA with nodes that have no object is a diagram of an intention.
+2. **Breadth and depth.** Count top-level items and the deepest nesting in the rendered structure.
    Pass: seven or fewer top-level, three levels or fewer. An eighth top-level item is a hub or a
    merge, never smaller type.
-2. **Path count.** Write the route to the three most-wanted destinations. Pass: three steps or fewer
+3. **Path count.** Write the route to the three most-wanted destinations. Pass: three steps or fewer
    from the entry screen. A longer route is a restructure, not a navigation fix.
-3. **Label audit.** Read every label alone, with no children visible. Pass: one to three plain
+4. **Label audit.** Read every label alone, with no children visible. Pass: one to three plain
    nouns, parallel grammar, no internal vocabulary — "Billing", not "Financial Operations". Two
    labels for one concept is two maps.
-4. **Location mark.** Check every screen for an active state, breadcrumb, page title or section
+5. **Location mark.** Check every screen for an active state, breadcrumb, page title or section
    number. Pass: at least one, and it agrees with the structure. A viewer who cannot say where they
    are was lost by the architecture.
-5. **Indent and value.** Measure child indentation and value against the parent. Pass: 24 px per
+6. **Indent and value.** Measure child indentation and value against the parent. Pass: 24 px per
    level and children at 70% value, parents at full weight. A deeper level that differs only by bold
    has no visible structure.
 

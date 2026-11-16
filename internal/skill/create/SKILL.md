@@ -10,6 +10,20 @@ There is a request, a deliverable and no existing artifact. This is the general 
 the deliverable is clearly a poster, logo, UI screen, package or print job, use that skill
 instead and keep this one for the first hour of work.
 
+## Avnac ops
+
+| Step | Call | What it does here |
+|---|---|---|
+| Route the brief | `guide` | workflow, rules and the always-on gates |
+| Set the surface | `canvas` op=create | a new project, only for a new deliverable |
+| Size the copy | `elements` op=measure | line count, breaks and cap metrics before drawing |
+| Compose | `elements` op=render | one batch, background first |
+| Audit | `canvas` op=validate | measured checks, not impressions |
+| Look | `get_canvas_image` | the page as a viewer sees it |
+| Deliver | `export` op=png | the stated multiplier and transparency |
+
+Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
+
 ## Workflow
 1. **Extract the brief into five lines.** Audience, message, deliverable, constraints (brand,
    size, language), deadline. If two of the five are missing and the design cannot proceed

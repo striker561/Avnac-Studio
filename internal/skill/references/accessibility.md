@@ -6,6 +6,8 @@ poster, every document. Accessibility is a correctness property, not a feature. 
 [`98-web-accessibility`](../rules/98-web-accessibility.md),
 [`114-design-accessibility-checklist`](../rules/114-design-accessibility-checklist.md).
 
+
+**Avnac ops:** `canvas` op=validate reports `contrast_floor` for every text pair; `elements` op=measure checks the target and type sizes; `elements` op=modify raises a failing value or adds the non-colour cue. Colour-blind and keyboard simulation have no op: reason about the value channel, then look with `get_canvas_image`.
 ## Contrast minimums (WCAG 2.2)
 
 | Content | Minimum ratio | Notes |

@@ -5,6 +5,8 @@ Use when designing, revising or testing a mark. Rules:
 [`54-logo-types-and-variations`](../rules/54-logo-types-and-variations.md),
 [`52-visual-identity-systems`](../rules/52-visual-identity-systems.md).
 
+
+**Avnac ops:** `vector` op=draw constructs the mark; `vector` op=update refines by id; `export` op=object returns the cropped SVG or PNG; `get_canvas_image` at 16 px and 4000 px is the size test.
 ## Types, and what each promises
 
 | Type | What it is | Works when | Fails when |

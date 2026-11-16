@@ -31,6 +31,9 @@ be applied as a live node (an instance) or baked into copies of the geometry.
   axis of tension; four-fold is stable. Choose the count for the meaning, not for convenience.
 
 ## Techniques
+
+**Avnac ops:** `vector` op=draw generates the mirror with `mirrorOf` and `axis`; `vector` op=update applies `mirror`, `rotate` and `resize` to the source; `vector` op=read proves the resolved symmetry; `get_canvas_image` at 400% checks the axis.
+
 1. **Canonical mirror.** Reflect every point and control handle across the axis
    (`x' = 2a − x` for a vertical axis at `x = a`), then reverse the subpath order. Handles mirror
    with their points — never re-derive them.
@@ -105,14 +108,15 @@ The mirror line defaults to the board centre; move it with `axisValue` when the 
 canvas midline. Winding is reflected with the points, so a cut-out stays a cut-out.
 
 ## Verification
-1. **Axis overlay.** Show the mirror axis at 400%. Every point is either on the axis or has an exact
+1. **Ops receipt.** `vector` op=read shows the mirrored object has no geometry of its own, `vector` op=update on the source changes the mirror, and `get_canvas_image` at 400% shows no one-pixel slip on the axis. A half drawn twice is not symmetry.
+2. **Axis overlay.** Show the mirror axis at 400%. Every point is either on the axis or has an exact
    counterpart. An "almost" pair is the failure this rule exists to prevent.
-2. **Exactness.** `vector` op `read`: the mirrored object's resolved bounds are the exact reflection
+3. **Exactness.** `vector` op `read`: the mirrored object's resolved bounds are the exact reflection
    of its source across the axis, not a copy a few units off.
-3. **Winding.** Cut a hole in the source and mirror it. The hole stays a hole; if it fills
+4. **Winding.** Cut a hole in the source and mirror it. The hole stays a hole; if it fills
    solid, the contour direction was not reflected.
-4. **Node budget.** The mirrored half adds no anchors. If it does, it is a second drawing.
-5. **Text check.** No glyph is mirrored. Mirror the layout and set real type; reversed letterforms
+5. **Node budget.** The mirrored half adds no anchors. If it does, it is a second drawing.
+6. **Text check.** No glyph is mirrored. Mirror the layout and set real type; reversed letterforms
    are unreadable at any size.
 
 ## Related Rules

@@ -28,6 +28,9 @@ coordinates on every page, composed in two-page spreads rather than as individua
   standfirst, a caption, or white space — never by stretching the leading to fake a full column.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=measure sizes every text block and its line count before layout; `elements` op=render places text and images on the grid; `arrange` op=align holds the columns; `get_canvas_image` shows the spread as a reader sees it.
+
 1. **Build the furniture group once** — one `group` named `FURNITURE`: folio, running head, a
    0.5 px rule at 10% black, at identical coordinates on every page (folio baseline 24 px above
    trim, 84 px from the outer edge). Duplicate it and change only the folio number.
@@ -83,17 +86,18 @@ column 4 of the right page, so the image crosses the gutter and the remaining tw
 standing sidebar at exactly the y-position used on pages 4 and 6.
 
 ## Verification
-1. **Furniture coordinates.** Overlay the pages: folio, running head, rule, and caption block sit
+1. **Ops receipt.** `elements` op=measure line counts match the rendered blocks in `get_object_properties`, `get_canvas_image` shows one baseline grid across the columns and the reading order across the spread. An editorial layout that only works page by page is a stack of pages.
+2. **Furniture coordinates.** Overlay the pages: folio, running head, rule, and caption block sit
    at identical x and baseline, within 1 px. One page 4 px out is the drift that reads as a
    binding error.
-2. **Furniture weight.** Folio at 11–12 px / 8–9 pt, caption at 8.5 pt / 11 px on 1.25, running
+3. **Furniture weight.** Folio at 11–12 px / 8–9 pt, caption at 8.5 pt / 11 px on 1.25, running
    head at 8–10 pt caps. A running head larger than the body competes with the page it labels.
-3. **Gutter band.** Draw the 48 px band centred on the fold: no face, horizon, or straight
+4. **Gutter band.** Draw the 48 px band centred on the fold: no face, horizon, or straight
    architectural edge inside it. Those lines disappear into the binding, not into the design.
-4. **Caption hang.** Caption left edge on the image's left edge, 8–12 px below, measure capped at
+5. **Caption hang.** Caption left edge on the image's left edge, 8–12 px below, measure capped at
    the widest column the image spans, second line indented by the label width. Centred captions
    under unequal images leave a ragged left edge across the spread.
-5. **Column endings.** Divide each column's height by its leading: a whole number, no stretched
+6. **Column endings.** Divide each column's height by its leading: a whole number, no stretched
    leading. A padded last column shows as uneven grey before it shows as an error.
 
 ## Related Rules

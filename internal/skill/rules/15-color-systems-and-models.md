@@ -16,6 +16,9 @@ A color model is a coordinate system for color: RGB (additive channels), CMYK (s
 - ΔE quantifies "close enough": ≤1 invisible, 2–3 visible side by side, ≥5 a different color.
 
 ## Techniques
+
+**Avnac ops:** `elements` op=render stores the system as hex roles; `export` op=svg exposes those hexes as markup a developer can copy; `get_canvas_image` confirms the screen appearance. Model conversion (sRGB to P3, CMYK) happens outside Avnac.
+
 1. **Design in OKLCH, deliver in hex.** Choose L, C, H, convert to sRGB, and where C falls outside the gamut, lower C until it fits — you lose saturation, not identity. Label the result "sRGB #E4572E".
 2. **Ramp with fixed H.** Take L = 0.95, 0.85, 0.72, 0.58, 0.45, 0.33, 0.22, with C peaking mid-ramp at 0.14–0.18 for a warm hue and pulling back at both ends.
 3. **Check the CMYK gamut before sign-off.** Convert with the printer's profile (GRACoL 2013 for US coated, FOGRA39 for European), list every color above ΔE 3, and substitute a press-safe neighbor.
@@ -42,13 +45,14 @@ A color model is a coordinate system for color: RGB (additive channels), CMYK (s
 A festival identity built in OKLCH at H 40 is delivered as #E4572E. Seven steps from L 0.95 to 0.25 convert to hex and then to GRACoL: the two most saturated steps land at ΔE 4–6, visible in a proof. Pull C down by 0.02 on those two and the ramp returns within ΔE 2. The program then specifies PANTONE 172 C coated and 172 U uncoated, with CMYK as fallback.
 
 ## Verification
-1. **Space on every value.** Each colour is recorded with its space — "sRGB `#E4572E`", "GRACoL
+1. **Ops receipt.** `export` op=svg contains every role as an explicit hex, and `canvas` op=validate `contrast_floor` passes for the text roles; a model-dependent colour has a stated target space. A hex with no space is a guess on the press.
+2. **Space on every value.** Each colour is recorded with its space — "sRGB `#E4572E`", "GRACoL
    4/86/96/2", "PANTONE 172 C". A bare hex in a print file is undefined, so the press defines it.
-2. **Ramp monotonic in OKLCH.** Read the ramp's L values: 0.95 down to 0.22 in even steps, with C
+3. **Ramp monotonic in OKLCH.** Read the ramp's L values: 0.95 down to 0.22 in even steps, with C
    peaking mid-ramp at 0.14–0.18. An HSL ramp shows mid-steps that desaturate and a hue that drifts.
-3. **Gamut audit.** Convert every colour with the printer's profile and list those above ΔE 3. ΔE 1
+4. **Gamut audit.** Convert every colour with the printer's profile and list those above ΔE 3. ΔE 1
    is invisible, 2–3 is visible side by side, 5 is a different colour.
-4. **Spot pair.** Every spot ink carries a coated and an uncoated number plus a CMYK fallback. One
+5. **Spot pair.** Every spot ink carries a coated and an uncoated number plus a CMYK fallback. One
    number for both stocks is a press surprise, not a specification.
 
 ## Related Rules

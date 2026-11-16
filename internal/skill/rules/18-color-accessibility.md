@@ -17,6 +17,9 @@ Color accessibility means three measurable things: contrast sufficient to read t
 - Focus indicators need 3:1 against both the component and the surrounding background.
 
 ## Techniques
+
+**Avnac ops:** `canvas` op=validate reports `contrast_floor` for text; `elements` op=modify raises a failing value; `get_canvas_image` is the non-colour cue check. Colour-blind simulation has no op and is done outside Avnac or by reasoning about the value channel.
+
 1. **Compute before shipping.** Check every text/background pair and pick the nearest passing step of the same hue; a passing gray exists at almost any hue if you move value (see 14).
 2. **Encode twice.** Error = red + icon + the word "Error". Link = color + underline. Chart series = color + direct label + distinct value.
 3. **Start from a tested categorical set.** Okabe-Ito: #000000, #E69F00, #56B4E9, #009E73, #F0E442, #0072B2, #D55E00, #CC79A7. Drop to four or five for print, where close hues muddy.
@@ -44,16 +47,17 @@ Color accessibility means three measurable things: contrast sufficient to read t
 A 1440×900 dashboard: the "Live" status uses #0072B2 on #FFFFFF (4.8:1) plus a check icon and the word. The alert color #D55E00 measures 3.9:1, so it carries only a 3 px rule and an icon, with the number itself in #111111 (18.9:1). Series colors come from Okabe-Ito and each line is labelled at its end, so the chart reads in grayscale as separated values rather than a legend-matching exercise.
 
 ## Verification
-1. **Pair table.** Every text and background pair with its ratio: 4.5:1 body, 3:1 large text and UI
+1. **Ops receipt.** `canvas` op=validate `contrast_floor` passes every text pair, and every meaning carried by hue also has a value, shape or label cue visible in `get_canvas_image`. A pass on text alone does not make the artifact accessible.
+2. **Pair table.** Every text and background pair with its ratio: 4.5:1 body, 3:1 large text and UI
    boundaries, 7:1 where AAA is claimed. Focus indicators hold 3:1 against the component and against
    the surround.
-2. **Four passes.** Grey, deuteranopia, 200% zoom, laser print. Any cue that disappears in one pass
+3. **Four passes.** Grey, deuteranopia, 200% zoom, laser print. Any cue that disappears in one pass
    is not yet a cue, whatever the hex says.
-3. **Series separation.** Neighbouring series sit 20+ L* apart, then differ in hue, then in pattern.
+4. **Series separation.** Neighbouring series sit 20+ L* apart, then differ in hue, then in pattern.
    Two series within 20 L* are one series in grey.
-4. **Double encoding.** Every colour-carried meaning has a second carrier: icon, label, shape,
+5. **Double encoding.** Every colour-carried meaning has a second carrier: icon, label, shape,
    position or weight. Count the colour-only cues in the file; zero is the pass.
-5. **Composite ratio.** Measure text over its final composite, not its token. Text at 60% opacity
+6. **Composite ratio.** Measure text over its final composite, not its token. Text at 60% opacity
    over a photograph has a different ratio from the hex, and a scrim that was not remeasured is a
    guess.
 

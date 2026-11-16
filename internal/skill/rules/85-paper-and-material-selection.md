@@ -26,6 +26,9 @@ with thickness given in µm or flute profiles.
   pushes yellows green. Choose the shade before the palette.
 
 ## Techniques
+
+**Avnac ops:** `guide` routes stock selection to the print rules; `elements` op=render places a paper-tint swatch next to the artwork; `get_canvas_image` shows the ink on the stock colour; `export` op=png is the printer preview. No op selects stock.
+
 1. **Write the spec line in full** — "350 g/m² matte-coated, 1 side, FSC, 0.42 mm caliper, warm
    white" is quotable; "thick card" is not. Put it in the file header.
 2. **Pick stock from the concept's verb** — *read*: 90–120 g/m² uncoated, low glare. *Handled*:
@@ -63,19 +66,20 @@ page is 148×210 mm plus 3 mm bleed; the spec line reads "A5, 24 pp self-cover, 
 white, saddle-stitch, 2 staples".
 
 ## Verification
-1. **Spec line.** The file header carries grammage, surface, caliper, shade and opacity — '350 g/m²
+1. **Ops receipt.** The stock is named with weight and finish, `get_canvas_image` shows the artwork on its tint rather than white, and the note states what the stock does to the ink. A stock chosen after the art was approved is a reprint.
+2. **Spec line.** The file header carries grammage, surface, caliper, shade and opacity — '350 g/m²
    matte-coated, 1 side, FSC, 0.42 mm caliper, warm white'. A spec reading 'thick card' cannot be
    quoted, so it will be substituted.
-2. **Weight against handling.** Text pages 90–120 g/m², brochure covers and hand-held posters
+3. **Weight against handling.** Text pages 90–120 g/m², brochure covers and hand-held posters
    130–170, cards 250–350, business cards and packaging board 350–450. A 120 g/m² cover on a 96-page
    book is a text sheet doing a cover's job.
-3. **Caliper against grammage.** Ask for caliper where thickness matters: 300 g/m² coated measures
+4. **Caliper against grammage.** Ask for caliper where thickness matters: 300 g/m² coated measures
    about 0.35 mm, 300 g/m² uncoated about 0.45 mm. A fold, postage band or box fit quoted from
    grammage alone is out by a tenth of a millimetre.
-4. **Opacity and reverse.** Below 100 g/m², opacity is 88–92% on 90 g/m² uncoated: hold the dummy to
+5. **Opacity and reverse.** Below 100 g/m², opacity is 88–92% on 90 g/m² uncoated: hold the dummy to
    the light and confirm no dark flood on the reverse reads through body text. A flood behind 9 pt
    type shows as grey noise.
-5. **Dot gain on the stock.** Dot gain is 18–25% uncoated, 12–16% silk, 8–12% gloss, so a 60% tint
+6. **Dot gain on the stock.** Dot gain is 18–25% uncoated, 12–16% silk, 8–12% gloss, so a 60% tint
    prints visibly darker on uncoated. Read the 50% and 60% patches on a proof pulled on the
    specified sheet; a desktop inkjet proves nothing about gain.
 

@@ -34,7 +34,7 @@ func TestLoadShape(t *testing.T) {
 	if got := len(lib.RuleIDs()); got == 0 || got > MaxRules {
 		t.Errorf("rules = %d, want 1..%d", got, MaxRules)
 	}
-	if got, want := len(lib.ReferenceNames()), 15; got != want {
+	if got, want := len(lib.ReferenceNames()), 16; got != want {
 		t.Errorf("references = %d, want %d", got, want)
 	}
 }

@@ -82,7 +82,7 @@ and `gradientStops`/`gradientAngle` on fills.
 
 | op | Does |
 |---|---|
-| op=png | Base64 PNG of the artboard; multiplier, transparent. |
+| op=png | Base64 PNG of the artboard; multiplier, transparent. With filePath it writes the PNG and returns the path and byte count. |
 | op=object | PNG or SVG of one object or group, cropped to it. |
 | op=svg | Editable SVG of the page or selection; optionally writes a file. |
 

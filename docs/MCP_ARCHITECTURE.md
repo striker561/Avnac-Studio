@@ -81,7 +81,7 @@ scripted way to start a task, it is a prompt.**
 | `avnac-system/mcp/resources_test.go` | Resource count, link rewriting, in-memory list/read over a real client session |
 | `avnac-system/mcp/flexible_input_test.go` | Tolerant decoding of agent-supplied JSON |
 | `internal/skill/skill.go` | Embed, parse, validate, route, search, plan |
-| `internal/skill/rules/` | 117 rule documents plus the generated `README.md` index |
+| `internal/skill/rules/` | 125 rule documents plus the generated `README.md` index |
 | `internal/skill/<task>/SKILL.md` | 22 task workflows |
 | `internal/skill/references/` | 16 lookup notes (including `avnac-ops`) |
 | `frontend/src/features/scene-editor/use-mcp-actions.ts` | Dispatches `mcp:action` events into the scene store |
@@ -252,8 +252,8 @@ background/preset), `elements` (render/modify/delete/measure), `arrange`
 `guide` is the fourteenth: a read-only router from a brief to `skill://` + `rules://` with the
 matched tokens and a confidence level. It exists so the library is reached *during* a task, not only
 when a user explicitly asks for design guidance — the connect instructions tell agents to call it
-before specialized work, and composition results carry the same guide automatically when the
-payload is a clear match.
+before specialized work, and a composition result may carry an inferred guide when the payload is
+a clear match and no explicit route has been fetched. The explicit route is authoritative.
 
 `vector` is not an op on `elements`: vector artwork has its own document model (layers of strokes
 with node geometry and a v3 board schema), its own state across calls (a session board addressed by
@@ -330,9 +330,9 @@ content — the `.md` files are the product.
 ```
 internal/skill/
 ├── SKILL.md               entry point: routing table, gates, how to read a rule
-├── <task>/SKILL.md        21 workflows (poster, logo, brand, color, ...)
+├── <task>/SKILL.md        22 workflows (poster, logo, brand, color, ...)
 ├── references/*.md        16 lookup notes (thresholds, tables, formats, ops)
-├── rules/NN-topic.md      117 principles, fixed 10-section shape
+├── rules/NN-topic.md      125 principles, fixed 10-section shape
 └── rules/README.md        generated index by domain (rules://index)
 ```
 
@@ -375,7 +375,7 @@ parse per process is enough. Both the MCP server and any future caller share it.
 | Entry | `skill://avnac-design` | 1 | routing table and gates |
 | Task skill | `skill://<folder>` | 21 | `skill://poster`, `skill://ui` |
 | Reference | `references://<stem>` | 14 | `references://typography` |
-| Rule | `rules://<stem>` | 117 | `rules://24-typographic-hierarchy` |
+| Rule | `rules://<stem>` | 125 | `rules://24-typographic-hierarchy` |
 | Index | `rules://index` | 1 | every rule by domain |
 
 Total 154. Descriptions are the frontmatter description (truncated to 150 runes on a word
@@ -635,7 +635,7 @@ Break one of these and clients break, even if `go test` is green:
 3. **Instructions stay small.** They ride on every message; add a line only if it changes
    behaviour, and prefer pointing at a resource.
 4. **Resources are read-only.** No handler may mutate state or call `emitSync`.
-5. **The rule ceiling holds.** 120 is the point where an agent can still hold the index.
+5. **The rule ceiling holds.** 128 is the point where an agent can still hold the index.
 6. **Counts in the instruction index come from the library**, never hard-coded.
 7. **Failures degrade, never cascade.** A resource or library failure must not stop tools.
 

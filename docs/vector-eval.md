@@ -89,7 +89,8 @@ triggered. That is the failure mode the `guide` tool and the automatic attachmen
 | same, `inline=true` | `markdown` contains the workflow and `## Core Principles` | `TestGuideToolRoutesAndInlines` |
 | `guide(task="compute the fibonacci sequence in rust")` | answered but flagged `low`, with `matchedTokens` and `candidates` | `TestGuideToolFlagsLowConfidence` |
 | `guide(task="xyzzy plugh quux")` | `matched:false` pointing at `skill://avnac-design` and `rules://index` | `TestGuideToolNoMatchPointsAtEntry` |
-| `elements` render whose name/text is "Blue Note jazz poster" | result carries a compact `guide` automatically | `TestAttachGuideOnCompositionResults`, `TestOpDispatcherAttachesGuide` |
+| `elements` render whose name/text is "Blue Note jazz poster", no explicit route | result carries an inferred compact `guide`; `guideReceipt.source` is `inferred` | `TestAttachGuideOnCompositionResults`, `TestOpDispatcherAttachesGuide`, `TestInferredGuideReceiptIsLabelled` |
+| explicit `guide` then a different composition payload | no second guide; the explicit route survives and the receipt says `source: explicit` | `TestExplicitGuideIsNotOverwrittenByComposition` |
 | rect-only render, `padding:8`, text "OK" | no guide: one generic word is not a brief | `TestAttachGuideSkipsWeakAndNonDesignPayloads` |
 | an existing `guide`, or an error payload | never overwritten, never decorated | `TestAttachGuideNeverOverwritesOrDecoratesErrors` |
 | connect instructions | mention `guide`, `skill://vector` and the rule count | `TestDesignResourceIndexMentionsTheLibrary` |

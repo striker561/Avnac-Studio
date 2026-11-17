@@ -13,7 +13,7 @@ MCP resources, not in this file: this file is the procedure, the resources are t
 Every design task runs these steps before the first composition call:
 
 1. `guide(task=<the brief>)` — route the brief. Returns the workflow URI, the rules, and the
-   Verification lines of the top three rules in `checks`; always-on `gates` ride along.
+   Verification lines of every routed rule in `checks`; always-on `gates` ride along.
 2. Read `skill://<task>` (the workflow). Its "Rules to apply" list is the reading set.
 3. Read the rules behind `checks`, and any the workflow links that name your fault. Every rule
    opens with its **Avnac ops** paragraph and its first check is the **Ops receipt** — run the

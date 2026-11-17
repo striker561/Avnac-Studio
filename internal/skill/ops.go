@@ -20,76 +20,75 @@ import (
 // Reads are published one per tool and have no op, so Op is empty for them.
 var AvnacOps = []Op{
 	// canvas — the project, its pages and the artboard.
-	{Tool: "canvas", Op: "create", Does: "start a new project at an explicit width and height"},
-	{Tool: "canvas", Op: "add-page", Does: "add a named blank page to the open project and switch to it"},
-	{Tool: "canvas", Op: "go-page", Does: "switch the active page"},
-	{Tool: "canvas", Op: "rename-page", Does: "rename a page"},
-	{Tool: "canvas", Op: "delete-page", Does: "delete a page, never the last one"},
-	{Tool: "canvas", Op: "clear", Does: "remove every object on the current page"},
-	{Tool: "canvas", Op: "background", Does: "set the current page background"},
-	{Tool: "canvas", Op: "preset", Does: "resize the artboard to a standard preset"},
-	{Tool: "canvas", Op: "resize", Does: "change the artboard size in place"},
-	{Tool: "canvas", Op: "snapshot", Does: "capture every page and return a restore token"},
-	{Tool: "canvas", Op: "restore", Does: "return to a snapshot token"},
-	{Tool: "canvas", Op: "undo", Does: "step back through object and page history"},
-	{Tool: "canvas", Op: "redo", Does: "step forward through object and page history"},
-	{Tool: "canvas", Op: "status", Does: "report the connected client, revision and implemented actions"},
-	{Tool: "canvas", Op: "validate", Does: "audit bounds, contrast, type, strokes, tangencies and fonts with measured rule checks"},
+	{Tool: "canvas", Op: "create"},
+	{Tool: "canvas", Op: "add-page"},
+	{Tool: "canvas", Op: "go-page"},
+	{Tool: "canvas", Op: "rename-page"},
+	{Tool: "canvas", Op: "delete-page"},
+	{Tool: "canvas", Op: "clear"},
+	{Tool: "canvas", Op: "background"},
+	{Tool: "canvas", Op: "preset"},
+	{Tool: "canvas", Op: "resize"},
+	{Tool: "canvas", Op: "snapshot"},
+	{Tool: "canvas", Op: "restore"},
+	{Tool: "canvas", Op: "undo"},
+	{Tool: "canvas", Op: "redo"},
+	{Tool: "canvas", Op: "status"},
+	{Tool: "canvas", Op: "validate"},
 
 	// elements — create, change, remove and measure canvas elements.
-	{Tool: "elements", Op: "render", Does: "place a batch of elements in one call, bottom to top"},
-	{Tool: "elements", Op: "modify", Does: "update existing objects by id or unique name"},
-	{Tool: "elements", Op: "delete", Does: "remove an object, or the current selection"},
-	{Tool: "elements", Op: "measure", Does: "measure proposed elements without drawing them"},
+	{Tool: "elements", Op: "render"},
+	{Tool: "elements", Op: "modify"},
+	{Tool: "elements", Op: "delete"},
+	{Tool: "elements", Op: "measure"},
 
 	// arrange — the current selection.
-	{Tool: "arrange", Op: "align", Does: "align objects to the artboard or each other, including cap-middle"},
-	{Tool: "arrange", Op: "distribute", Does: "even the gaps between three or more objects"},
-	{Tool: "arrange", Op: "group", Does: "group two or more objects"},
-	{Tool: "arrange", Op: "ungroup", Does: "dissolve a group"},
-	{Tool: "arrange", Op: "fit", Does: "scale the selection to the artboard with padding"},
-	{Tool: "arrange", Op: "select", Does: "select objects by id"},
+	{Tool: "arrange", Op: "align"},
+	{Tool: "arrange", Op: "distribute"},
+	{Tool: "arrange", Op: "group"},
+	{Tool: "arrange", Op: "ungroup"},
+	{Tool: "arrange", Op: "fit"},
+	{Tool: "arrange", Op: "select"},
 
 	// files — saved canvases.
-	{Tool: "files", Op: "list", Does: "list saved canvases with id, name, size and updated time"},
-	{Tool: "files", Op: "open", Does: "open a saved canvas as the active scene"},
-	{Tool: "files", Op: "rename", Does: "rename a saved canvas and the open editor title"},
+	{Tool: "files", Op: "list"},
+	{Tool: "files", Op: "open"},
+	{Tool: "files", Op: "rename"},
 
 	// assets — external material.
-	{Tool: "assets", Op: "unsplash", Does: "search Unsplash photos and report the remaining quota"},
-	{Tool: "assets", Op: "fonts", Does: "list supported Google Fonts and verify requested families"},
-	{Tool: "assets", Op: "stickers", Does: "list built-in stickers"},
+	{Tool: "assets", Op: "unsplash"},
+	{Tool: "assets", Op: "fonts"},
+	{Tool: "assets", Op: "stickers"},
 
 	// export — output.
-	{Tool: "export", Op: "png", Does: "export the artboard as a PNG at a multiplier"},
-	{Tool: "export", Op: "object", Does: "export one object or group as PNG or SVG"},
-	{Tool: "export", Op: "svg", Does: "export the page or selection as editable SVG"},
+	{Tool: "export", Op: "png"},
+	{Tool: "export", Op: "object"},
+	{Tool: "export", Op: "svg"},
 
 	// vector — original path artwork.
-	{Tool: "vector", Op: "draw", Does: "resolve a scene-graph IR and place it as editable paths"},
-	{Tool: "vector", Op: "update", Does: "edit a stored board by object id"},
-	{Tool: "vector", Op: "read", Does: "return the board IR and resolved document"},
-	{Tool: "vector", Op: "export", Does: "return the self-contained SVG source"},
-	{Tool: "vector", Op: "delete", Does: "remove the placed drawing"},
-	{Tool: "vector", Op: "list", Does: "list the boards created this session"},
-	{Tool: "vector", Op: "status", Does: "check whether a board's node is actually placed"},
-	{Tool: "vector", Op: "recover", Does: "adopt or retry a placement after a lost response"},
+	{Tool: "vector", Op: "draw"},
+	{Tool: "vector", Op: "update"},
+	{Tool: "vector", Op: "read"},
+	{Tool: "vector", Op: "export"},
+	{Tool: "vector", Op: "delete"},
+	{Tool: "vector", Op: "list"},
+	{Tool: "vector", Op: "status"},
+	{Tool: "vector", Op: "recover"},
 
 	// Reads — one tool per operation, no op argument.
-	{Tool: "get_canvas_summary", Does: "document, active page, every page and a semantic object summary"},
-	{Tool: "get_canvas_state", Does: "raw scene state"},
-	{Tool: "get_canvas_image", Does: "PNG of the artboard or one object, optionally annotated"},
-	{Tool: "list_objects", Does: "object ids and types on the canvas"},
-	{Tool: "get_object_properties", Does: "one object's bounds and styles, plus text cap metrics"},
-	{Tool: "get_selection", Does: "the selected objects and their properties"},
-	{Tool: "guide", Does: "route a brief to the workflow and rules that apply"},
+	{Tool: "get_canvas_summary"},
+	{Tool: "get_canvas_state"},
+	{Tool: "get_canvas_image"},
+	{Tool: "list_objects"},
+	{Tool: "get_object_properties"},
+	{Tool: "get_selection"},
+	{Tool: "guide"},
 }
 
 // Op is one published operation: a tool plus an op (empty for a read tool).
 type Op struct {
 	Tool string
 	Op   string
-	Does string
 }
 
 // OpCitation is one `tool` op=value reference found in prose.
@@ -114,27 +113,6 @@ func OpCitations(text string) []OpCitation {
 	return out
 }
 
-// KnownOp reports whether the tool publishes the op. A read tool with an empty
-// op matches Op: "".
-func KnownOp(tool, op string) bool {
-	for _, candidate := range AvnacOps {
-		if candidate.Tool == tool && candidate.Op == op {
-			return true
-		}
-	}
-	return false
-}
-
-// KnownTool reports whether the name is one of Avnac's published tools.
-func KnownTool(tool string) bool {
-	for _, candidate := range AvnacOps {
-		if candidate.Tool == tool {
-			return true
-		}
-	}
-	return false
-}
-
 // HasCommand reports whether text names a callable operation: either a
 // `tool` op=value citation, or a read tool named in backticks. A read has no
 // op but is still a command the agent runs, so a receipt built on
@@ -156,11 +134,18 @@ func HasCommand(text string) bool {
 
 // CitationError names an op a rule cites that this build does not publish.
 func CitationError(c OpCitation) string {
-	if !KnownTool(c.Tool) {
+	found := false
+	for _, candidate := range AvnacOps {
+		if candidate.Tool != c.Tool {
+			continue
+		}
+		found = true
+		if candidate.Op == c.Op {
+			return ""
+		}
+	}
+	if !found {
 		return "unknown tool " + c.Tool
 	}
-	if !KnownOp(c.Tool, c.Op) {
-		return c.Tool + " has no op " + c.Op
-	}
-	return ""
+	return c.Tool + " has no op " + c.Op
 }

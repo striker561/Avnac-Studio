@@ -20,10 +20,11 @@ import (
 // Obedience is a host-orchestration property; the only lever here is making the
 // route cheap, correct and impossible to miss (see docs/resource-eval.md).
 
-// guidePayloadBudget is the most a route may cost. The library's six routed
-// rule bodies are ~40 KB; a route over half a kilobyte per rule would just
-// recreate the reading problem the digest removed.
-const guidePayloadBudget = 6000
+// guidePayloadBudget is the most a route may cost. Every routed rule now
+// carries its two receipt lines, so this is deliberately larger than the
+// three-rule digest it replaced: the largest measured route is about 6.6 KB,
+// still far below the ~40 KB of rule bodies it summarises.
+const guidePayloadBudget = 8000
 
 type complianceCase struct {
 	prompt string

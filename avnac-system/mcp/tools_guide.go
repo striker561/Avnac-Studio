@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -48,8 +49,8 @@ func (m *AvnacMCP) registerGuideTool() {
 		Description: "Route a design task to Avnac's knowledge library and return the workflow and rules to read before composing. " +
 			"Call this at the start of ANY task that needs specialized design instructions — poster, flyer, social graphic, logo, icon, illustration, layout, typography, color, palette, branding, print, packaging, photography, UI, data visualization, critique, or vector path drawing — " +
 			"even when the user did not ask for guidance and even when you think you know the answer. Design decisions you cannot cite are guesses; the library carries the thresholds and failure modes. " +
-			"It returns skill:// and rules:// resource URIs, the matched task tokens and a confidence level, plus the Verification lines of the top three rules — the checks to run before the next render. Set inline=true to get the full workflow and rule text as markdown when the client cannot read resources. " +
-			"Composition tool results (canvas create/add-page, elements render/measure/modify, vector draw) also carry a compact guide automatically when the payload is a clear match. " +
+			"It returns skill:// and rules:// resource URIs, the matched task tokens and a confidence level, plus the Verification lines of every routed rule — the checks to run before the next render. Set inline=true to get the full workflow and rule text as markdown when the client cannot read resources. " +
+			"When no explicit route has been fetched, composition tool results (canvas create/add-page, elements render/measure/modify, vector draw) may carry a compact inferred guide when the payload is a clear match. That inferred route never replaces one fetched here. " +
 			"Matching is lexical — words are compared, not meaning — so a low or empty match means the brief's words did not overlap the library, not that it has nothing on the subject. " +
 			"A route is where to start, not a reading limit: every skill://, rules:// and references:// URI stays readable, so open " + designEntryURI + ", " + designRuleIndexURI + " or any other rule by URI once the work moves to a subject the route did not name.",
 		InputSchema: objSchema(map[string]*jsonschema.Schema{
@@ -100,13 +101,20 @@ func (m *AvnacMCP) handleGuide(raw map[string]any) (*mcp.CallToolResult, any, er
 
 	data := guidePayload(g)
 	// An explicit route is the receipt's baseline: validate will report which of
-	// these rules it could actually measure.
+	// these rules it could actually measure. A low-confidence answer clears the
+	// previous route rather than leaving a stale one to be quoted at the next
+	// validate: the task has moved on, and the old route is no longer evidence.
+	m.guideMu.Lock()
 	if g.Confident() {
-		m.guideMu.Lock()
 		m.guideSig = guideSignature(g)
 		m.guideRoute = g
-		m.guideMu.Unlock()
+		m.guideExplicit = true
+	} else {
+		m.guideSig = ""
+		m.guideRoute = nil
+		m.guideExplicit = false
 	}
+	m.guideMu.Unlock()
 	if !g.Confident() {
 		data["note"] = "Low confidence: only one generic word overlapped the library. Check matchedTokens " +
 			"against the brief; add the deliverable and format for a sharper route, or read skill://avnac-design."
@@ -130,12 +138,6 @@ func (m *AvnacMCP) handleGuide(raw map[string]any) (*mcp.CallToolResult, any, er
 	}
 	return nil, data, nil
 }
-
-// guideDigestRules is how many routed rules get their Verification lines
-// printed in the payload itself. The rest stay a URI: three checks are read,
-// eight are skipped, so the default ships the three that are most likely to be
-// run before the next render.
-const guideDigestRules = 3
 
 // guideCheckChars caps one printed check. The full rule is always one
 // rules:// read away; the digest exists to be acted on, not to be complete.
@@ -187,7 +189,6 @@ func guidePayload(g *skill.Guide) map[string]any {
 		"rules":         rules,
 		"references":    references,
 		"checks":        checks,
-		"moreChecks":    len(g.Rules) - len(checks),
 		"gates":         gates,
 		"matchedTokens": g.Matched,
 		"note": "Run these checks before the next render, not after delivery. " +
@@ -197,19 +198,18 @@ func guidePayload(g *skill.Guide) map[string]any {
 	}
 }
 
-// guideChecks prints the Verification lines of the first few routed rules, so
-// the default answer is something to do rather than a list of things to go and
-// read. The workflow's own qualifier travels with the rule: a crop rule that
-// applies "when there is one image" must not read as a blanket order.
+// guideChecks prints the Verification lines of every routed rule, so the
+// payload carries the whole reading set instead of the first three. Truncating
+// to three made the digest look like the reading list, and agents stopped
+// there: a print task read 80/81/82 and never 83 (resolution) or 87 (prepress).
+// The workflow's own qualifier travels with the rule: a crop rule that applies
+// "when there is one image" must not read as a blanket order.
 func guideChecks(g *skill.Guide) []map[string]any {
 	if g == nil || g.Skill == nil {
 		return nil
 	}
-	out := make([]map[string]any, 0, guideDigestRules)
+	out := make([]map[string]any, 0, len(g.Rules))
 	for i, r := range g.Rules {
-		if i >= guideDigestRules {
-			break
-		}
 		lines := r.Checks()
 		if len(lines) > 2 {
 			lines = lines[:2]
@@ -308,6 +308,15 @@ func (m *AvnacMCP) attachGuide(data any, payload map[string]any) {
 	if msg, _ := response["error"].(string); msg != "" {
 		return
 	}
+	// An explicit route wins. A composition result's inferred guide may fill an
+	// empty slot for a client that skipped guide(), but it must not overwrite
+	// the route the agent asked for: that route is what validate quotes back.
+	m.guideMu.Lock()
+	explicit := m.guideExplicit
+	m.guideMu.Unlock()
+	if explicit {
+		return
+	}
 	lib, err := skill.Default()
 	if err != nil {
 		return
@@ -328,6 +337,7 @@ func (m *AvnacMCP) attachGuide(data any, payload map[string]any) {
 	if !repeat {
 		m.guideSig = sig
 		m.guideRoute = g
+		m.guideExplicit = false
 	}
 	m.guideMu.Unlock()
 	if repeat {
@@ -381,9 +391,14 @@ func (m *AvnacMCP) attachGuideReceipt(data any) {
 	}
 	m.guideMu.Lock()
 	g := m.guideRoute
+	explicit := m.guideExplicit
 	m.guideMu.Unlock()
 	if g == nil || g.Skill == nil || len(g.Rules) == 0 {
 		return
+	}
+	source := "inferred"
+	if explicit {
+		source = "explicit"
 	}
 
 	measured := make(map[string]bool)
@@ -410,6 +425,7 @@ func (m *AvnacMCP) attachGuideReceipt(data any) {
 	}
 	response["guideReceipt"] = map[string]any{
 		"skill":    "skill://" + g.Skill.Name,
+		"source":   source,
 		"checked":  checked,
 		"pending":  pending,
 		"readNext": readNextRules(g, failed),
@@ -479,36 +495,19 @@ func structuredChecks(value any) []map[string]any {
 	return nil
 }
 
-// textKeyRank orders the keys taskTextFromPayload reads, most identifying
-// first. A page or object name routes better than body copy, and the fixed
-// order keeps the joined task text stable across runs.
+// textKeys orders the keys taskTextFromPayload reads, most identifying first.
+// A page or object name routes better than body copy, and the fixed order keeps
+// the joined task text stable across runs.
+var textKeys = []string{
+	"name", "title", "headline", "subhead", "brief", "prompt",
+	"label", "description", "text", "body", "caption",
+}
+
 func textKeyRank(key string) int {
-	switch key {
-	case "name":
-		return 0
-	case "title":
-		return 1
-	case "headline":
-		return 2
-	case "subhead":
-		return 3
-	case "brief":
-		return 4
-	case "prompt":
-		return 5
-	case "label":
-		return 6
-	case "description":
-		return 7
-	case "text":
-		return 8
-	case "body":
-		return 9
-	case "caption":
-		return 10
-	default:
-		return 11
+	if i := slices.Index(textKeys, key); i >= 0 {
+		return i
 	}
+	return len(textKeys)
 }
 
 // taskTextFromPayload collects the human-meaningful strings a client sent:

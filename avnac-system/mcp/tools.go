@@ -125,17 +125,44 @@ func writeSVGFile(requestedPath, svg string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve filePath: %w", err)
 	}
-	if !strings.EqualFold(filepath.Ext(abs), ".svg") {
-		abs += ".svg"
-	}
 	if info, err := os.Stat(abs); err == nil && info.IsDir() {
 		return "", fmt.Errorf("filePath %s is a directory", abs)
+	}
+	if !strings.EqualFold(filepath.Ext(abs), ".svg") {
+		abs += ".svg"
 	}
 	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
 		return "", fmt.Errorf("create SVG directory: %w", err)
 	}
 	if err := os.WriteFile(abs, []byte(svg), 0o644); err != nil {
 		return "", fmt.Errorf("write SVG: %w", err)
+	}
+	return abs, nil
+}
+
+// writePNGFile writes exported PNG bytes and returns the absolute path. The
+// extension is added rather than silently writing into a directory or a name
+// the caller cannot reopen as an image.
+func writePNGFile(requestedPath string, data []byte) (string, error) {
+	path := strings.TrimSpace(requestedPath)
+	if path == "" {
+		return "", fmt.Errorf("filePath is empty")
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("resolve filePath: %w", err)
+	}
+	if info, err := os.Stat(abs); err == nil && info.IsDir() {
+		return "", fmt.Errorf("filePath %s is a directory", abs)
+	}
+	if !strings.EqualFold(filepath.Ext(abs), ".png") {
+		abs += ".png"
+	}
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		return "", fmt.Errorf("create PNG directory: %w", err)
+	}
+	if err := os.WriteFile(abs, data, 0o644); err != nil {
+		return "", fmt.Errorf("write PNG: %w", err)
 	}
 	return abs, nil
 }
@@ -1866,9 +1893,19 @@ func (m *AvnacMCP) RegisterTools(wailsCtx context.Context) {
 			if base64Str, ok := respMap["imageData"].(string); ok && base64Str != "" {
 				if imgBytes, err := base64.StdEncoding.DecodeString(base64Str); err == nil {
 					delete(respMap, "imageData")
+					text := "Canvas exported successfully."
+					if filePath := stringField(raw, "filePath", "path", "filename"); filePath != "" {
+						written, err := writePNGFile(filePath, imgBytes)
+						if err != nil {
+							return nil, nil, err
+						}
+						respMap["filePath"] = written
+						respMap["bytes"] = len(imgBytes)
+						text = "Canvas exported to " + written
+					}
 					return &mcp.CallToolResult{
 						Content: []mcp.Content{
-							&mcp.TextContent{Text: "Canvas exported successfully."},
+							&mcp.TextContent{Text: text},
 							&mcp.ImageContent{Data: imgBytes, MIMEType: "image/png"},
 						},
 					}, respMap, nil
@@ -2235,6 +2272,7 @@ func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
 			"op=measure (elements[]) returns width/height, line count, line breaks and text vertical metrics for proposed elements WITHOUT drawing them — use it to check wrapping or fit a headline before rendering. " +
 			"Elements are rect, ellipse, circle, polygon, star, line, text, image, sticker. Text without a width is measured against its real font " +
 			"and auto-sized; when a later modify changes fontSize, pass width too, because the stored auto-measured width is kept and larger type will re-wrap. " +
+			"Text has no letterSpacing or kerning property: tracking is a typeface choice, not a field to send. " +
 			"Images take `fit` (fill default, or cover to crop the source to the box aspect), `focalPoint` (normalized 0..1, keeps the subject in frame) " +
 			"and `crop` (explicit normalized source rectangle, wins over fit); modify accepts the same fields to re-crop an existing image, or url/src to replace its source without changing its id. " +
 			"Unsupported element types and unresolved targets are reported in `skipped`/`issues`, and a batch that changes nothing fails. " +
@@ -2336,7 +2374,7 @@ func (m *AvnacMCP) registerGroupedTools(legacy map[string]toolHandler) {
 			"format":      desc("object: png (default) or svg."),
 			"multiplier":  desc("png/object: scale multiplier."),
 			"transparent": desc("png: omit the artboard background."),
-			"filePath":    desc("svg: optional path to write the SVG to."),
+			"filePath":    desc("png/object/svg: optional path to write the result to; the extension is added when missing."),
 			"documentId":  desc("Optional active-document guard."),
 			"page":        desc("Optional active-page guard."),
 			"index":       desc("Optional 0-based active-page guard."),

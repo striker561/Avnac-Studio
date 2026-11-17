@@ -94,6 +94,11 @@ type AvnacMCP struct {
 	guideMu    sync.Mutex
 	guideSig   string
 	guideRoute *skill.Guide
+	// guideExplicit is true only after guide(task=...) returned a confident
+	// route. An inferred guide attached to a composition result may fill an
+	// empty slot, but it must never replace the route the agent asked for;
+	// validate's receipt is built from this route.
+	guideExplicit bool
 
 	// instructions is the connect text handed to every client: the design
 	// doctrine in DesignerInstructions plus the compact resource index. It is
@@ -119,7 +124,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Parse the request and extract known constraints: dimensions, exact copy, brand or shop names, dates/addresses, palette, style, imagery.
    - Identify critical unknowns: real text content, names, dates, addresses, size intent. If any are missing, ask the user up to 3 targeted questions and STOP — do not call tools yet. If nothing critical is missing, state your assumptions explicitly and proceed.
    - Write a compact design plan: layout zones with approximate coordinates, type hierarchy, palette, fonts, asset needs. The later verification step checks the render against this brief.
-   - Route the brief through the guide tool BEFORE composing: guide(task=the brief) returns the workflow (skill://...) and the 4-8 rules that apply for any specialized work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI, vector drawing, critique — whether or not the user asked for guidance. Read them, then design from them, and run the Verification checks at the end of those rules before delivering. By default the answer is a digest: the Verification lines of the top three rules, the checks to run, with the rest one rules:// read away — read it before the first composition call, not after a delivery. Composition tool results also carry the compact guide once per route (it is not re-stamped when nothing changed), so the route appears even if you skip this call. A route is a starting point, not a reading limit: the task will move to subjects the first route did not name, and every skill://, rules:// and references:// URI stays readable — open the ones the work needs by URI, starting at skill://avnac-design or rules://index.
+   - Route the brief through the guide tool BEFORE composing: guide(task=the brief) returns the workflow (skill://...) and the 4-8 rules that apply for any specialized work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI, vector drawing, critique — whether or not the user asked for guidance. Read them, then design from them, and run the Verification checks at the end of those rules before delivering. By default the answer carries the Verification lines of every routed rule — the checks to run — so the whole reading set arrives before the first composition call, not just the top three. If you skip this call, a composition result may carry a compact inferred guide once per route; it never replaces a route you fetched here, and validate labels it as inferred. A route is a starting point, not a reading limit: the task will move to subjects the first route did not name, and every skill://, rules:// and references:// URI stays readable — open the ones the work needs by URI, starting at skill://avnac-design or rules://index.
    - For EDIT requests, write a diff-oriented brief (what changes, what stays). Start from the real canvas: if the target file is not currently open, call files op=list then files op=open — NEVER silently recreate an existing design in a new file.
 
 2. INSPECT / CANVAS SETUP:
@@ -143,7 +148,7 @@ CORE DESIGN WORKFLOW — Brief, then Setup, then Compose, then Verify:
    - Coordinates: top-left origin (0, 0). 'left' (or 'x') and 'top' (or 'y') in pixels.
    - Elements: 'rect', 'ellipse', 'polygon' (sides 3-8), 'star', 'line', 'text', 'image', 'sticker'.
    - For original vector artwork (logo marks, icons, characters, badges, patterns), use the vector tool's op=draw with a small scene-graph IR instead of scene primitives: objects carry id/type/box/paint, plus constraints and mirrorOf. op=update edits the drawing by id afterwards. Read skill://vector first.
-   - Typography: strong hierarchy (Headline 48-72px, Subhead 24-32px, Body 16-20px). Prefer Poppins, Inter, and DM Serif Display — other Google Fonts may fall back if not yet loaded; get_canvas_image now waits for fonts before rendering.
+   - Typography: strong hierarchy (Headline 48-72px, Subhead 24-32px, Body 16-20px). Prefer Poppins, Inter, and DM Serif Display — other Google Fonts may fall back if not yet loaded; get_canvas_image now waits for fonts before rendering. There is no letterSpacing or kerning field; pick a face whose spacing already works.
    - Styling: hex colors, cornerRadius, blur, opacity, shadows (blur, offsetX, offsetY, color, opacity), and gradientStops.
 
 5. VERIFY AGAINST THE BRIEF:

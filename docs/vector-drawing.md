@@ -77,9 +77,10 @@ both directions (it must fire, and it must not steal poster/print/logo/layout re
 
 Routing does not wait for the user to ask for a skill. The `guide` tool takes the brief and returns
 the workflow plus the rules that apply, and composition tool results (`canvas` create/add-page,
-`elements` render/measure/modify, `vector` draw) carry the same guide automatically when the payload
-is a clear match. That is what makes the library part of doing the task rather than an optional
-lookup — see [vector-eval.md](vector-eval.md) §4 for the eval.
+`elements` render/measure/modify, `vector` draw) may carry an inferred guide when the payload is a
+clear match and no explicit route has been fetched. An explicit route is authoritative, so an
+inferred one never overwrites it. That is what makes the library part of doing the task rather than
+an optional lookup — see [vector-eval.md](vector-eval.md) §4 for the eval.
 
 ## Source material
 

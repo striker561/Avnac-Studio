@@ -165,8 +165,8 @@ When the host exposes Avnac's `guide` tool, call it with the brief **before** sp
 poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI, vector
 drawing or critique — even when the user did not ask for guidance. It returns the matching
 `skill://` workflow and the 4–8 `rules://` that apply, with the matched tokens and a confidence
-level. Composition tool results also carry the same guide automatically, so skipping the call still
-leaves a route in front of you.
+level. If you skip the call, a composition result may carry an inferred guide; it is labelled
+inferred in validate and never replaces an explicit route.
 
 ## Programmatic use
 

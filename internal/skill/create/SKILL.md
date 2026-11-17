@@ -1,6 +1,6 @@
 ---
 name: create
-description: Start a new design from a brief — choosing the format, building the first draft, and getting something worth refining on screen fast. Use whenever the user asks to make a graphic, banner, cover, social post, Instagram story, sale or promo graphic, flyer, or "something for" an event or product and no more specific workflow fits, or when a task is stalled at the blank-canvas stage.
+description: Start a new design from a brief — choosing the format, building the first draft, and getting something worth refining on screen fast. Use whenever the user asks to make a graphic, banner, cover, social post, Instagram story, carousel, slide series, sale or promo graphic, flyer, or "something for" an event or product and no more specific workflow fits, or when a task is stalled at the blank-canvas stage.
 ---
 
 # Creating a Design From a Brief
@@ -67,6 +67,7 @@ Every rule this workflow links opens with its own **Avnac ops** paragraph. The f
 - [`08-negative-space`](../rules/08-negative-space.md) — empty space is what makes a first draft readable.
 - [`30-grid-systems`](../rules/30-grid-systems.md) — a quick grid stops the draft drifting.
 - [`31-layout-structures`](../rules/31-layout-structures.md) — choose a structure instead of improvising one.
+- [`77-sequence-and-pacing`](../rules/77-sequence-and-pacing.md) — the order across a multi-page set, when the deliverable is a series or carousel.
 - [`16-palette-construction`](../rules/16-palette-construction.md) — build a 4–5 color palette with assigned roles.
 - [`01-design-process`](../rules/01-design-process.md) — how much process this brief actually needs.
 

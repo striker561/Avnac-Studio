@@ -100,7 +100,7 @@ instead of looking like a random ID failure.
 
 ### `guide` — in-task routing
 - `task` (the brief) → the workflow (`skill://...`) and 4–8 rules (`rules://...`) that apply, with the matched tokens and a confidence level. `inline=true` returns the reading material itself.
-- Composition results (`canvas` create/add-page, `elements` render/measure/modify, `vector` draw) carry the same guide automatically when the payload is a clear match, so the route appears even when the agent skips the call.
+- Composition results (`canvas` create/add-page, `elements` render/measure/modify, `vector` draw) may carry an inferred guide when the payload is a clear match and no explicit route has been fetched. An explicit route is never replaced; the validate receipt labels an inferred route as such.
 
 ### Page lifecycle
 

@@ -166,9 +166,9 @@ one-tool-per-action surface returned, and the legacy action name is accepted as 
 4–8 rules (`rules://...`), the matched tokens and a confidence level. Call it before specialized
 work — poster, flyer, logo, icon, layout, typography, color, print, packaging, photography, UI,
 vector drawing, critique — even when the user did not ask for guidance. The default answer is a
-**digest**, not a reading list: `checks` carries the Verification lines of the top three rules and
-`moreChecks` the rest, because the actionable part of a rule is one or two lines and eight essays
-are not read. `inline=true` returns the full workflow and rule text for clients that cannot read
+**digest**, not a reading list: `checks` carries the Verification lines of every routed rule — at
+most two per rule — because the actionable part of a rule is one or two lines and eight essays are
+not read. `inline=true` returns the full workflow and rule text for clients that cannot read
 resources.
 
 Every route also carries the entry document's **always-on gates** (`gates`): the six checks that
@@ -179,12 +179,15 @@ sample says. A gate whose rules the route already carries is dropped.
 
 The eval that keeps this honest — thirteen common briefs, the payload budget, URI resolution and
 the non-design rejection set — is [resource-eval.md](resource-eval.md), run with
-`go test ./avnac-system/mcp -run TestResourceCompliance -v`.
+`go test ./avnac-system/mcp -run TestResourceCompliance -v`. The blind-agent version, which checks
+what an agent actually reads before composing, is
+[AGENT_RULE_TIMING_EVAL.md](AGENT_RULE_TIMING_EVAL.md).
 
-The server also attaches a compact `guide` field to composition results (`canvas` op=create/add-page,
-`elements` op=render/measure/modify, `vector` op=draw) whenever the payload is a clear match — once
-per route. Repeating the same URI list on every render is what taught agents to skim past it, so a
-repeat is skipped; `validate` reports the debt instead (see `guideReceipt` below).
+When no explicit route has been fetched, the server may attach a compact inferred `guide` field to
+composition results (`canvas` op=create/add-page, `elements` op=render/measure/modify, `vector`
+op=draw) if the payload is a clear match — once per route. It never replaces a route fetched with
+`guide`; `guideReceipt.source` reports `explicit` or `inferred`, and `validate` carries the debt (see
+`guideReceipt` below).
 
 ### Reads (6)
 
@@ -207,7 +210,7 @@ repeat is skipped; `validate` reports the debt instead (see `guideReceipt` below
 - `snapshot` / `restore` (`token`) — capture every page, then return to that checkpoint. Tokens are session-scoped.
 - `undo` / `redo` — object-level and page-level history.
 - `status` — connected `clientId`, `actionHandlerId`, `revision`, active document/page, undo state and implemented capabilities. Call this first when an action looks stale.
-- `validate` — structured audit for out-of-bounds objects, low contrast, tiny type, thin strokes, duplicate names, near tangencies and unloaded fonts, plus rule-backed `checks` with measured numbers: `margin_ladder` (8% of the short edge, bottom largest), `density` (4×4 coverage), `level_census` (four levels, five on a poster), `type_steps` (1.3×–1.5×), `optical_centring` (2–4px high at 100px) and `contrast_floor`. When a route has been handed out, the response also carries `guideReceipt`: which routed rules this validate actually measured, which are prose the agent still has to apply, and `readNext` — the rule that owns a failing check when that rule was not in the route. So the artifact names the rule the route missed, instead of waiting for the agent to wonder what else exists.
+- `validate` — structured audit for out-of-bounds objects, low contrast, tiny type, thin strokes, duplicate names, near tangencies and unloaded fonts, plus rule-backed `checks` with measured numbers: `margin_ladder` (8% of the short edge, bottom largest), `density` (4×4 coverage), `level_census` (four levels, five on a poster), `type_steps` (1.3×–1.5×), `optical_centring` (2–4px high at 100px) and `contrast_floor`. When a route has been handed out, the response also carries `guideReceipt`: `source` (`explicit` when the agent fetched the route, `inferred` when it came from composition payload text), which routed rules this validate actually measured, which are prose the agent still has to apply, and `readNext` — the rule that owns a failing check when that rule was not in the route. So the artifact names the rule the route missed, instead of waiting for the agent to wonder what else exists.
 - `clear` — removes every object **on the current page**, returns `clearedCount`.
 - `background` (`backgroundColor`/`color`) — sets the current page background.
 - `preset` (`presetId`/`preset`) — `ig-square`, `ig-portrait`, `ig-story`, `hd`, `twitter-post`, `linkedin`, `youtube-thumb`, `a4-300`, `custom-4000`.
@@ -235,7 +238,7 @@ repeat is skipped; `validate` reports the debt instead (see `guideReceipt` below
 - `stickers` — built-in sticker names.
 
 **`export`** — output:
-- `png` (`multiplier`, `transparent`) — base64 PNG of the artboard.
+- `png` (`multiplier`, `transparent`, `filePath`) — base64 PNG of the artboard; with `filePath`, also writes the PNG and returns its path and byte count.
 - `object` (`objectId`, `multiplier`, `format`) — PNG or SVG of one object or group.
 - `svg` (`objectId`/`objectIds`/`scope`, optional `filePath`) — editable SVG of the full page (authored artboard size, not cropped to content) or a selection; optionally writes the file and returns its path.
 

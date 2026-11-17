@@ -74,12 +74,12 @@ internal/skill/
 ├── SKILL.md                     entry point: routing table, invariants, how to read a rule
 ├── <task>/SKILL.md              22 task workflows (poster, logo, brand, ...)
 ├── references/<subject>.md      16 lookup notes: thresholds, tables, format matrices, ops catalogue
-├── rules/NN-topic.md            117 principles, fixed 10-section shape
+├── rules/NN-topic.md            125 principles, fixed 10-section shape
 └── rules/README.md              generated index by domain (committed)
 ```
 
 Counts at the time of writing: 1 entry + 22 skills + 16 references + 125 rules + 1 index = **165
-documents**. The rule count is capped at **120**.
+documents**. The rule count is capped at **128**.
 
 The corpus was gathered and cross-checked with [vectile](https://github.com/d3uceY/vectile) —
 a local RAG (Retrieval Augmented Generation) app for Windows, macOS and Linux that indexes your

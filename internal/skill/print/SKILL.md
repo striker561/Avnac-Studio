@@ -18,7 +18,7 @@ is a structural object, add `packaging`.
 | Place the art | `elements` op=render | images at 150-300 PPI at final size |
 | Hold the safe area | `arrange` op=align | content inside the 5 mm line |
 | Audit | `canvas` op=validate | `margin_ladder` and bounds |
-| Preview | `export` op=png | the full sheet including bleed |
+| Preview | `export` op=png | the full sheet including bleed, with `filePath` for the handoff |
 
 Every rule this workflow links opens with its own **Avnac ops** paragraph. The full surface, including what has no op, is `references/avnac-ops.md`.
 
@@ -73,7 +73,7 @@ Every rule this workflow links opens with its own **Avnac ops** paragraph. The f
 - [ ] Fonts embedded or outlined in the delivered file
 - [ ] Ink limit within the profile's total area coverage
 - [ ] Overprint preview checked; no unexpected dropouts
-- [ ] Export as PDF/X-4 (or X-1a when required), one file per deliverable
+- [ ] Export PNG/SVG from Avnac; convert to PDF/X-4 (or X-1a) outside it, one file per deliverable
 - [ ] Proof reviewed on screen and, for critical jobs, on stock
 
 ## Output format

@@ -199,6 +199,69 @@ func TestOpDispatcherAttachesGuide(t *testing.T) {
 	}
 }
 
+// An explicit guide is the route the agent asked for. A composition result's
+// inferred guide may fill an empty slot, but it must not replace that route:
+// validate quotes the route back, and an inferred "illustrate" from the words
+// "series"/"rule" made a print run's readNext look irrelevant.
+func TestExplicitGuideIsNotOverwrittenByComposition(t *testing.T) {
+	m := NewAvnacMCP(nil, nil, nil)
+	if _, _, err := m.handleGuide(map[string]any{"task": "design an A2 gig poster for a jazz trio"}); err != nil {
+		t.Fatalf("handleGuide: %v", err)
+	}
+	response := map[string]any{"success": true}
+	m.attachGuide(response, map[string]any{"name": "Brand guidelines for a bakery"})
+	if _, exists := response["guide"]; exists {
+		t.Error("composition attached a second guide over the explicit route")
+	}
+	m.guideMu.Lock()
+	route, explicit := m.guideRoute, m.guideExplicit
+	m.guideMu.Unlock()
+	if route == nil || route.Skill.Name != "poster" || !explicit {
+		t.Errorf("route = %v explicit = %v, want the poster route", route, explicit)
+	}
+}
+
+// With no explicit route, the composition guide is the only route there is.
+// It may be used, but the receipt says so instead of presenting it as fetched.
+func TestInferredGuideReceiptIsLabelled(t *testing.T) {
+	m := NewAvnacMCP(nil, nil, nil)
+	response := map[string]any{"success": true}
+	m.attachGuide(response, map[string]any{"name": "Blue Note jazz poster"})
+	if _, exists := response["guide"]; !exists {
+		t.Fatal("composition result carries no inferred guide")
+	}
+	validated := map[string]any{"success": true}
+	m.attachGuideReceipt(validated)
+	receipt, ok := validated["guideReceipt"].(map[string]any)
+	if !ok {
+		t.Fatalf("validate result has no receipt: %v", validated)
+	}
+	if receipt["skill"] != "skill://poster" {
+		t.Errorf("receipt skill = %v, want skill://poster", receipt["skill"])
+	}
+	if receipt["source"] != "inferred" {
+		t.Errorf("receipt source = %v, want inferred", receipt["source"])
+	}
+}
+
+// A new guide call with low confidence means the task has moved on. The old
+// route must not survive to be quoted at the next validate.
+func TestLowConfidenceGuideClearsStaleRoute(t *testing.T) {
+	m := NewAvnacMCP(nil, nil, nil)
+	if _, _, err := m.handleGuide(map[string]any{"task": "design an A2 gig poster for a jazz trio"}); err != nil {
+		t.Fatalf("handleGuide: %v", err)
+	}
+	if _, _, err := m.handleGuide(map[string]any{"task": "Simple test badge: near-black full-artboard square 400x400, white uppercase TOOL CHECK, 4px orange border"}); err != nil {
+		t.Fatalf("low-confidence handleGuide: %v", err)
+	}
+	m.guideMu.Lock()
+	route, explicit, sig := m.guideRoute, m.guideExplicit, m.guideSig
+	m.guideMu.Unlock()
+	if route != nil || explicit || sig != "" {
+		t.Errorf("route = %v explicit = %v sig = %q, want the stale route cleared", route, explicit, sig)
+	}
+}
+
 func TestGuidePayloadShipsVerificationDigests(t *testing.T) {
 	m := NewAvnacMCP(nil, nil, nil)
 	_, data, err := m.handleGuide(map[string]any{"task": "design an A2 gig poster for a jazz trio"})
@@ -207,8 +270,9 @@ func TestGuidePayloadShipsVerificationDigests(t *testing.T) {
 	}
 	payload := data.(map[string]any)
 	checks, _ := payload["checks"].([]map[string]any)
-	if len(checks) != guideDigestRules {
-		t.Fatalf("digest = %d rules, want %d", len(checks), guideDigestRules)
+	rules, _ := payload["rules"].([]map[string]any)
+	if len(checks) != len(rules) {
+		t.Fatalf("checks = %d rules, want every routed rule (%d)", len(checks), len(rules))
 	}
 	first := checks[0]
 	if first["rule"] != "24-typographic-hierarchy" {
@@ -224,10 +288,10 @@ func TestGuidePayloadShipsVerificationDigests(t *testing.T) {
 	if !strings.Contains(strings.Join(lines, "\n"), "Level census") {
 		t.Errorf("digest lines = %v, want the rule's own Verification items", lines)
 	}
-	if payload["moreChecks"] != len(payload["rules"].([]map[string]any))-guideDigestRules {
-		t.Errorf("moreChecks = %v, want the undigested remainder", payload["moreChecks"])
+	if _, exists := payload["moreChecks"]; exists {
+		t.Error("moreChecks is stale: every routed rule now carries its checks")
 	}
-	// The digest must be cheap enough to read: three rules, two lines each.
+	// The payload stays cheap to read: every rule, at most two lines each.
 	for _, entry := range checks {
 		if n := len(entry["checks"].([]string)); n > 2 {
 			t.Errorf("rule %v ships %d checks, want at most 2", entry["rule"], n)
@@ -295,6 +359,9 @@ func TestValidateReceiptReportsCheckedAndPendingRules(t *testing.T) {
 	}
 	if receipt["skill"] != "skill://poster" {
 		t.Errorf("receipt skill = %v", receipt["skill"])
+	}
+	if receipt["source"] != "explicit" {
+		t.Errorf("receipt source = %v, want explicit", receipt["source"])
 	}
 	checked := receipt["checked"].([]string)
 	if len(checked) != 2 || checked[0] != "24-typographic-hierarchy" || checked[1] != "08-negative-space" {

@@ -19,7 +19,7 @@ go test ./avnac-system/mcp -run TestResourceCompliance -v
 |---|---|---|
 | Routing | 13 common briefs (flyer, poster, logo, brand, print, social story, landing page, palette, vector, chart, packaging, critique, flyer) route with high confidence to the expected workflow | A route that comes back empty teaches the agent to skip |
 | Payload budget | The largest route is under **6000 bytes** | The six rule bodies behind it are ~40 KB; a route that big recreates the reading problem |
-| Digest present | `checks` (top 3 rules' Verification lines) and `gates` (always-on checks) are non-empty | This is the actionable part; URIs alone are not |
+| Digest present | `checks` (every routed rule's Verification lines) and `gates` (always-on checks) are non-empty | This is the actionable part; URIs alone are not |
 | No accidental inlining | `inline=false` (the default) returns URIs, not essays | Context cost |
 | Non-design prompts | "compute the fibonacci sequence" etc. never route with high confidence | Noise teaches agents to ignore the field |
 | URI resolution | Every `skill://`, `rules://`, `references://` in a route reads back non-empty | A dangling URI is worse than none |

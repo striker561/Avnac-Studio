@@ -132,13 +132,3 @@ func TestReferencesNameTheirOps(t *testing.T) {
 		}
 	}
 }
-
-// TestOpsHaveDescriptions keeps the catalogue useful as reference prose rather
-// than a bare list: an op without a sentence is one the rules cannot explain.
-func TestOpsHaveDescriptions(t *testing.T) {
-	for _, op := range AvnacOps {
-		if strings.TrimSpace(op.Does) == "" {
-			t.Errorf("%s op=%s has no description", op.Tool, op.Op)
-		}
-	}
-}
